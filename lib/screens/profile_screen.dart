@@ -11,6 +11,19 @@ class ProfileScreen extends StatelessWidget {
     final Color primaryGreen = Colors.green[700]!;
     final Color lightGreen = Colors.green[100]!;
 
+
+    Future<int> getPoints() async {
+      // Simula un ritardo di rete
+      await Future.delayed(const Duration(seconds: 1));
+
+      // Restituisce un valore fittizio (mock)
+      // In un'app reale, qui faresti una chiamata HTTP:
+      // final response = await http.get(Uri.parse('https://api.tuosito.com/user/points'));
+      // return jsonDecode(response.body)['points'];
+      return 350;
+    }
+
+
     return Scaffold(
       backgroundColor: Colors.grey[100],
 
