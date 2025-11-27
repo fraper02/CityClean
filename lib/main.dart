@@ -17,7 +17,7 @@ class MyApp extends StatelessWidget {
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.green), // Tema verde
         useMaterial3: true,
       ),
-      home: const ProfileScreen(), // <-- Cosa putna la HOME
+      home: const ProfileScreen(), // <-- Cosa punta la HOME
     );
   }
 }
