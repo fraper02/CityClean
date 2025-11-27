@@ -11,7 +11,7 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'CityClean',
+      title: 'CityCleanP',
       debugShowCheckedModeBanner: false, // SERVE PER RIMUOVERE LA BARRA "DEBUG" IN ALTO SE AVETE BISOGNO DEL DEBUG SETTATE SU TRUE
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.green), // Tema verde
