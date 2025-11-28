@@ -14,34 +14,35 @@ class _EventsScreenState extends State<EventsScreen> {
   // Controller per la barra di ricerca
   final TextEditingController _searchController = TextEditingController();
 
-  // Dati finti (Mock Data) - In futuro arriveranno dal DB
+  // Dati finti (Mock Data) AGGIORNATI AL NUOVO MODEL
   final List<Event> _allEvents = [
     Event(
       id: '1',
       title: 'Pulizia Lungomare Trieste',
-      imageUrl: 'https://images.unsplash.com/photo-1618477461853-5f8dd12033d6?q=80&w=2000&auto=format&fit=crop', // Immagine esempio spiaggia
-      date: '15 Nov 2025',
-      time: '09:00',
+      imageUrl: 'https://images.unsplash.com/photo-1618477461853-5f8dd12033d6?q=80&w=2000&auto=format&fit=crop',
+      // NOTA: Ora usiamo DateTime(anno, mese, giorno, ora, minuti)
+      startDateTime: DateTime(2025, 11, 15, 9, 0),
+      endDateTime: DateTime(2025, 11, 15, 13, 0), // Ipotizzo finisca alle 13:00
       location: 'Lungomare Trieste, Salerno',
-      description: 'Raccolta rifiuti lungo il lungomare. Porta guanti e sacchetti, materiale aggiuntivo fornito.',
+      description: 'Raccolta rifiuti lungo il lungomare. Porta guanti e sacchetti.',
       category: 'Pulizia',
     ),
     Event(
       id: '2',
       title: 'Rimboschimento Parco Urbano',
-      imageUrl: 'https://images.unsplash.com/photo-1542601906990-b4d3fb778b09?q=80&w=2000&auto=format&fit=crop', // Immagine esempio parco
-      date: '20 Nov 2025',
-      time: '10:30',
+      imageUrl: 'https://images.unsplash.com/photo-1542601906990-b4d3fb778b09?q=80&w=2000&auto=format&fit=crop',
+      startDateTime: DateTime(2025, 11, 20, 10, 30),
+      endDateTime: DateTime(2025, 11, 20, 16, 00),
       location: 'Parco del Mercatello, Salerno',
-      description: 'Giornata dedicata alla piantumazione di nuovi alberi nel parco cittadino.',
+      description: 'Giornata dedicata alla piantumazione di nuovi alberi.',
       category: 'Verde',
     ),
     Event(
       id: '3',
       title: 'Workshop Riciclo Creativo',
-      imageUrl: 'https://images.unsplash.com/photo-1552664730-d307ca884978?q=80&w=2000&auto=format&fit=crop', // Immagine esempio workshop
-      date: '01 Dic 2025',
-      time: '16:00',
+      imageUrl: 'https://images.unsplash.com/photo-1552664730-d307ca884978?q=80&w=2000&auto=format&fit=crop',
+      startDateTime: DateTime(2025, 12, 1, 16, 0),
+      endDateTime: DateTime(2025, 12, 1, 18, 30),
       location: 'Centro Sociale, Pastena',
       description: 'Impariamo a dare nuova vita agli oggetti di plastica e carta.',
       category: 'Workshop',
@@ -54,11 +55,10 @@ class _EventsScreenState extends State<EventsScreen> {
   @override
   void initState() {
     super.initState();
-    // All'inizio, la lista filtrata è uguale a quella completa
     _filteredEvents = _allEvents;
   }
 
-  // Funzione di ricerca
+  // Funzione di ricerca (Invariata, cerca per titolo o luogo)
   void _runFilter(String enteredKeyword) {
     List<Event> results = [];
     if (enteredKeyword.isEmpty) {
@@ -82,14 +82,14 @@ class _EventsScreenState extends State<EventsScreen> {
 
     return Scaffold(
       backgroundColor: Colors.grey[100],
-      // Navbar Index 3 per "Eventi"
+      // Assicurati che il tuo BottomNavBar accetti l'indice
       bottomNavigationBar: const CityCleanBottomNavBar(currentIndex: 3),
 
       body: Stack(
         children: [
           // 1. HEADER VERDE
           Container(
-            height: 200, // Header un po' più basso per lasciare spazio alla ricerca
+            height: 200,
             width: double.infinity,
             decoration: BoxDecoration(
               color: primaryGreen,
@@ -146,12 +146,11 @@ class _EventsScreenState extends State<EventsScreen> {
                     itemCount: _filteredEvents.length,
                     itemBuilder: (context, index) {
                       final event = _filteredEvents[index];
-                      // Qui chiamiamo il nostro Widget separato!
+
+                      // Passiamo l'oggetto Event aggiornato alla Card
                       return EventCard(
                         event: event,
                         onTap: () {
-                          // Azione quando clicchi "Maggiori Info"
-                          // Es: Navigator.push(context, MaterialPageRoute(...));
                           ScaffoldMessenger.of(context).showSnackBar(
                             SnackBar(content: Text("Hai selezionato: ${event.title}")),
                           );

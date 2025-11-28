@@ -1,7 +1,24 @@
 import 'package:flutter/material.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import 'screens/profile_screen.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 
-void main() {
+//Questa variabile dovrebbe essere utilizzabile su tutta l'app
+final supabase = Supabase.instance.client;
+
+void main() async { //
+  WidgetsFlutterBinding.ensureInitialized();
+
+  //Caricamento file env
+  await dotenv.load(fileName: ".env");
+
+  //.env variables
+  await Supabase.initialize(
+    url: dotenv.env['PROJECT_URL'] ?? '',
+    anonKey: dotenv.env['API_KEY'] ?? '',
+    postgrestOptions: const PostgrestClientOptions(schema: 'cityclean'),
+  );
+
   runApp(const MyApp());
 }
 
@@ -12,14 +29,12 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'CityClean',
-      debugShowCheckedModeBanner: false, // SERVE PER RIMUOVERE LA BARRA "DEBUG" IN ALTO SE AVETE BISOGNO DEL DEBUG SETTATE SU TRUE
+      debugShowCheckedModeBanner: false,
       theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(seedColor: Colors.green), // Tema verde
+        colorScheme: ColorScheme.fromSeed(seedColor: Colors.green),
         useMaterial3: true,
       ),
-      home: const ProfileScreen(), // <-- Cosa putna la HOME
+      home: const ProfileScreen(),
     );
   }
 }
-
-
