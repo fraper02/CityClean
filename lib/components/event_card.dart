@@ -16,7 +16,7 @@ class EventCard extends StatelessWidget {
   Widget build(BuildContext context) {
     // Formattiamo la data e l'ora qui per tenerlo pulito nel build
     // Esempio: "15 Nov 2025"
-    final String formattedDate = DateFormat('dd MMM yyyy').format(event.startDateTime);
+    final String formattedDate = DateFormat('dd MM yyyy').format(event.startDateTime);
     // Esempio: "09:00"
     final String formattedTime = DateFormat('HH:mm').format(event.startDateTime);
 
