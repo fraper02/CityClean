@@ -27,17 +27,23 @@ class LoginScreen extends StatelessWidget {
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 const SizedBox(height: 60),
-                // LOGO
+
+                // LOGO (Modificato)
                 Container(
-                  padding: const EdgeInsets.all(15),
+                  padding: const EdgeInsets.all(15), // Spazio attorno al logo
                   decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.2), // Effetto vetro
+                    color: Colors.white.withOpacity(0.2), // Cerchio leggero "effetto vetro"
                     shape: BoxShape.circle,
                   ),
-                  // Se hai caricato il logo usa: Image.asset('assets/images/logo.png', height: 80),
-                  // Per ora uso un'icona segnaposto
-                  child: const Icon(Icons.eco, size: 80, color: Colors.amber),
+                  // QUI CARICHIAMO IL LOGO REALE
+                  child: Image.asset(
+                    'assets/images/logo.png', // Assicurati che il file si chiami così!
+                    height: 90, // Dimensione del logo
+                    width: 90,
+                    fit: BoxFit.contain,
+                  ),
                 ),
+
                 const SizedBox(height: 20),
                 const Text(
                   "CityClean",
