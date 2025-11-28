@@ -21,15 +21,16 @@ class Reward {
 // --- 2. FUNZIONI DI MOCKING INTEGRATE ---
 // Funzioni che simulano chiamate di rete, ora definite localmente.
 
-/// Funzione mock per recuperare il saldo punti dell'utente.
+//TODO INSERIRE CHIAMATA AL BACKEND PER AVERE DATI AL POSTO DEL MOCK
 Future<int> getMockPoints() async {
   await Future.delayed(const Duration(seconds: 1));
   return 350;
 }
 
 /// Funzione mock per recuperare la lista dei premi disponibili.
+/// TODO INSERIRE CHIAMATA AL BACKEND PER AVERE DATI
 Future<List<Reward>> getMockAvailableRewards() async {
-  await Future.delayed(const Duration(milliseconds: 1500));
+  await Future.delayed(const Duration(milliseconds: 100));
   return const [
     Reward(title: "Sconto 10%", points: 100, iconName: 'card_giftcard'),
     Reward(title: "Prodotto Omaggio", points: 250, iconName: 'star_outline'),
@@ -106,16 +107,14 @@ class _RewardsScreenState extends State<RewardsScreen> {
 
   /// Metodo che costruisce l'intera UI quando tutti i dati sono stati caricati.
   Widget _buildContentUI(BuildContext context, int userPoints, List<Reward> availableRewards) {
-    // Palette colori
     final Color primaryGreen = Colors.green[700]!;
     final Color lightGreenCard = Colors.lightGreen[100]!;
     final Color iconBgGreen = Colors.lightGreen[50]!;
 
-    return Stack(
+    return Column(
       children: [
-        // Header
+        // --- HEADER + CARD ---
         Container(
-          height: 240,
           width: double.infinity,
           decoration: BoxDecoration(
             color: primaryGreen,
@@ -124,58 +123,41 @@ class _RewardsScreenState extends State<RewardsScreen> {
               bottomRight: Radius.circular(30),
             ),
           ),
+          padding: const EdgeInsets.only(top: 50, left: 20, right: 20, bottom: 20),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text("Riscatto Premi",
+                  style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: Colors.white)),
+              const SizedBox(height: 20),
+              _buildPointsSummaryCard(userPoints, lightGreenCard, primaryGreen),
+            ],
+          ),
         ),
 
-        // Contenuto scorrevole
-        SafeArea(
-          child: SingleChildScrollView(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Testi Intestazione con punti dinamici
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(20, 20, 20, 20),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text("Riscatto Premi", style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: Colors.white)),
-                      const SizedBox(height: 5),
-                      Text("I tuoi punti: $userPoints", style: const TextStyle(fontSize: 16, color: Colors.white70)),
-                    ],
-                  ),
-                ),
+        const SizedBox(height: 10),
 
-                // Card Riepilogo Punti
-                _buildPointsSummaryCard(userPoints, lightGreenCard, primaryGreen),
+        // --- TITOLO PREMI ---
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+          child: Text("Premi disponibili",
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.green[800])),
+        ),
 
-                const SizedBox(height: 25),
-
-                // Titolo Sezione "Premi disponibili"
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 20),
-                  child: Text("Premi disponibili", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.green[800])),
-                ),
-                const SizedBox(height: 15),
-
-                // Lista premi dinamica
-                ListView.builder(
-                  itemCount: availableRewards.length,
-                  shrinkWrap: true,
-                  physics: const NeverScrollableScrollPhysics(),
-                  itemBuilder: (context, index) {
-                    final reward = availableRewards[index];
-                    return _buildRewardCard(
-                      reward: reward,
-                      iconBg: iconBgGreen,
-                      iconColor: primaryGreen,
-                      canRedeem: userPoints >= reward.points,
-                      onRedeem: () => print("Tentativo di riscatto: ${reward.title}"),
-                    );
-                  },
-                ),
-                const SizedBox(height: 30),
-              ],
-            ),
+        // --- LISTA ---
+        Expanded(
+          child: ListView.builder(
+            itemCount: availableRewards.length,
+            itemBuilder: (context, index) {
+              final reward = availableRewards[index];
+              return _buildRewardCard(
+                reward: reward,
+                iconBg: iconBgGreen,
+                iconColor: primaryGreen,
+                canRedeem: userPoints >= reward.points,
+                onRedeem: () => print("Tentativo di riscatto: ${reward.title}"),
+              );
+            },
           ),
         ),
       ],

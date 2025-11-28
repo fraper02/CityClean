@@ -1,3 +1,5 @@
+// C:/Users/antop/StudioProjects/CityClean/lib/screens/profile_screen.dart
+
 import 'package:flutter/material.dart';
 import '../components/bottom_nav_bar.dart';
 import 'rewards_screen.dart';
@@ -46,11 +48,21 @@ class _ProfileScreenState extends State<ProfileScreen> {
     final Color primaryGreen = Colors.green[700]!;
     final Color lightGreen = Colors.green[100]!;
 
+  @override
+  Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.grey[100],
-
-      // NAVBAR INFERIORE PERSONALIZZATA
       bottomNavigationBar: const CityCleanBottomNavBar(currentIndex: 2),
+      body: FutureBuilder<Map<String, dynamic>>(
+        future: _profileDataFuture,
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            // Mostra una UI "scheletro" durante il caricamento
+            return const Center(child: CircularProgressIndicator());
+          }
+          if (snapshot.hasError || !snapshot.hasData) {
+            return const Center(child: Text("Impossibile caricare il profilo."));
+          }
 
       body: FutureBuilder<Map<String, dynamic>?>(
           future: _userFuture,
@@ -227,6 +239,49 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
+  // --- WIDGET HELPER PER LA NUOVA CARD DI NAVIGAZIONE ---
+  Widget _buildNavigationCard({
+    required BuildContext context,
+    required IconData icon,
+    required String label,
+    required String subtitle,
+    required Color iconColor,
+    required VoidCallback onTap,
+  }) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(15),
+        child: Container(
+          padding: const EdgeInsets.symmetric(vertical: 15, horizontal: 20),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(15),
+            border: Border.all(color: Colors.grey.shade200),
+          ),
+          child: Row(
+            children: [
+              Icon(icon, color: iconColor, size: 28),
+              const SizedBox(width: 20),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(label, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                    const SizedBox(height: 4),
+                    Text(subtitle, style: TextStyle(color: Colors.grey[600], fontSize: 14)),
+                  ],
+                ),
+              ),
+              Icon(Icons.arrow_forward_ios, color: Colors.grey[400], size: 16),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
   Widget _buildInfoCard(IconData icon, String label, String value, Color iconColor) {
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
@@ -235,14 +290,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
         color: Colors.white,
         borderRadius: BorderRadius.circular(15),
         border: Border.all(color: Colors.grey.shade200),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.grey.withOpacity(0.05),
-            spreadRadius: 1,
-            blurRadius: 5,
-            offset: const Offset(0, 2),
-          ),
-        ],
       ),
       child: Row(
         children: [
