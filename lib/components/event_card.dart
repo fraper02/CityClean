@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart'; // NECESSARIO PER FORMATTARE LE DATE
 import '../models/event.dart';
 
 class EventCard extends StatelessWidget {
   final Event event;
-  final VoidCallback onTap; // Per gestire il click sul pulsante
+  final VoidCallback onTap;
 
   const EventCard({
     super.key,
@@ -13,6 +14,12 @@ class EventCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Formattiamo la data e l'ora qui per tenerlo pulito nel build
+    // Esempio: "15 Nov 2025"
+    final String formattedDate = DateFormat('dd MMM yyyy').format(event.startDateTime);
+    // Esempio: "09:00"
+    final String formattedTime = DateFormat('HH:mm').format(event.startDateTime);
+
     return Container(
       margin: const EdgeInsets.only(bottom: 20),
       decoration: BoxDecoration(
@@ -32,10 +39,9 @@ class EventCard extends StatelessWidget {
           // 1. IMMAGINE E BADGE
           Stack(
             children: [
-              // Immagine arrotondata in alto
               ClipRRect(
                 borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
-                child: Image.network( // Usa network per immagini dal web (o asset per locali)
+                child: Image.network(
                   event.imageUrl,
                   height: 180,
                   width: double.infinity,
@@ -44,17 +50,18 @@ class EventCard extends StatelessWidget {
                     return Container(
                         height: 180,
                         color: Colors.grey[300],
-                        child: const Center(child: Icon(Icons.image_not_supported, size: 50, color: Colors.grey))
-                    );
+                        child: const Center(
+                            child: Icon(Icons.image_not_supported,
+                                size: 50, color: Colors.grey)));
                   },
                 ),
               ),
-              // Badge Categoria (in alto a destra)
               Positioned(
                 top: 15,
                 right: 15,
                 child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  padding:
+                  const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                   decoration: BoxDecoration(
                     color: Colors.green[700],
                     borderRadius: BorderRadius.circular(20),
@@ -84,15 +91,15 @@ class EventCard extends StatelessWidget {
                   style: TextStyle(
                     fontSize: 20,
                     fontWeight: FontWeight.bold,
-                    color: Colors.green[800], // Colore verde come nell'immagine
+                    color: Colors.green[800],
                   ),
                 ),
                 const SizedBox(height: 15),
 
-                // Info: Data, Ora, Luogo
-                _buildInfoRow(Icons.calendar_today_outlined, event.date),
+                // Info: Data, Ora, Luogo (USIAMO I DATI FORMATTATI)
+                _buildInfoRow(Icons.calendar_today_outlined, formattedDate),
                 const SizedBox(height: 8),
-                _buildInfoRow(Icons.access_time, event.time),
+                _buildInfoRow(Icons.access_time, formattedTime),
                 const SizedBox(height: 8),
                 _buildInfoRow(Icons.location_on_outlined, event.location),
 
@@ -122,7 +129,8 @@ class EventCard extends StatelessWidget {
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(15),
                       ),
-                      textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                      textStyle: const TextStyle(
+                          fontSize: 16, fontWeight: FontWeight.bold),
                     ),
                   ),
                 ),
@@ -134,7 +142,7 @@ class EventCard extends StatelessWidget {
     );
   }
 
-  // Helper per le righe di info (Data, Ora, Luogo)
+  // Helper per le righe di info
   Widget _buildInfoRow(IconData icon, String text) {
     return Row(
       children: [
