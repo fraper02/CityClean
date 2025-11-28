@@ -80,16 +80,20 @@ class _EventsScreenState extends State<EventsScreen> {
   Widget build(BuildContext context) {
     final Color primaryGreen = Colors.green[700]!;
 
+    // Altezza stimata dell'area HEADER + INTESTAZIONE + SEARCH BAR (fissa)
+    // 20 (padding top) + 28 (titolo) + 5 (spazio) + 50 (search bar) + 20 (padding bottom)
+    // Usiamo 170px come stima conservativa per l'altezza totale dei contenuti fissi.
+    const double fixedHeaderContentHeight = 170.0;
+
     return Scaffold(
       backgroundColor: Colors.grey[100],
-      // Assicurati che il tuo BottomNavBar accetti l'indice
       bottomNavigationBar: const CityCleanBottomNavBar(currentIndex: 3),
 
       body: Stack(
         children: [
-          // 1. HEADER VERDE
+          // 1. HEADER VERDE FISSO (Sfondo)
           Container(
-            height: 200,
+            height: 200, // Alto 200px
             width: double.infinity,
             decoration: BoxDecoration(
               color: primaryGreen,
@@ -100,66 +104,70 @@ class _EventsScreenState extends State<EventsScreen> {
             ),
           ),
 
+          // 2. CONTENUTO FISSO (Intestazione + Search Bar)
           SafeArea(
-            child: Column(
-              children: [
-                // 2. INTESTAZIONE E BARRA DI RICERCA
-                Padding(
-                  padding: const EdgeInsets.all(20),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text(
-                        "Eventi in Zona",
-                        style: TextStyle(
-                          fontSize: 28,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.white,
-                        ),
-                      ),
-                      const SizedBox(height: 20),
-
-                      // BARRA DI RICERCA
-                      TextField(
-                        controller: _searchController,
-                        onChanged: (value) => _runFilter(value),
-                        decoration: InputDecoration(
-                          hintText: "Cerca eventi...",
-                          prefixIcon: const Icon(Icons.search, color: Colors.green),
-                          filled: true,
-                          fillColor: Colors.white,
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(15),
-                            borderSide: BorderSide.none,
-                          ),
-                          contentPadding: const EdgeInsets.symmetric(vertical: 15),
-                        ),
-                      ),
-                    ],
+            child: Padding(
+              padding: const EdgeInsets.all(20),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                // **CRUCIALE:** Aggiungiamo solo gli elementi FISSI qui.
+                children: [
+                  const Text(
+                    "Eventi in Zona",
+                    style: TextStyle(
+                      fontSize: 28,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white,
+                    ),
                   ),
-                ),
+                  const SizedBox(height: 20),
 
-                // 3. LISTA DEGLI EVENTI
-                Expanded(
-                  child: ListView.builder(
-                    padding: const EdgeInsets.symmetric(horizontal: 20),
-                    itemCount: _filteredEvents.length,
-                    itemBuilder: (context, index) {
-                      final event = _filteredEvents[index];
+                  // BARRA DI RICERCA
+                  TextField(
+                    controller: _searchController,
+                    onChanged: (value) => _runFilter(value),
+                    decoration: InputDecoration(
+                      hintText: "Cerca eventi...",
+                      prefixIcon: const Icon(Icons.search, color: Colors.green),
+                      filled: true,
+                      fillColor: Colors.white,
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(15),
+                        borderSide: BorderSide.none,
+                      ),
+                      contentPadding: const EdgeInsets.symmetric(vertical: 15),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
 
-                      // Passiamo l'oggetto Event aggiornato alla Card
-                      return EventCard(
-                        event: event,
-                        onTap: () {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(content: Text("Hai selezionato: ${event.title}")),
-                          );
-                        },
+          // 3. CONTENUTO SCORREVOLE (Lista degli Eventi)
+          // Usiamo Positioned per posizionare la lista scorrevole esattamente sotto il contenuto fisso.
+          Positioned(
+            top: MediaQuery.of(context).padding.top + fixedHeaderContentHeight, // Parte sotto la SafeArea + contenuto fisso
+            left: 0,
+            right: 0,
+            bottom: 0, // Occupiamo tutto lo spazio rimanente
+            child: Padding(
+              padding: const EdgeInsets.only(bottom: 20), // Padding opzionale dal basso se necessario
+              child: ListView.builder(
+                padding: const EdgeInsets.symmetric(horizontal: 20), // Padding orizzontale come prima
+                itemCount: _filteredEvents.length,
+                itemBuilder: (context, index) {
+                  final event = _filteredEvents[index];
+
+                  return EventCard(
+                    event: event,
+                    onTap: () {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(content: Text("Hai selezionato: ${event.title}")),
                       );
                     },
-                  ),
-                ),
-              ],
+                  );
+                },
+              ),
             ),
           ),
         ],
