@@ -21,15 +21,16 @@ class Reward {
 // --- 2. FUNZIONI DI MOCKING INTEGRATE ---
 // Funzioni che simulano chiamate di rete, ora definite localmente.
 
-/// Funzione mock per recuperare il saldo punti dell'utente.
+//TODO INSERIRE CHIAMATA AL BACKEND PER AVERE DATI AL POSTO DEL MOCK
 Future<int> getMockPoints() async {
   await Future.delayed(const Duration(seconds: 1));
   return 350;
 }
 
 /// Funzione mock per recuperare la lista dei premi disponibili.
+/// TODO INSERIRE CHIAMATA AL BACKEND PER AVERE DATI
 Future<List<Reward>> getMockAvailableRewards() async {
-  await Future.delayed(const Duration(milliseconds: 1500));
+  await Future.delayed(const Duration(milliseconds: 100));
   return const [
     Reward(title: "Sconto 10%", points: 100, iconName: 'card_giftcard'),
     Reward(title: "Prodotto Omaggio", points: 250, iconName: 'star_outline'),
