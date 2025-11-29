@@ -1,11 +1,10 @@
 import 'package:latlong2/latlong.dart';
 
-// Modello per i Punti di Raccolta (Eco-Compattatori)
 class EcoPoint {
   final String id;
   final String name;
-  final String type; // Es. "Plastica", "Vetro", "Generico"
-  final LatLng location; // Coordinate reali
+  final String type;
+  final LatLng location; // Deve essere location di tipo LatLng
 
   EcoPoint({
     required this.id,
@@ -15,12 +14,11 @@ class EcoPoint {
   });
 }
 
-// Modello per le Zone Inquinate
 class PollutedZone {
   final String id;
-  final LatLng center; // Centro della zona
-  final double radius; // Raggio in metri (o pixel se non usi useRadiusInMeter)
-  final String severity; // "Alta", "Media"
+  final LatLng center;
+  final double radius;
+  final String severity;
 
   PollutedZone({
     required this.id,

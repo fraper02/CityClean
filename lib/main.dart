@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'screens/profile_screen.dart';
+import 'components/auth_gate.dart'; // <--- Importa l'AuthGate
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 //Questa variabile dovrebbe essere utilizzabile su tutta l'app
@@ -34,7 +34,7 @@ class MyApp extends StatelessWidget {
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.green),
         useMaterial3: true,
       ),
-      home: const ProfileScreen(),
+      home: const AuthGate(),
     );
   }
 }
