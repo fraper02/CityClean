@@ -62,7 +62,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
       'subtitle': 'Unisciti a CityClean oggi',
       'name': 'Nome',
       'surname': 'Cognome',
-      'datadinascita': 'Data di Nascita',
+      'birthDate': 'Data di Nascita',
       'email': 'Email',
       'password': 'Password',
       'privacy': 'Accetto la Privacy Policy',
