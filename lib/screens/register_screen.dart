@@ -10,6 +10,8 @@ class RegisterScreen extends StatefulWidget {
 
 class _RegisterScreenState extends State<RegisterScreen> {
   // Controller per i campi di testo
+  final TextEditingController _nameController = TextEditingController();
+  final TextEditingController _surnameController = TextEditingController();
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _usernameController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
@@ -119,16 +121,29 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 const SizedBox(height: 40),
 
                 // CAMPI DI INPUT
-                _buildLabel(texts['email']!),
-                _buildTextField(_emailController, Icons.email_outlined, "tuo@email.com"),
-                const SizedBox(height: 15),
-
-                _buildLabel(texts['username']!),
-                _buildTextField(_usernameController, Icons.person_outline, "MarioRossi"),
-                const SizedBox(height: 15),
-
-                _buildLabel(texts['password']!),
-                _buildTextField(_passwordController, Icons.lock_outline, "........", isPassword: true),
+                Row(
+                  children: [
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          _buildLabel(_isEnglish ? "Name" : "Nome"),
+                          _buildTextField(_nameController, Icons.person_outline, "Mario"),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(width: 15),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          _buildLabel(_isEnglish ? "Surname" : "Cognome"),
+                          _buildTextField(_surnameController, Icons.person_outline, "Rossi"),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
                 const SizedBox(height: 15),
 
                 _buildLabel(texts['birthDate']!),
@@ -138,7 +153,12 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     child: _buildTextField(_birthDateController, Icons.calendar_today, "GG/MM/AAAA"),
                   ),
                 ),
-
+                const SizedBox(height: 15),
+                _buildLabel(texts['email']!),
+                _buildTextField(_emailController, Icons.email_outlined, "tuo@email.com"),
+                const SizedBox(height: 15),
+                _buildLabel(texts['password']!),
+                _buildTextField(_passwordController, Icons.lock_outline, "........", isPassword: true),
                 const SizedBox(height: 20),
 
                 // CHECKBOX PRIVACY
