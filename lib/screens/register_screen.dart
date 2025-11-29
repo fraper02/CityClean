@@ -13,7 +13,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
   final TextEditingController _nameController = TextEditingController();
   final TextEditingController _surnameController = TextEditingController();
   final TextEditingController _emailController = TextEditingController();
-  final TextEditingController _usernameController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
   final TextEditingController _birthDateController = TextEditingController();
 
@@ -49,10 +48,11 @@ class _RegisterScreenState extends State<RegisterScreen> {
         ? {
       'title': 'Register',
       'subtitle': 'Join CityClean today',
-      'email': 'Email',
-      'username': 'Username',
-      'password': 'Password',
+      "name": "'Name",
+      "surname": "Surname",
       'birthDate': 'Date of Birth',
+      'email': 'Email',
+      'password': 'Password',
       'privacy': 'I accept the Privacy Policy',
       'next': 'Next',
       'login': 'Already have an account? Login',
@@ -60,10 +60,11 @@ class _RegisterScreenState extends State<RegisterScreen> {
         : {
       'title': 'Registrati',
       'subtitle': 'Unisciti a CityClean oggi',
+      'name': 'Nome',
+      'surname': 'Cognome',
+      'datadinascita': 'Data di Nascita',
       'email': 'Email',
-      'username': 'Username',
       'password': 'Password',
-      'birthDate': 'Data di Nascita',
       'privacy': 'Accetto la Privacy Policy',
       'next': 'Avanti',
       'login': 'Hai già un account? Accedi',
@@ -199,7 +200,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                         MaterialPageRoute(
                           builder: (context) => RegisterPreferencesScreen(
                             isEnglish: _isEnglish, // Passiamo la lingua scelta
-                            // Qui potresti passare anche i dati raccolti (email, username, ecc.)
+                            // Qui potresti passare anche i dati raccolti (nome,cognome,email, ecc.)
                           ),
                         ),
                       );
