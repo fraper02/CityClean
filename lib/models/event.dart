@@ -7,9 +7,6 @@ class Event {
   final String category;
   final DateTime startDateTime;
   final DateTime endDateTime;
-
-  // Campo immagine attivo. Mappato su 'immagine_url'.
-  // TODO: Aggiungere campo imageUrl al database (NOTNull)
   final String imageUrl;
 
   Event({
@@ -26,30 +23,42 @@ class Event {
   // --- SERIALIZZAZIONE (Supabase <-> Flutter) ---
 
   factory Event.fromJson(Map<String, dynamic> json) {
+    // Legge l'URL dell'immagine in modo sicuro, usando la convenzione snake_case
+    final imageUrlFromDb = json['immagine'] as String?;
+
     return Event(
-      id: json['idEvento'],
-      title: json['titolo'],
-      description: json['descrizione'],
-      location: json['località'],
-      category: json['categoria'],
+      // MODIFICA: Utilizzo di chiavi snake_case, standard per Supabase
+      id: json['idevento'] as String? ?? '',
+      title: json['titolo'] as String? ?? 'Titolo non disponibile', 
+      description: json['descrizione'] as String? ?? 'Descrizione non disponibile', 
+      location: json['localita'] as String? ?? 'Luogo non disponibile',
+      category: json['categoria'] as String? ?? 'Nessuna categoria', 
 
-      startDateTime: DateTime.parse(json['dataOraInizio']),
-      endDateTime: DateTime.parse(json['dataOraFine']),
+      // MODIFICA: Chiavi snake_case per le date per matchare il DB
+      startDateTime: json['dataorainizio'] != null
+          ? DateTime.parse(json['dataorainizio'])
+          : DateTime.now(), // Fallback solo se il dato è davvero nullo
+      endDateTime: json['dataorafine'] != null
+          ? DateTime.parse(json['dataorafine'])
+          : DateTime.now(),
 
-      imageUrl: json['immagine_url'] ?? '',
+      imageUrl: (imageUrlFromDb == null || imageUrlFromDb.isEmpty)
+          ? 'https://placehold.co/600x400/2E7D32/FFFFFF?text=CityClean' // URL del placeholder
+          : imageUrlFromDb,
     );
   }
 
+  // MODIFICA: Aggiornato anche toJson per coerenza
   Map<String, dynamic> toJson() {
     return {
-      'idEvento': id,
+      'idevento': id,
       'titolo': title,
       'descrizione': description,
-      'località': location,
+      'localita': location,
       'categoria': category,
-      'dataOraInizio': startDateTime.toIso8601String(),
-      'dataOraFine': endDateTime.toIso8601String(),
-      'immagine_url': imageUrl,
+      'dataorainizio': startDateTime.toIso8601String(),
+      'dataorafine': endDateTime.toIso8601String(),
+      'immagine': imageUrl,
     };
   }
 }
