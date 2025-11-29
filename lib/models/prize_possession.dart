@@ -1,38 +1,37 @@
+// lib/models/prize_possession.dart
+
 class PrizePossession {
-  final String id;
+  final String idRiscatto;
   final String userId;
   final String prizeId;
-  final DateTime acquiredAt; // Utile per sapere QUANDO è stato ottenuto
+  final DateTime acquiredAt;
 
   PrizePossession({
-    required this.id,
+    required this.idRiscatto,
     required this.userId,
     required this.prizeId,
     required this.acquiredAt,
   });
 
-  // DA SUPABASE A FLUTTER
+  // Converte i dati del DB in un oggetto Dart.
+  // I nomi delle chiavi (es. 'idRiscatto') devono corrispondere esattamente
+  // a quelli restituiti dal DB.
   factory PrizePossession.fromJson(Map<String, dynamic> json) {
     return PrizePossession(
-      id: json['id'] ?? '', // Gestione sicurezza se l'id manca
-
-      // Mappatura CamelCase come richiesto
-      userId: json['idUtente'],
-      prizeId: json['idPremio'],
-
-      // Se nel DB non hai la data, usa l'ora attuale come fallback
-      acquiredAt: json['dataAcquisizione'] != null
-          ? DateTime.parse(json['dataAcquisizione'])
-          : DateTime.now(),
+      idRiscatto: json['idRiscatto'],
+      userId: json['idutente'],
+      prizeId: json['idpremio'],
+      acquiredAt: DateTime.parse(json['dataAcquisizione']),
     );
   }
 
-  // DA FLUTTER A SUPABASE
+  // Converte l'oggetto Dart in JSON. Utile per vari scopi, ma non per l'inserimento
+  // se l'ID è generato dal DB.
   Map<String, dynamic> toJson() {
     return {
-      // 'id': id, // Solitamente l'ID è auto-generato dal DB, quindi non lo inviamo in creazione
-      'idUtente': userId,
-      'idPremio': prizeId,
+      'idRiscatto': idRiscatto,
+      'idutente': userId,
+      'idpremio': prizeId,
       'dataAcquisizione': acquiredAt.toIso8601String(),
     };
   }
