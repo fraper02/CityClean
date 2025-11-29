@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 import 'login_screen.dart'; // Per il logout
+import '../main.dart'; // Per supabase
+import '../services/storage_service.dart';
+import '../components/auth_gate.dart'; // Importiamo AuthGate
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -9,8 +12,25 @@ class SettingsScreen extends StatefulWidget {
 }
 
 class _SettingsScreenState extends State<SettingsScreen> {
-  // Stato per lo switch delle notifiche
   bool _notificationsEnabled = true;
+
+  // Funzione Logout
+  Future<void> _signOut() async {
+    // 1. Pulisci i dati locali
+    await StorageService.clearSession();
+
+    // 2. Logout da Supabase
+    await supabase.auth.signOut();
+
+    if (mounted) {
+      // 3. FIX: Invece di popUntil, usiamo pushAndRemoveUntil.
+      // Questo cancella TUTTA la storia di navigazione e riavvia l'app da AuthGate (o LoginScreen).
+      Navigator.of(context).pushAndRemoveUntil(
+        MaterialPageRoute(builder: (context) => const AuthGate()),
+            (route) => false, // Rimuove tutte le rotte precedenti
+      );
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -20,7 +40,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
       backgroundColor: Colors.grey[100],
       body: Stack(
         children: [
-          // HEADER VERDE (Sfondo fisso)
+          // HEADER VERDE
           Container(
             height: 180,
             width: double.infinity,
@@ -66,7 +86,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     ),
                   ),
 
-                  // CORREZIONE: Aumentato lo spazio per spingere il contenuto sotto l'header verde
                   const SizedBox(height: 80),
 
                   // SEZIONE PREFERENZE
@@ -97,7 +116,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                           },
                         ),
                         const Divider(height: 1, indent: 60, endIndent: 20),
-                        // Lingua
+                        // Lingua (Placeholder)
                         ListTile(
                           leading: Container(
                             padding: const EdgeInsets.all(8),
@@ -105,16 +124,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
                             child: Icon(Icons.language, color: primaryGreen),
                           ),
                           title: const Text("Lingua", style: TextStyle(fontWeight: FontWeight.w500)),
-                          trailing: Row(
+                          trailing: const Row(
                             mainAxisSize: MainAxisSize.min,
-                            children: const [
+                            children: [
                               Text("Italiano", style: TextStyle(color: Colors.grey)),
                               Icon(Icons.chevron_right, color: Colors.grey),
                             ],
                           ),
-                          onTap: () {
-                            // Qui si aprirebbe il dialog per scegliere Inglese/Italiano
-                          },
+                          onTap: () {},
                         ),
                       ],
                     ),
@@ -147,14 +164,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     width: double.infinity,
                     height: 55,
                     child: OutlinedButton.icon(
-                      onPressed: () {
-                        // LOGOUT: Pulisce la storia di navigazione e va al Login
-                        Navigator.pushAndRemoveUntil(
-                          context,
-                          MaterialPageRoute(builder: (context) => const LoginScreen()),
-                              (route) => false,
-                        );
-                      },
+                      onPressed: _signOut, // Chiama la funzione corretta
                       style: OutlinedButton.styleFrom(
                         foregroundColor: primaryGreen,
                         side: BorderSide(color: primaryGreen, width: 1.5),

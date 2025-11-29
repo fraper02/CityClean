@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_map/flutter_map.dart'; // NECESSARIO: flutter_map: ^7.0.2
-import 'package:latlong2/latlong.dart' hide Path; // FIX: Nascondiamo 'Path' per evitare conflitti grafici
+import 'package:flutter_map/flutter_map.dart';
+import 'package:latlong2/latlong.dart' hide Path; // Fix per il conflitto Path
+import 'package:geolocator/geolocator.dart';
 import '../components/bottom_nav_bar.dart';
-import '../models/map_models.dart'; // Ora usiamo i tuoi modelli reali aggiornati
-import '../data/map_data.dart';     // Ora usiamo i tuoi dati reali aggiornati
+import '../models/map_models.dart';
+import '../services/osm_service.dart';
+import 'dart:async';
+import '../data/map_data.dart';
 
 class MapScreen extends StatefulWidget {
   const MapScreen({super.key});
@@ -13,100 +16,169 @@ class MapScreen extends StatefulWidget {
 }
 
 class _MapScreenState extends State<MapScreen> {
-  // Controller per muovere la mappa programmaticamente
   final MapController _mapController = MapController();
+  final OsmService _osmService = OsmService();
 
-  // Centro di Salerno (Piazza della Concordia approx)
-  final LatLng _salernoCenter = const LatLng(40.6795, 14.7645);
+  LatLng _currentCenter = const LatLng(40.6795, 14.7645);
+  bool _isLocationLoaded = false;
+
+  List<EcoPoint> _ecoPoints = [];
+  List<PollutedZone> _pollutedZones = [];
+  bool _isLoading = false;
+
+  // Filtro per i cestini
+  bool _showBins = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _initializeLocation();
+  }
+
+  Future<void> _initializeLocation() async {
+    bool serviceEnabled;
+    LocationPermission permission;
+
+    serviceEnabled = await Geolocator.isLocationServiceEnabled();
+    if (!serviceEnabled) {
+      _loadPoints();
+      return;
+    }
+
+    permission = await Geolocator.checkPermission();
+    if (permission == LocationPermission.denied) {
+      permission = await Geolocator.requestPermission();
+      if (permission == LocationPermission.denied) {
+        _loadPoints();
+        return;
+      }
+    }
+
+    if (permission == LocationPermission.deniedForever) {
+      _loadPoints();
+      return;
+    }
+
+    Position position = await Geolocator.getCurrentPosition();
+
+    if (mounted) {
+      setState(() {
+        _currentCenter = LatLng(position.latitude, position.longitude);
+        _isLocationLoaded = true;
+      });
+      _mapController.move(_currentCenter, 15.0);
+      _loadPoints();
+    }
+  }
+
+  Future<void> _loadPoints() async {
+    if (_isLoading) return;
+
+    setState(() {
+      _isLoading = true;
+    });
+
+    try {
+      final zones = MockMapData.pollutedZones;
+      final mockPoints = MockMapData.ecoPoints;
+
+      LatLng centerToUse = _currentCenter;
+      try {
+        centerToUse = _mapController.camera.center;
+      } catch(_){}
+
+      final realPoints = await _osmService.fetchRecyclingPoints(centerToUse, 2000);
+
+      if (mounted) {
+        setState(() {
+          _pollutedZones = zones;
+          _ecoPoints = [...mockPoints, ...realPoints];
+          _isLoading = false;
+        });
+      }
+    } catch (e) {
+      print("Errore caricamento punti: $e");
+      if (mounted) {
+        setState(() {
+          _pollutedZones = MockMapData.pollutedZones;
+          _ecoPoints = MockMapData.ecoPoints;
+          _isLoading = false;
+        });
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     final Color primaryGreen = Colors.green[700]!;
+
+    // FILTRO DELLA LISTA DA MOSTRARE
+    final pointsToShow = _showBins
+        ? _ecoPoints
+        : _ecoPoints.where((p) => p.type != 'Cestino').toList();
 
     return Scaffold(
       backgroundColor: Colors.grey[100],
       bottomNavigationBar: const CityCleanBottomNavBar(currentIndex: 0),
       body: Stack(
         children: [
-          // 1. LA MAPPA (OpenStreetMap)
           FlutterMap(
             mapController: _mapController,
             options: MapOptions(
-              initialCenter: _salernoCenter,
-              initialZoom: 13.5, // Zoom ideale per vedere tutta Salerno centro
-              interactionOptions: const InteractionOptions(
-                flags: InteractiveFlag.all,
-              ),
+              initialCenter: _currentCenter,
+              initialZoom: 15.0,
             ),
             children: [
-              // A. Sfondo Mappa (Tiles)
               TileLayer(
                 urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-                // È importante mettere un pacchetto reale per evitare blocchi da OSM
                 userAgentPackageName: 'com.unisa.cityclean',
               ),
 
-              // B. ZONE INQUINATE (CircleLayer)
-              // Leggiamo direttamente da MockMapData.pollutedZones
               CircleLayer(
-                circles: MockMapData.pollutedZones.map((zone) {
+                circles: _pollutedZones.map((zone) {
                   return CircleMarker(
                     point: zone.center,
                     radius: zone.radius,
-                    useRadiusInMeter: true, // IMPORTANTE: Il raggio ora rappresenta metri reali!
-                    color: zone.severity == 'Alta'
-                        ? Colors.red.withOpacity(0.3)
-                        : Colors.orange.withOpacity(0.3),
-                    borderColor: zone.severity == 'Alta'
-                        ? Colors.red.withOpacity(0.6)
-                        : Colors.orange.withOpacity(0.6),
+                    useRadiusInMeter: true,
+                    color: Colors.red.withOpacity(0.3),
+                    borderColor: Colors.red.withOpacity(0.7),
                     borderStrokeWidth: 2,
                   );
                 }).toList(),
               ),
 
-              // C. ECO-COMPATTATORI (MarkerLayer)
-              // Leggiamo direttamente da MockMapData.ecoPoints
               MarkerLayer(
-                markers: MockMapData.ecoPoints.map((point) {
+                markers: pointsToShow.map((point) {
                   return Marker(
                     point: point.location,
                     width: 50,
                     height: 60,
-                    alignment: Alignment.topCenter,
                     child: _buildCustomEcoMarker(point),
                   );
                 }).toList(),
               ),
 
-              // D. POSIZIONE UTENTE (Fittizia per demo)
-              MarkerLayer(
-                markers: [
-                  Marker(
-                    point: _salernoCenter, // Mettiamo l'utente al centro per ora
-                    width: 25,
-                    height: 25,
-                    child: const _UserLocationMarker(),
-                  ),
-                ],
-              ),
-
-              // E. CREDITI OSM
-              const RichAttributionWidget(
-                attributions: [
-                  TextSourceAttribution('OpenStreetMap contributors'),
-                ],
-              ),
+              if (_isLocationLoaded)
+                MarkerLayer(
+                  markers: [
+                    Marker(
+                      point: _currentCenter,
+                      width: 25,
+                      height: 25,
+                      child: const _UserLocationMarker(),
+                    ),
+                  ],
+                ),
             ],
           ),
 
-          // 2. HEADER VERDE (Fisso in alto)
+          // HEADER VERDE (Adattivo)
           Positioned(
             top: 0,
             left: 0,
             right: 0,
             child: Container(
-              height: 160,
+              // Rimosso height fisso per evitare overflow
               decoration: BoxDecoration(
                 color: primaryGreen.withOpacity(0.95),
                 borderRadius: const BorderRadius.only(
@@ -114,34 +186,30 @@ class _MapScreenState extends State<MapScreen> {
                   bottomRight: Radius.circular(30),
                 ),
                 boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withOpacity(0.2),
-                    blurRadius: 10,
-                    offset: const Offset(0, 5),
-                  )
+                  BoxShadow(color: Colors.black.withOpacity(0.2), blurRadius: 10, offset: const Offset(0, 5))
                 ],
               ),
-              child: const SafeArea(
+              child: SafeArea(
                 child: Padding(
-                  padding: EdgeInsets.all(20),
+                  padding: const EdgeInsets.fromLTRB(20, 10, 20, 20), // Aumentato padding bottom
                   child: Column(
+                    mainAxisSize: MainAxisSize.min, // Si adatta al contenuto
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(
-                        "Mappa",
-                        style: TextStyle(
-                          fontSize: 28,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.white,
-                        ),
-                      ),
-                      SizedBox(height: 5),
-                      Text(
-                        "Salerno - Trova punti di interesse",
-                        style: TextStyle(
-                          fontSize: 16,
-                          color: Colors.white70,
-                        ),
+                      const Text("Mappa", style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: Colors.white)),
+                      const SizedBox(height: 5),
+                      const Text("Salerno - Trova punti di interesse", style: TextStyle(fontSize: 16, color: Colors.white70)),
+                      const SizedBox(height: 5),
+                      // Info punti trovati
+                      Row(
+                        children: [
+                          const Icon(Icons.location_on, color: Colors.white70, size: 14),
+                          const SizedBox(width: 5),
+                          Text(
+                            "Punti visibili: ${pointsToShow.length}",
+                            style: const TextStyle(fontSize: 14, color: Colors.white, fontWeight: FontWeight.bold),
+                          ),
+                        ],
                       ),
                     ],
                   ),
@@ -150,13 +218,83 @@ class _MapScreenState extends State<MapScreen> {
             ),
           ),
 
-          // 3. FAB (Centra Posizione)
+          // BOTTONE CERCA QUI (Spostato più in basso per non collidere con l'header dinamico)
+          Positioned(
+            top: 190, // Aumentato da 150 a 190
+            right: 20,
+            child: ElevatedButton.icon(
+              onPressed: _isLoading ? null : _loadPoints,
+              icon: _isLoading
+                  ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(color: Colors.green, strokeWidth: 2))
+                  : const Icon(Icons.refresh, color: Colors.green),
+              label: Text(_isLoading ? "Caricamento..." : "Cerca qui"),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.white,
+                foregroundColor: Colors.green[700],
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+              ),
+            ),
+          ),
+
+          // SWITCH CESTINI (Basso Sinistra)
+          Positioned(
+            bottom: 30,
+            left: 20,
+            child: Container(
+              padding: const EdgeInsets.fromLTRB(12, 4, 4, 4),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(30),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.2),
+                    blurRadius: 8,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(
+                      Icons.delete_outline,
+                      color: _showBins ? Colors.orange[700] : Colors.grey,
+                      size: 24
+                  ),
+                  const SizedBox(width: 8),
+                  Text(
+                    "Cestini",
+                    style: TextStyle(
+                      color: Colors.black87,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 15,
+                    ),
+                  ),
+                  const SizedBox(width: 5),
+                  Switch(
+                    value: _showBins,
+                    activeColor: Colors.white,
+                    activeTrackColor: Colors.orange[400],
+                    inactiveThumbColor: Colors.grey[50],
+                    inactiveTrackColor: Colors.grey[300],
+                    onChanged: (val) {
+                      setState(() {
+                        _showBins = val;
+                      });
+                    },
+                  ),
+                ],
+              ),
+            ),
+          ),
+
+          // FAB GPS (Basso Destra)
           Positioned(
             bottom: 30,
             right: 20,
             child: FloatingActionButton(
-              onPressed: () {
-                _mapController.move(_salernoCenter, 15.0);
+              onPressed: () async {
+                await _initializeLocation();
               },
               backgroundColor: primaryGreen,
               child: const Icon(Icons.my_location, color: Colors.white),
@@ -167,8 +305,12 @@ class _MapScreenState extends State<MapScreen> {
     );
   }
 
-  // Costruisce il marker verde interagibile
   Widget _buildCustomEcoMarker(EcoPoint point) {
+    final isBin = point.type == 'Cestino';
+    final Color markerColor = isBin ? Colors.orange[300]! : Colors.lightGreen[200]!;
+    final IconData markerIcon = isBin ? Icons.delete : Icons.location_on_outlined;
+    final Color iconColor = Colors.black87;
+
     return GestureDetector(
       onTap: () {
         showModalBottomSheet(
@@ -183,25 +325,22 @@ class _MapScreenState extends State<MapScreen> {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Text(point.name, style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+                Text(point.name, style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold), textAlign: TextAlign.center),
                 const SizedBox(height: 10),
                 Chip(
                   label: Text(point.type),
-                  backgroundColor: Colors.green[100],
-                  avatar: const Icon(Icons.recycling, size: 18, color: Colors.green),
+                  backgroundColor: isBin ? Colors.orange[100] : Colors.green[100],
+                  avatar: Icon(isBin ? Icons.delete_outline : Icons.recycling, size: 18, color: isBin ? Colors.orange[800] : Colors.green),
                 ),
-                const SizedBox(height: 10),
-                // Aggiunta descrizione ID per debug
-                Text("ID Terminale: ${point.id}", style: const TextStyle(color: Colors.grey)),
                 const SizedBox(height: 20),
                 ElevatedButton(
                   onPressed: () => Navigator.pop(ctx),
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.green[700],
+                    backgroundColor: isBin ? Colors.orange[700] : Colors.green[700],
                     foregroundColor: Colors.white,
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                   ),
-                  child: const Text("Ottieni indicazioni"),
+                  child: const Text("Chiudi"),
                 )
               ],
             ),
@@ -213,16 +352,16 @@ class _MapScreenState extends State<MapScreen> {
           Container(
             padding: const EdgeInsets.all(8),
             decoration: BoxDecoration(
-              color: Colors.lightGreen[200],
+              color: markerColor,
               shape: BoxShape.circle,
               boxShadow: const [BoxShadow(blurRadius: 5, color: Colors.black26)],
             ),
-            child: const Icon(Icons.location_on_outlined, color: Colors.black87, size: 24),
+            child: Icon(markerIcon, color: iconColor, size: 24),
           ),
           ClipPath(
             clipper: _TriangleClipper(),
             child: Container(
-              color: Colors.lightGreen[200],
+              color: markerColor,
               width: 10,
               height: 8,
             ),
@@ -252,7 +391,7 @@ class _UserLocationMarker extends StatelessWidget {
 class _TriangleClipper extends CustomClipper<Path> {
   @override
   Path getClip(Size size) {
-    final path = Path(); // Usa il Path grafico di material.dart grazie all'hide negli import
+    final path = Path();
     path.lineTo(size.width / 2, size.height);
     path.lineTo(size.width, 0);
     path.close();

@@ -1,5 +1,6 @@
 # Miscellaneous
 .env
+pubspec.lock
 *.class
 *.log
 *.pyc
