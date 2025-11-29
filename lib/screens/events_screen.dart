@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../components/bottom_nav_bar.dart';
 import '../components/event_card.dart';
 import '../models/event.dart';
+import '../main.dart'; // Import for supabase client
 
 class EventsScreen extends StatefulWidget {
   const EventsScreen({super.key});
@@ -11,54 +12,58 @@ class EventsScreen extends StatefulWidget {
 }
 
 class _EventsScreenState extends State<EventsScreen> {
-  // Controller per la barra di ricerca
   final TextEditingController _searchController = TextEditingController();
 
-  // Dati finti (Mock Data) AGGIORNATI AL NUOVO MODEL
-  final List<Event> _allEvents = [
-    Event(
-      id: '1',
-      title: 'Pulizia Lungomare Trieste',
-      imageUrl: 'https://images.unsplash.com/photo-1618477461853-5f8dd12033d6?q=80&w=2000&auto=format&fit=crop',
-      // NOTA: Ora usiamo DateTime(anno, mese, giorno, ora, minuti)
-      startDateTime: DateTime(2025, 11, 15, 9, 0),
-      endDateTime: DateTime(2025, 11, 15, 13, 0), // Ipotizzo finisca alle 13:00
-      location: 'Lungomare Trieste, Salerno',
-      description: 'Raccolta rifiuti lungo il lungomare. Porta guanti e sacchetti.',
-      category: 'Pulizia',
-    ),
-    Event(
-      id: '2',
-      title: 'Rimboschimento Parco Urbano',
-      imageUrl: 'https://images.unsplash.com/photo-1542601906990-b4d3fb778b09?q=80&w=2000&auto=format&fit=crop',
-      startDateTime: DateTime(2025, 11, 20, 10, 30),
-      endDateTime: DateTime(2025, 11, 20, 16, 00),
-      location: 'Parco del Mercatello, Salerno',
-      description: 'Giornata dedicata alla piantumazione di nuovi alberi.',
-      category: 'Verde',
-    ),
-    Event(
-      id: '3',
-      title: 'Workshop Riciclo Creativo',
-      imageUrl: 'https://images.unsplash.com/photo-1552664730-d307ca884978?q=80&w=2000&auto=format&fit=crop',
-      startDateTime: DateTime(2025, 12, 1, 16, 0),
-      endDateTime: DateTime(2025, 12, 1, 18, 30),
-      location: 'Centro Sociale, Pastena',
-      description: 'Impariamo a dare nuova vita agli oggetti di plastica e carta.',
-      category: 'Workshop',
-    ),
-  ];
-
-  // Lista che verrà visualizzata (filtrata)
+  // Liste per gli eventi
+  List<Event> _allEvents = [];
   List<Event> _filteredEvents = [];
+
+  // Stato di caricamento
+  bool _isLoading = true;
 
   @override
   void initState() {
     super.initState();
-    _filteredEvents = _allEvents;
+    _fetchEvents();
   }
 
-  // Funzione di ricerca (Invariata, cerca per titolo o luogo)
+  // Funzione per caricare gli eventi da Supabase
+  Future<void> _fetchEvents() async {
+    try {
+      // 'evento' è il nome della tabella su Supabase
+      final response = await supabase.from('evento').select();
+
+      // La risposta è una List<dynamic>, dove ogni elemento è una Map<String, dynamic>
+      final List<Event> loadedEvents = (response as List)
+          .map((data) => Event.fromJson(data as Map<String, dynamic>))
+          .toList();
+      
+      // Ordina gli eventi dal più recente al meno recente
+      loadedEvents.sort((a, b) => b.startDateTime.compareTo(a.startDateTime));
+
+      if (mounted) {
+        setState(() {
+          _allEvents = loadedEvents;
+          _filteredEvents = loadedEvents;
+          _isLoading = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Errore nel caricamento degli eventi: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
+  // Funzione di ricerca (invariata)
   void _runFilter(String enteredKeyword) {
     List<Event> results = [];
     if (enteredKeyword.isEmpty) {
@@ -66,8 +71,8 @@ class _EventsScreenState extends State<EventsScreen> {
     } else {
       results = _allEvents
           .where((event) =>
-      event.title.toLowerCase().contains(enteredKeyword.toLowerCase()) ||
-          event.location.toLowerCase().contains(enteredKeyword.toLowerCase()))
+              event.title.toLowerCase().contains(enteredKeyword.toLowerCase()) ||
+              event.location.toLowerCase().contains(enteredKeyword.toLowerCase()))
           .toList();
     }
 
@@ -79,21 +84,16 @@ class _EventsScreenState extends State<EventsScreen> {
   @override
   Widget build(BuildContext context) {
     final Color primaryGreen = Colors.green[700]!;
-
-    // Altezza stimata dell'area HEADER + INTESTAZIONE + SEARCH BAR (fissa)
-    // 20 (padding top) + 28 (titolo) + 5 (spazio) + 50 (search bar) + 20 (padding bottom)
-    // Usiamo 170px come stima conservativa per l'altezza totale dei contenuti fissi.
     const double fixedHeaderContentHeight = 170.0;
 
     return Scaffold(
       backgroundColor: Colors.grey[100],
       bottomNavigationBar: const CityCleanBottomNavBar(currentIndex: 3),
-
       body: Stack(
         children: [
-          // 1. HEADER VERDE FISSO (Sfondo)
+          // 1. HEADER VERDE FISSO
           Container(
-            height: 200, // Alto 200px
+            height: 200,
             width: double.infinity,
             decoration: BoxDecoration(
               color: primaryGreen,
@@ -110,7 +110,6 @@ class _EventsScreenState extends State<EventsScreen> {
               padding: const EdgeInsets.all(20),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
-                // **CRUCIALE:** Aggiungiamo solo gli elementi FISSI qui.
                 children: [
                   const Text(
                     "Eventi in Zona",
@@ -121,8 +120,6 @@ class _EventsScreenState extends State<EventsScreen> {
                     ),
                   ),
                   const SizedBox(height: 20),
-
-                  // BARRA DI RICERCA
                   TextField(
                     controller: _searchController,
                     onChanged: (value) => _runFilter(value),
@@ -144,33 +141,52 @@ class _EventsScreenState extends State<EventsScreen> {
           ),
 
           // 3. CONTENUTO SCORREVOLE (Lista degli Eventi)
-          // Usiamo Positioned per posizionare la lista scorrevole esattamente sotto il contenuto fisso.
           Positioned(
-            top: MediaQuery.of(context).padding.top + fixedHeaderContentHeight, // Parte sotto la SafeArea + contenuto fisso
+            top: MediaQuery.of(context).padding.top + fixedHeaderContentHeight,
             left: 0,
             right: 0,
-            bottom: 0, // Occupiamo tutto lo spazio rimanente
-            child: Padding(
-              padding: const EdgeInsets.only(bottom: 20), // Padding opzionale dal basso se necessario
-              child: ListView.builder(
-                padding: const EdgeInsets.symmetric(horizontal: 20), // Padding orizzontale come prima
-                itemCount: _filteredEvents.length,
-                itemBuilder: (context, index) {
-                  final event = _filteredEvents[index];
-
-                  return EventCard(
-                    event: event,
-                    onTap: () {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(content: Text("Hai selezionato: ${event.title}")),
-                      );
-                    },
-                  );
-                },
-              ),
-            ),
+            bottom: 0,
+            child: _buildEventsList(), // Estratto in un widget helper
           ),
         ],
+      ),
+    );
+  }
+  
+  // Widget helper per la lista
+  Widget _buildEventsList() {
+    if (_isLoading) {
+      return const Center(child: CircularProgressIndicator());
+    }
+
+    if (_filteredEvents.isEmpty) {
+      // Messaggio mostrato sia se non ci sono eventi dal DB, sia se la ricerca non ha risultati.
+      return const Center(
+        child: Text(
+          "Nessun evento trovato.",
+          style: TextStyle(fontSize: 16, color: Colors.grey),
+        ),
+      );
+    }
+
+    return RefreshIndicator(
+      onRefresh: _fetchEvents, // Permette di ricaricare con pull-to-refresh
+      child: ListView.builder(
+        padding: const EdgeInsets.symmetric(horizontal: 20).copyWith(bottom: 20),
+        itemCount: _filteredEvents.length,
+        itemBuilder: (context, index) {
+          final event = _filteredEvents[index];
+
+          return EventCard(
+            event: event,
+            onTap: () {
+              // TODO: Navigare alla pagina di dettaglio dell'evento
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(content: Text("Hai selezionato: ${event.title}")),
+              );
+            },
+          );
+        },
       ),
     );
   }
