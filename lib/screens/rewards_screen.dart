@@ -1,61 +1,63 @@
-// C:/Users/antop/StudioProjects/CityClean/lib/screens/rewards_screen.dart
+// C:/Users/Saverio/StudioProjects/CityClean/lib/screens/rewards_screen.dart
 
 import 'package:flutter/material.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+import 'dart:async';
+import 'dart:developer';
+
 import '../components/bottom_nav_bar.dart';
-import 'dart:async'; // Import necessario per Future e Stream
+import '../main.dart'; // Per accedere a `supabase`
+import '../models/prizes.dart'; // Usa il tuo modello Prize aggiornato
 
-// --- 1. MODELLO DATI INTEGRATO ---
-// Il modello per i premi è ora definito direttamente in questo file.
-class Reward {
-  final String title;
-  final int points;
-  final String iconName;
+// --- FUNZIONI DI ACCESSO AI DATI REALI ---
 
-  const Reward({
-    required this.title,
-    required this.points,
-    required this.iconName,
-  });
+/// Carica i dati dell'utente e dei premi direttamente da Supabase.
+Future<Map<String, dynamic>> _loadRealData() async {
+  final user = supabase.auth.currentUser;
+  if (user == null) {
+    throw Exception("Utente non autenticato.");
+  }
+
+  // Esegue le due chiamate al database in parallelo
+  final results = await Future.wait<dynamic>([
+    // 1. Recupera i punti dell'utente
+    // Correzione: La colonna ID nella tabella `utente` si chiama `idutente`.
+    supabase
+        .from('utente')
+        .select('saldopunti')
+        .eq('idutente', user.id)
+        .limit(1)
+        .maybeSingle(),
+
+    // 2. Recupera la lista dei premi
+    supabase.from('premio').select(),
+  ]);
+
+  // Processa i risultati
+  final profileData = results[0] as Map<String, dynamic>?;
+  final prizesData = results[1] as List<dynamic>;
+
+  final int userPoints = profileData?['saldopunti'] ?? 0;
+
+  // Converte i dati dei premi in una lista di oggetti Prize
+  final List<Prize> availablePrizes = [];
+  for (final item in prizesData) {
+    try {
+      availablePrizes.add(Prize.fromJson(item as Map<String, dynamic>));
+    } catch (e) {
+      // Se un premio ha dati corrotti, lo segnala nella console ma non blocca l'app
+      log('ERRORE PARSING PREMIO: Dati corrotti nel DB. Dati: $item, Errore: $e');
+    }
+  }
+
+  return {
+    'userPoints': userPoints,
+    'availablePrizes': availablePrizes,
+  };
 }
-
-// --- 2. FUNZIONI DI MOCKING INTEGRATE ---
-// Funzioni che simulano chiamate di rete, ora definite localmente.
-
-//TODO INSERIRE CHIAMATA AL BACKEND PER AVERE DATI AL POSTO DEL MOCK
-Future<int> getMockPoints() async {
-  await Future.delayed(const Duration(seconds: 1));
-  return 350;
-}
-
-/// Funzione mock per recuperare la lista dei premi disponibili.
-/// TODO INSERIRE CHIAMATA AL BACKEND PER AVERE DATI
-Future<List<Reward>> getMockAvailableRewards() async {
-  await Future.delayed(const Duration(milliseconds: 100));
-  return const [
-    Reward(title: "Sconto 10%", points: 100, iconName: 'card_giftcard'),
-    Reward(title: "Prodotto Omaggio", points: 250, iconName: 'star_outline'),
-    Reward(title: "Premio Speciale", points: 500, iconName: 'emoji_events_outlined'),
-    Reward(title: "Spedizione Gratuita", points: 150, iconName: 'local_shipping_outlined'),
-    Reward(title: "Gadget Esclusivo", points: 400, iconName: 'redeem'),
-  ];
-}
-
-
-// Mappa e funzione helper per convertire i nomi delle icone in IconData
-const Map<String, IconData> _iconMap = {
-  'card_giftcard': Icons.card_giftcard,
-  'star_outline': Icons.star_outline,
-  'emoji_events_outlined': Icons.emoji_events_outlined,
-  'local_shipping_outlined': Icons.local_shipping_outlined,
-  'redeem': Icons.redeem,
-};
-
-IconData getIconFromString(String iconName) {
-  return _iconMap[iconName] ?? Icons.help_outline;
-}
-
 
 // --- SCHERMATA PRINCIPALE (StatefulWidget) ---
+
 class RewardsScreen extends StatefulWidget {
   const RewardsScreen({super.key});
 
@@ -64,17 +66,68 @@ class RewardsScreen extends StatefulWidget {
 }
 
 class _RewardsScreenState extends State<RewardsScreen> {
-  // Future che attenderà il completamento di entrambe le chiamate
-  late Future<List<dynamic>> _dataFuture;
+  // Future che attende il caricamento dei dati reali
+  late Future<Map<String, dynamic>> _dataFuture;
 
   @override
   void initState() {
     super.initState();
-    // Eseguiamo entrambe le chiamate (ora locali) in parallelo
-    _dataFuture = Future.wait([
-      getMockPoints(),          // <-- Chiama la funzione di mock locale
-      getMockAvailableRewards(), // <-- Chiama la funzione di mock locale
-    ]);
+    _dataFuture = _loadRealData();
+  }
+
+  /// Funzione per riscattare un premio chiamando una funzione RPC di Supabase.
+  Future<void> _redeemPrize(Prize prize) async {
+    final user = supabase.auth.currentUser;
+    if (user == null) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Utente non autenticato.')),
+      );
+      return;
+    }
+
+    final bool? confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Conferma Riscatto'),
+        content: Text('Sei sicuro di voler riscattare "${prize.nome}" per ${prize.costoPunti} punti?'),
+        actions: [
+          TextButton(onPressed: () => Navigator.of(context).pop(false), child: const Text('Annulla')),
+          TextButton(onPressed: () => Navigator.of(context).pop(true), child: const Text('Conferma')),
+        ],
+      ),
+    );
+
+    if (confirmed != true) return;
+
+    try {
+      // NOTA: Assicurati di aver creato la funzione `redeem_prize` nel tuo DB Supabase
+      await supabase.rpc('redeem_prize', params: {
+        'prize_id': prize.id,
+        'user_id': user.id,
+      });
+
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('"${prize.nome}" riscattato con successo!')),
+      );
+
+      // Ricarica i dati per aggiornare il saldo punti nella UI
+      setState(() {
+        _dataFuture = _loadRealData();
+      });
+
+    } on PostgrestException catch (error) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Errore dal database: ${error.message}')),
+      );
+    } catch (error) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Errore imprevisto durante il riscatto: $error')),
+      );
+    }
   }
 
   @override
@@ -82,38 +135,39 @@ class _RewardsScreenState extends State<RewardsScreen> {
     return Scaffold(
       backgroundColor: Colors.grey[100],
       bottomNavigationBar: const CityCleanBottomNavBar(currentIndex: 1),
-      // FutureBuilder per gestire il caricamento dei dati
-      body: FutureBuilder<List<dynamic>>(
+      body: FutureBuilder<Map<String, dynamic>>(
         future: _dataFuture,
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
             return const Center(child: CircularProgressIndicator());
           }
 
-          if (snapshot.hasError || !snapshot.hasData || snapshot.data!.length < 2) {
-            return const Center(child: Text("Impossibile caricare i dati dei premi."));
+          if (snapshot.hasError) {
+            return Center(child: Text("Errore nel caricamento dei dati: ${snapshot.error}"));
           }
 
-          // Estraiamo i dati dalla lista dei risultati
-          final int userPoints = snapshot.data![0];
-          final List<Reward> availableRewards = snapshot.data![1];
+          if (!snapshot.hasData || snapshot.data == null) {
+            return const Center(child: Text("Nessun dato disponibile."));
+          }
 
-          // Una volta che abbiamo tutti i dati, costruiamo la UI
-          return _buildContentUI(context, userPoints, availableRewards);
+          final int userPoints = snapshot.data!['userPoints'];
+          final List<Prize> availablePrizes = snapshot.data!['availablePrizes'];
+
+          return _buildContentUI(context, userPoints, availablePrizes);
         },
       ),
     );
   }
 
-  /// Metodo che costruisce l'intera UI quando tutti i dati sono stati caricati.
-  Widget _buildContentUI(BuildContext context, int userPoints, List<Reward> availableRewards) {
+  /// Metodo che costruisce l'intera UI quando i dati sono pronti.
+  Widget _buildContentUI(BuildContext context, int userPoints, List<Prize> availablePrizes) {
     final Color primaryGreen = Colors.green[700]!;
     final Color lightGreenCard = Colors.lightGreen[100]!;
     final Color iconBgGreen = Colors.lightGreen[50]!;
 
     return Column(
       children: [
-        // --- HEADER + CARD ---
+        // --- HEADER + CARD PUNTI ---
         Container(
           width: double.infinity,
           decoration: BoxDecoration(
@@ -127,8 +181,7 @@ class _RewardsScreenState extends State<RewardsScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text("Riscatto Premi",
-                  style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: Colors.white)),
+              const Text("Riscatto Premi", style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: Colors.white)),
               const SizedBox(height: 20),
               _buildPointsSummaryCard(userPoints, lightGreenCard, primaryGreen),
             ],
@@ -137,34 +190,35 @@ class _RewardsScreenState extends State<RewardsScreen> {
 
         const SizedBox(height: 10),
 
-        // --- TITOLO PREMI ---
+        // --- TITOLO LISTA PREMI ---
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-          child: Text("Premi disponibili",
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.green[800])),
+          child: Text("Premi disponibili", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.green[800])),
         ),
 
-        // --- LISTA ---
+        // --- LISTA PREMI ---
         Expanded(
-          child: ListView.builder(
-            itemCount: availableRewards.length,
-            itemBuilder: (context, index) {
-              final reward = availableRewards[index];
-              return _buildRewardCard(
-                reward: reward,
-                iconBg: iconBgGreen,
-                iconColor: primaryGreen,
-                canRedeem: userPoints >= reward.points,
-                onRedeem: () => print("Tentativo di riscatto: ${reward.title}"),
-              );
-            },
-          ),
+          child: availablePrizes.isEmpty
+              ? const Center(child: Text("Al momento non ci sono premi disponibili."))
+              : ListView.builder(
+                  itemCount: availablePrizes.length,
+                  itemBuilder: (context, index) {
+                    final prize = availablePrizes[index];
+                    return _buildPrizeCard(
+                      prize: prize,
+                      iconBg: iconBgGreen,
+                      iconColor: primaryGreen,
+                      canRedeem: userPoints >= prize.costoPunti,
+                      onRedeem: () => _redeemPrize(prize),
+                    );
+                  },
+                ),
         ),
       ],
     );
   }
 
-  // --- WIDGET HELPER PER LEGGIBILITÀ ---
+  // --- WIDGET HELPER ---
 
   Widget _buildPointsSummaryCard(int userPoints, Color cardColor, Color primaryColor) {
     return Container(
@@ -196,8 +250,8 @@ class _RewardsScreenState extends State<RewardsScreen> {
     );
   }
 
-  Widget _buildRewardCard({
-    required Reward reward,
+  Widget _buildPrizeCard({
+    required Prize prize,
     required Color iconBg,
     required Color iconColor,
     required bool canRedeem,
@@ -212,16 +266,17 @@ class _RewardsScreenState extends State<RewardsScreen> {
           Container(
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(color: iconBg, shape: BoxShape.circle),
-            child: Icon(getIconFromString(reward.iconName), color: iconColor, size: 28),
+            // Utilizza un'icona di default dato che `iconName` non è nel modello
+            child: Icon(Icons.redeem, color: iconColor, size: 28),
           ),
           const SizedBox(width: 15),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(reward.title, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.black87)),
+                Text(prize.nome, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.black87)),
                 const SizedBox(height: 4),
-                Text("${reward.points} punti", style: TextStyle(fontSize: 14, color: Colors.grey[600])),
+                Text("${prize.costoPunti} punti", style: TextStyle(fontSize: 14, color: Colors.grey[600])),
               ],
             ),
           ),

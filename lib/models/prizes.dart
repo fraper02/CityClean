@@ -1,4 +1,5 @@
 class Prize {
+  // Uso nomi standard Dart per le variabili interne
   final String id;
   final String nome;
   final String descrizione;
@@ -17,24 +18,32 @@ class Prize {
 
   factory Prize.fromJson(Map<String, dynamic> json) {
     return Prize(
-      id: json['id'],
-      nome: json['nome'],
-      descrizione: json['descrizione'],
-      // DB camelCase
-      costoPunti: json['costoPunti'],
-      quantitaDisponibile: json['quantitaDisponibile'],
-      idPartner: json['idPartner'],
+      // Mappatura: DB (chiave stringa) -> Dart (variabile)
+      id: json['idpremio'] ?? '', // DB: idpremio
+      nome: json['nome'] ?? '',
+      descrizione: json['descrizione'] ?? '',
+      costoPunti: json['costopunti'] is int
+          ? json['costopunti']
+          : int.tryParse(json['costopunti'].toString()) ?? 0, // DB: costopunti
+
+      // ATTENZIONE: Nel tuo messaggio hai scritto "quantitadiponibile" (senza la 's').
+      // Se nel DB è scritto corretto ("quantitadisponibile"), aggiungi la 's' qui sotto.
+      quantitaDisponibile: json['quantitadiponibile'] is int
+          ? json['quantitadiponibile']
+          : int.tryParse(json['quantitadiponibile'].toString()) ?? 0,
+
+      idPartner: json['idpartner'] ?? '', // DB: idpartner
     );
   }
 
   Map<String, dynamic> toJson() {
     return {
-      'id': id,
+      'idpremio': id,
       'nome': nome,
       'descrizione': descrizione,
-      'costoPunti': costoPunti,
-      'quantitaDisponibile': quantitaDisponibile,
-      'idPartner': idPartner,
+      'costopunti': costoPunti,
+      'quantitadiponibile': quantitaDisponibile, // Stesso nome colonna del DB
+      'idpartner': idPartner,
     };
   }
 }
