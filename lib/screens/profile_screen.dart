@@ -1,22 +1,10 @@
-// C:/Users/antop/StudioProjects/CityClean/lib/screens/profile_screen.dart
-
 import 'package:flutter/material.dart';
 import '../components/bottom_nav_bar.dart';
-import 'redeemed_rewards_screen.dart'; // <-- IMPORT NUOVA PAGINA
+import 'redeemed_rewards_screen.dart';
 import 'settings_screen.dart';
-
-// Funzione di mocking per i dati del profilo
-Future<Map<String, dynamic>> getMockProfileData() async {
-  await Future.delayed(const Duration(milliseconds: 800));
-  return {
-    "name": "Mario Rossi",
-    "memberSince": "2024",
-    "orders": 24,
-    "points": 350,
-    "email": "mario.rossi@email.com",
-    "phone": "+39 123 456 7890",
-  };
-}
+import 'guilds_list_screen.dart'; // <--- Importa la nuova schermata
+import '../models/userProfile.dart';
+import '../services/user_service.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -25,13 +13,18 @@ class ProfileScreen extends StatefulWidget {
   State<ProfileScreen> createState() => _ProfileScreenState();
 }
 
+Future<int> getMockPoints() async {
+  await Future.delayed(const Duration(seconds: 1));
+  return 350;
+}
 class _ProfileScreenState extends State<ProfileScreen> {
-  late Future<Map<String, dynamic>> _profileDataFuture;
+  final UserService _userService = UserService();
+  late Future<UserProfile> _profileDataFuture;
 
   @override
   void initState() {
     super.initState();
-    _profileDataFuture = getMockProfileData();
+    _profileDataFuture = _userService.getCurrentUser();
   }
 
   @override
@@ -39,33 +32,28 @@ class _ProfileScreenState extends State<ProfileScreen> {
     return Scaffold(
       backgroundColor: Colors.grey[100],
       bottomNavigationBar: const CityCleanBottomNavBar(currentIndex: 2),
-      body: FutureBuilder<Map<String, dynamic>>(
+      body: FutureBuilder<UserProfile>(
         future: _profileDataFuture,
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
-            // Mostra una UI "scheletro" durante il caricamento
             return const Center(child: CircularProgressIndicator());
           }
           if (snapshot.hasError || !snapshot.hasData) {
             return const Center(child: Text("Impossibile caricare il profilo."));
           }
 
-          // Dati mock recuperati
-          final profileData = snapshot.data!;
+          final userProfile = snapshot.data!;
           final primaryGreen = Colors.green[700]!;
 
-          // Costruisci la UI con i dati
-          return _buildProfileUI(context, profileData, primaryGreen);
+          return _buildProfileUI(context, userProfile, primaryGreen);
         },
       ),
     );
   }
 
-  // Metodo per costruire la UI una volta che i dati sono disponibili
-  Widget _buildProfileUI(BuildContext context, Map<String, dynamic> data, Color primaryGreen) {
+  Widget _buildProfileUI(BuildContext context, UserProfile user, Color primaryGreen) {
     return Stack(
       children: [
-        // SFONDO VERDE (HEADER)
         Container(
           height: 260,
           width: double.infinity,
@@ -78,22 +66,49 @@ class _ProfileScreenState extends State<ProfileScreen> {
           ),
         ),
 
-        // CONTENUTO SCORREVOLE
         SafeArea(
           child: SingleChildScrollView(
             child: Column(
               children: [
-                // Intestazione con nome dinamico
                 _buildHeader(context, "Profilo", "Le tue informazioni"),
-
                 const SizedBox(height: 10),
-
-                // CARD BIANCA PRINCIPALE con dati dinamici
-                _buildMainProfileCard(context, data, primaryGreen),
+                // CARD PRINCIPALE
+                Container(
+                  margin: const EdgeInsets.symmetric(horizontal: 20),
+                  padding: const EdgeInsets.all(20),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(20),
+                    boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.1), blurRadius: 10, offset: const Offset(0, 5))],
+                  ),
+                  child: Column(
+                    children: [
+                      CircleAvatar(
+                        radius: 50,
+                        backgroundColor: Colors.green[100],
+                        backgroundImage: user.fotoProfilo != null ? NetworkImage(user.fotoProfilo!) : null,
+                        child: user.fotoProfilo == null
+                            ? Icon(Icons.person_outline, size: 50, color: primaryGreen)
+                            : null,
+                      ),
+                      const SizedBox(height: 15),
+                      Text("${user.nome} ${user.cognome}", style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
+                      const Text("Membro CityClean", style: TextStyle(color: Colors.grey)),
+                      const SizedBox(height: 25),
+                      Row(
+                        children: [
+                          Expanded(child: _buildStatBox(icon: Icons.qr_code, value: user.codiceReferral, label: "Tuo Codice", color: primaryGreen)),
+                          const SizedBox(width: 15),
+                          Expanded(child: _buildStatBox(icon: Icons.workspace_premium, value: user.saldoPunti.toString(), label: "Punti", color: primaryGreen)),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
 
                 const SizedBox(height: 20),
 
-                // ---- NUOVA SEZIONE: CARD DI NAVIGAZIONE ----
+                // CARD PREMI RISCATTATI
                 _buildNavigationCard(
                   context: context,
                   icon: Icons.card_giftcard_outlined,
@@ -107,11 +122,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     );
                   },
                 ),
-                // ------------------------------------------
 
-                // LISTA INFORMAZIONI con dati dinamici
-                _buildInfoCard(Icons.email_outlined, "Email", data['email'], primaryGreen),
-                _buildInfoCard(Icons.phone_outlined, "Telefono", data['phone'], primaryGreen),
+                // INFO EMAIL
+                _buildInfoCard(Icons.email_outlined, "Email", user.email, primaryGreen),
+
+                // --- NUOVA SEZIONE GILDA (Al posto del telefono) ---
+                _buildGuildCard(context, "Gilda", "Cerca o crea una gilda", primaryGreen),
 
                 const SizedBox(height: 30),
               ],
@@ -122,8 +138,57 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  // --- WIDGET HELPER PER LEGGIBILITÀ ---
+  // Widget specifico per la Gilda (cliccabile con freccia)
+  Widget _buildGuildCard(BuildContext context, String label, String value, Color iconColor) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+      child: InkWell( // Rende la card cliccabile
+        onTap: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (context) => const GuildsListScreen()),
+          );
+        },
+        borderRadius: BorderRadius.circular(15),
+        child: Container(
+          padding: const EdgeInsets.symmetric(vertical: 15, horizontal: 20),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(15),
+            border: Border.all(color: Colors.grey.shade200),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.grey.withOpacity(0.05),
+                spreadRadius: 1,
+                blurRadius: 5,
+                offset: const Offset(0, 2),
+              ),
+            ],
+          ),
+          child: Row(
+            children: [
+              Icon(Icons.shield_outlined, color: iconColor, size: 28), // Icona Scudo per Gilda
+              const SizedBox(width: 20),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(label, style: const TextStyle(color: Colors.grey, fontSize: 14)),
+                    const SizedBox(height: 4),
+                    Text(value, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500)),
+                  ],
+                ),
+              ),
+              // Freccia a destra
+              Icon(Icons.arrow_forward_ios, color: Colors.grey[400], size: 16),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
 
+  // --- WIDGET HELPER (Già presenti, lasciali pure) ---
   Widget _buildHeader(BuildContext context, String title, String subtitle) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
@@ -149,38 +214,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  Widget _buildMainProfileCard(BuildContext context, Map<String, dynamic> data, Color primaryGreen) {
-    return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 20),
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
-        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.1), blurRadius: 10, offset: const Offset(0, 5))],
-      ),
-      child: Column(
-        children: [
-          CircleAvatar(
-            radius: 50,
-            backgroundColor: Colors.green[100],
-            child: Icon(Icons.person_outline, size: 50, color: primaryGreen),
-          ),
-          const SizedBox(height: 15),
-          Text(data['name'], style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
-          Text("Membro dal ${data['memberSince']}", style: const TextStyle(color: Colors.grey)),
-          const SizedBox(height: 25),
-          Row(
-            children: [
-              Expanded(child: _buildStatBox(icon: Icons.calendar_today, value: data['orders'].toString(), label: "Ordini", color: primaryGreen)),
-              const SizedBox(width: 15),
-              Expanded(child: _buildStatBox(icon: Icons.workspace_premium, value: data['points'].toString(), label: "Punti", color: primaryGreen)),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
   Widget _buildStatBox({required IconData icon, required String value, required String label, required Color color}) {
     return Container(
       padding: const EdgeInsets.all(15),
@@ -193,22 +226,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
         children: [
           Icon(icon, color: color),
           const SizedBox(height: 8),
-          Text(value, style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: color)),
+          Text(value, style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: color), textAlign: TextAlign.center),
           Text(label, style: const TextStyle(color: Colors.grey)),
         ],
       ),
     );
   }
 
-  // --- WIDGET HELPER PER LA NUOVA CARD DI NAVIGAZIONE ---
-  Widget _buildNavigationCard({
-    required BuildContext context,
-    required IconData icon,
-    required String label,
-    required String subtitle,
-    required Color iconColor,
-    required VoidCallback onTap,
-  }) {
+  Widget _buildNavigationCard({required BuildContext context, required IconData icon, required String label, required String subtitle, required Color iconColor, required VoidCallback onTap}) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
       child: InkWell(
