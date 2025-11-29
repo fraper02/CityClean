@@ -6,47 +6,32 @@ import 'dart:async';
 import 'dart:developer';
 
 import '../components/bottom_nav_bar.dart';
-import '../main.dart'; // Per accedere a `supabase`
-import '../models/prizes.dart'; // Usa il tuo modello Prize aggiornato
+import '../main.dart'; // Per `supabase`
+import '../models/prizes.dart';
 
 // --- FUNZIONI DI ACCESSO AI DATI REALI ---
 
-/// Carica i dati dell'utente e dei premi direttamente da Supabase.
 Future<Map<String, dynamic>> _loadRealData() async {
   final user = supabase.auth.currentUser;
   if (user == null) {
     throw Exception("Utente non autenticato.");
   }
 
-  // Esegue le due chiamate al database in parallelo
   final results = await Future.wait<dynamic>([
-    // 1. Recupera i punti dell'utente
-    // Correzione: La colonna ID nella tabella `utente` si chiama `idutente`.
-    supabase
-        .from('utente')
-        .select('saldopunti')
-        .eq('idutente', user.id)
-        .limit(1)
-        .maybeSingle(),
-
-    // 2. Recupera la lista dei premi
+    supabase.from('utente').select('saldopunti').eq('idutente', user.id).limit(1).maybeSingle(),
     supabase.from('premio').select(),
   ]);
 
-  // Processa i risultati
   final profileData = results[0] as Map<String, dynamic>?;
   final prizesData = results[1] as List<dynamic>;
-
   final int userPoints = profileData?['saldopunti'] ?? 0;
 
-  // Converte i dati dei premi in una lista di oggetti Prize
   final List<Prize> availablePrizes = [];
   for (final item in prizesData) {
     try {
       availablePrizes.add(Prize.fromJson(item as Map<String, dynamic>));
     } catch (e) {
-      // Se un premio ha dati corrotti, lo segnala nella console ma non blocca l'app
-      log('ERRORE PARSING PREMIO: Dati corrotti nel DB. Dati: $item, Errore: $e');
+      log('ERRORE PARSING PREMIO: Dati: $item, Errore: $e');
     }
   }
 
@@ -66,7 +51,6 @@ class RewardsScreen extends StatefulWidget {
 }
 
 class _RewardsScreenState extends State<RewardsScreen> {
-  // Future che attende il caricamento dei dati reali
   late Future<Map<String, dynamic>> _dataFuture;
 
   @override
@@ -75,7 +59,7 @@ class _RewardsScreenState extends State<RewardsScreen> {
     _dataFuture = _loadRealData();
   }
 
-  /// Funzione per riscattare un premio chiamando una funzione RPC di Supabase.
+  /// Funzione di riscatto che esegue le operazioni manualmente dal client.
   Future<void> _redeemPrize(Prize prize) async {
     final user = supabase.auth.currentUser;
     if (user == null) {
@@ -101,18 +85,49 @@ class _RewardsScreenState extends State<RewardsScreen> {
     if (confirmed != true) return;
 
     try {
-      // NOTA: Assicurati di aver creato la funzione `redeem_prize` nel tuo DB Supabase
-      await supabase.rpc('redeem_prize', params: {
-        'prize_id': prize.id,
-        'user_id': user.id,
+      // --- LOGICA DI RISCATTO MANUALE --- 
+
+      // Rileggo i punti utente per sicurezza
+      final currentData = await _dataFuture;
+      final currentUserPoints = currentData['userPoints'] as int;
+
+      // 1. Controlla le condizioni prima di eseguire qualsiasi operazione
+      if (prize.quantitaDisponibile <= 0) {
+        throw Exception('Premio esaurito.');
+      }
+      if (currentUserPoints < prize.costoPunti) {
+        throw Exception('Punti insufficienti.');
+      }
+
+      // 2. Decrementa i punti dell'utente
+      final newPoints = currentUserPoints - prize.costoPunti;
+      await supabase
+          .from('utente')
+          .update({'saldopunti': newPoints})
+          .eq('idutente', user.id);
+
+      // 3. Decrementa la quantità del premio
+      final newQuantity = prize.quantitaDisponibile - 1;
+      await supabase
+          .from('premio')
+          .update({'quantitadisponibile': newQuantity})
+          .eq('idpremio', prize.id);
+
+      // 4. Registra il possesso del premio
+      await supabase.from('possesso_premio').insert({
+        'idutente': user.id,
+        'idpremio': prize.id,
+        'dataAcquisizione': DateTime.now().toIso8601String(),
       });
+      
+      // --- FINE LOGICA MANUALE ---
 
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('"${prize.nome}" riscattato con successo!')),
       );
 
-      // Ricarica i dati per aggiornare il saldo punti nella UI
+      // Ricarica i dati per aggiornare la UI
       setState(() {
         _dataFuture = _loadRealData();
       });
@@ -125,7 +140,7 @@ class _RewardsScreenState extends State<RewardsScreen> {
     } catch (error) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Errore imprevisto durante il riscatto: $error')),
+        SnackBar(content: Text(error.toString().replaceFirst("Exception: ", ""))),
       );
     }
   }
@@ -159,7 +174,6 @@ class _RewardsScreenState extends State<RewardsScreen> {
     );
   }
 
-  /// Metodo che costruisce l'intera UI quando i dati sono pronti.
   Widget _buildContentUI(BuildContext context, int userPoints, List<Prize> availablePrizes) {
     final Color primaryGreen = Colors.green[700]!;
     final Color lightGreenCard = Colors.lightGreen[100]!;
@@ -167,15 +181,11 @@ class _RewardsScreenState extends State<RewardsScreen> {
 
     return Column(
       children: [
-        // --- HEADER + CARD PUNTI ---
         Container(
           width: double.infinity,
           decoration: BoxDecoration(
             color: primaryGreen,
-            borderRadius: const BorderRadius.only(
-              bottomLeft: Radius.circular(30),
-              bottomRight: Radius.circular(30),
-            ),
+            borderRadius: const BorderRadius.only(bottomLeft: Radius.circular(30), bottomRight: Radius.circular(30)),
           ),
           padding: const EdgeInsets.only(top: 50, left: 20, right: 20, bottom: 20),
           child: Column(
@@ -187,16 +197,11 @@ class _RewardsScreenState extends State<RewardsScreen> {
             ],
           ),
         ),
-
         const SizedBox(height: 10),
-
-        // --- TITOLO LISTA PREMI ---
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
           child: Text("Premi disponibili", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.green[800])),
         ),
-
-        // --- LISTA PREMI ---
         Expanded(
           child: availablePrizes.isEmpty
               ? const Center(child: Text("Al momento non ci sono premi disponibili."))
@@ -204,11 +209,13 @@ class _RewardsScreenState extends State<RewardsScreen> {
                   itemCount: availablePrizes.length,
                   itemBuilder: (context, index) {
                     final prize = availablePrizes[index];
+                    final bool canRedeem = userPoints >= prize.costoPunti && prize.quantitaDisponibile > 0;
+
                     return _buildPrizeCard(
                       prize: prize,
                       iconBg: iconBgGreen,
                       iconColor: primaryGreen,
-                      canRedeem: userPoints >= prize.costoPunti,
+                      canRedeem: canRedeem,
                       onRedeem: () => _redeemPrize(prize),
                     );
                   },
@@ -217,8 +224,6 @@ class _RewardsScreenState extends State<RewardsScreen> {
       ],
     );
   }
-
-  // --- WIDGET HELPER ---
 
   Widget _buildPointsSummaryCard(int userPoints, Color cardColor, Color primaryColor) {
     return Container(
@@ -257,6 +262,8 @@ class _RewardsScreenState extends State<RewardsScreen> {
     required bool canRedeem,
     required VoidCallback onRedeem,
   }) {
+    final bool isAvailable = prize.quantitaDisponibile > 0;
+
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
       padding: const EdgeInsets.all(15),
@@ -266,7 +273,6 @@ class _RewardsScreenState extends State<RewardsScreen> {
           Container(
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(color: iconBg, shape: BoxShape.circle),
-            // Utilizza un'icona di default dato che `iconName` non è nel modello
             child: Icon(Icons.redeem, color: iconColor, size: 28),
           ),
           const SizedBox(width: 15),
@@ -289,7 +295,7 @@ class _RewardsScreenState extends State<RewardsScreen> {
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
             ),
-            child: const Text("Riscatta"),
+            child: Text(isAvailable ? "Riscatta" : "Terminato"),
           ),
         ],
       ),

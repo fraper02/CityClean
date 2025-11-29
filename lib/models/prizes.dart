@@ -19,20 +19,19 @@ class Prize {
   factory Prize.fromJson(Map<String, dynamic> json) {
     return Prize(
       // Mappatura: DB (chiave stringa) -> Dart (variabile)
-      id: json['idpremio'] ?? '', // DB: idpremio
+      id: json['idpremio'] ?? '',
       nome: json['nome'] ?? '',
       descrizione: json['descrizione'] ?? '',
       costoPunti: json['costopunti'] is int
           ? json['costopunti']
-          : int.tryParse(json['costopunti'].toString()) ?? 0, // DB: costopunti
+          : int.tryParse(json['costopunti'].toString()) ?? 0,
 
-      // ATTENZIONE: Nel tuo messaggio hai scritto "quantitadiponibile" (senza la 's').
-      // Se nel DB è scritto corretto ("quantitadisponibile"), aggiungi la 's' qui sotto.
-      quantitaDisponibile: json['quantitadiponibile'] is int
-          ? json['quantitadiponibile']
-          : int.tryParse(json['quantitadiponibile'].toString()) ?? 0,
+      // SOLUZIONE: Corretto il nome della colonna per leggere dal DB.
+      quantitaDisponibile: json['quantitadisponibile'] is int
+          ? json['quantitadisponibile']
+          : int.tryParse(json['quantitadisponibile'].toString()) ?? 0,
 
-      idPartner: json['idpartner'] ?? '', // DB: idpartner
+      idPartner: json['idpartner'] ?? '',
     );
   }
 
@@ -42,7 +41,8 @@ class Prize {
       'nome': nome,
       'descrizione': descrizione,
       'costopunti': costoPunti,
-      'quantitadiponibile': quantitaDisponibile, // Stesso nome colonna del DB
+      // Corretto anche qui per coerenza
+      'quantitadisponibile': quantitaDisponibile,
       'idpartner': idPartner,
     };
   }
