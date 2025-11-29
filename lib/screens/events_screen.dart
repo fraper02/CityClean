@@ -14,11 +14,8 @@ class EventsScreen extends StatefulWidget {
 class _EventsScreenState extends State<EventsScreen> {
   final TextEditingController _searchController = TextEditingController();
 
-  // Liste per gli eventi
   List<Event> _allEvents = [];
   List<Event> _filteredEvents = [];
-
-  // Stato di caricamento
   bool _isLoading = true;
 
   @override
@@ -27,18 +24,21 @@ class _EventsScreenState extends State<EventsScreen> {
     _fetchEvents();
   }
 
-  // Funzione per caricare gli eventi da Supabase
   Future<void> _fetchEvents() async {
     try {
-      // 'evento' è il nome della tabella su Supabase
       final response = await supabase.from('evento').select();
 
-      // La risposta è una List<dynamic>, dove ogni elemento è una Map<String, dynamic>
+      /* --- MODIFICA DI DEBUG ---
+      // Stampa il primo record ricevuto per ispezionare i nomi delle colonne.
+      if (response.isNotEmpty) {
+        debugPrint("Dati grezzi dal database (primo evento): ${response.first}");
+      }
+      -------------------------*/
+
       final List<Event> loadedEvents = (response as List)
           .map((data) => Event.fromJson(data as Map<String, dynamic>))
           .toList();
       
-      // Ordina gli eventi dal più recente al meno recente
       loadedEvents.sort((a, b) => b.startDateTime.compareTo(a.startDateTime));
 
       if (mounted) {
@@ -63,7 +63,6 @@ class _EventsScreenState extends State<EventsScreen> {
     }
   }
 
-  // Funzione di ricerca (invariata)
   void _runFilter(String enteredKeyword) {
     List<Event> results = [];
     if (enteredKeyword.isEmpty) {
@@ -91,7 +90,6 @@ class _EventsScreenState extends State<EventsScreen> {
       bottomNavigationBar: const CityCleanBottomNavBar(currentIndex: 3),
       body: Stack(
         children: [
-          // 1. HEADER VERDE FISSO
           Container(
             height: 200,
             width: double.infinity,
@@ -103,8 +101,6 @@ class _EventsScreenState extends State<EventsScreen> {
               ),
             ),
           ),
-
-          // 2. CONTENUTO FISSO (Intestazione + Search Bar)
           SafeArea(
             child: Padding(
               padding: const EdgeInsets.all(20),
@@ -139,28 +135,24 @@ class _EventsScreenState extends State<EventsScreen> {
               ),
             ),
           ),
-
-          // 3. CONTENUTO SCORREVOLE (Lista degli Eventi)
           Positioned(
             top: MediaQuery.of(context).padding.top + fixedHeaderContentHeight,
             left: 0,
             right: 0,
             bottom: 0,
-            child: _buildEventsList(), // Estratto in un widget helper
+            child: _buildEventsList(),
           ),
         ],
       ),
     );
   }
   
-  // Widget helper per la lista
   Widget _buildEventsList() {
     if (_isLoading) {
       return const Center(child: CircularProgressIndicator());
     }
 
     if (_filteredEvents.isEmpty) {
-      // Messaggio mostrato sia se non ci sono eventi dal DB, sia se la ricerca non ha risultati.
       return const Center(
         child: Text(
           "Nessun evento trovato.",
@@ -170,7 +162,7 @@ class _EventsScreenState extends State<EventsScreen> {
     }
 
     return RefreshIndicator(
-      onRefresh: _fetchEvents, // Permette di ricaricare con pull-to-refresh
+      onRefresh: _fetchEvents,
       child: ListView.builder(
         padding: const EdgeInsets.symmetric(horizontal: 20).copyWith(bottom: 20),
         itemCount: _filteredEvents.length,
@@ -180,7 +172,6 @@ class _EventsScreenState extends State<EventsScreen> {
           return EventCard(
             event: event,
             onTap: () {
-              // TODO: Navigare alla pagina di dettaglio dell'evento
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(content: Text("Hai selezionato: ${event.title}")),
               );

@@ -22,7 +22,7 @@ class Prize {
       descrizione: json['descrizione'],
       // DB camelCase
       costoPunti: json['costoPunti'],
-      quantitaDisponibile: json['quantitaDisponibile'],
+      quantitaDisponibile: json['quantitadisponibile'],
       idPartner: json['idPartner'],
     );
   }
@@ -33,7 +33,7 @@ class Prize {
       'nome': nome,
       'descrizione': descrizione,
       'costoPunti': costoPunti,
-      'quantitaDisponibile': quantitaDisponibile,
+      'quantitadisponibile': quantitaDisponibile,
       'idPartner': idPartner,
     };
   }
