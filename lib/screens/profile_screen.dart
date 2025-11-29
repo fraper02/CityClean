@@ -2,21 +2,9 @@
 
 import 'package:flutter/material.dart';
 import '../components/bottom_nav_bar.dart';
-import 'redeemed_rewards_screen.dart'; // <-- IMPORT NUOVA PAGINA
+import 'rewards_screen.dart';
 import 'settings_screen.dart';
-
-// Funzione di mocking per i dati del profilo
-Future<Map<String, dynamic>> getMockProfileData() async {
-  await Future.delayed(const Duration(milliseconds: 800));
-  return {
-    "name": "Mario Rossi",
-    "memberSince": "2024",
-    "orders": 24,
-    "points": 350,
-    "email": "mario.rossi@email.com",
-    "phone": "+39 123 456 7890",
-  };
-}
+import '../main.dart'; // Import main.dart to access supabase client
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -26,13 +14,39 @@ class ProfileScreen extends StatefulWidget {
 }
 
 class _ProfileScreenState extends State<ProfileScreen> {
-  late Future<Map<String, dynamic>> _profileDataFuture;
+  Future<Map<String, dynamic>?>? _userFuture;
 
   @override
   void initState() {
     super.initState();
-    _profileDataFuture = getMockProfileData();
+    _refreshData();
   }
+
+  void _refreshData() {
+    setState(() {
+      // Fetch the user with the specific test email
+      _userFuture = _fetchUserData();
+    });
+  }
+
+  Future<Map<String, dynamic>?> _fetchUserData() async {
+    try {
+      final response = await supabase
+          .from('utente')
+          .select()
+          .eq('email', 'mario.rossi.test@example.com')
+          .maybeSingle();
+      return response;
+    } catch (e) {
+      debugPrint('Error fetching data: $e');
+      return null;
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final Color primaryGreen = Colors.green[700]!;
+    final Color lightGreen = Colors.green[100]!;
 
   @override
   Widget build(BuildContext context) {
@@ -50,137 +64,162 @@ class _ProfileScreenState extends State<ProfileScreen> {
             return const Center(child: Text("Impossibile caricare il profilo."));
           }
 
-          // Dati mock recuperati
-          final profileData = snapshot.data!;
-          final primaryGreen = Colors.green[700]!;
+      body: FutureBuilder<Map<String, dynamic>?>(
+          future: _userFuture,
+          builder: (context, snapshot) {
+            // Default/Loading values
+            String nome = "Caricamento...";
+            String cognome = "";
+            String email = "...";
+            String punti = "...";
+            String ordini = "0"; // Placeholder
 
-          // Costruisci la UI con i dati
-          return _buildProfileUI(context, profileData, primaryGreen);
-        },
-      ),
-    );
-  }
+            if (snapshot.connectionState == ConnectionState.done) {
+              if (snapshot.hasData && snapshot.data != null) {
+                final data = snapshot.data!;
+                nome = data['nome'] ?? "Nome";
+                cognome = data['cognome'] ?? "Cognome";
+                email = data['email'] ?? "email@example.com";
+                punti = (data['saldopunti'] ?? 0).toString();
+              } else {
+                nome = "Nessun dato";
+                cognome = "";
+                email = "Premi il tasto test";
+                punti = "0";
+              }
+            }
 
-  // Metodo per costruire la UI una volta che i dati sono disponibili
-  Widget _buildProfileUI(BuildContext context, Map<String, dynamic> data, Color primaryGreen) {
-    return Stack(
-      children: [
-        // SFONDO VERDE (HEADER)
-        Container(
-          height: 260,
-          width: double.infinity,
-          decoration: BoxDecoration(
-            color: primaryGreen,
-            borderRadius: const BorderRadius.only(
-              bottomLeft: Radius.circular(30),
-              bottomRight: Radius.circular(30),
-            ),
-          ),
-        ),
-
-        // CONTENUTO SCORREVOLE
-        SafeArea(
-          child: SingleChildScrollView(
-            child: Column(
+            return Stack(
               children: [
-                // Intestazione con nome dinamico
-                _buildHeader(context, "Profilo", "Le tue informazioni"),
-
-                const SizedBox(height: 10),
-
-                // CARD BIANCA PRINCIPALE con dati dinamici
-                _buildMainProfileCard(context, data, primaryGreen),
-
-                const SizedBox(height: 20),
-
-                // ---- NUOVA SEZIONE: CARD DI NAVIGAZIONE ----
-                _buildNavigationCard(
-                  context: context,
-                  icon: Icons.card_giftcard_outlined,
-                  label: "Premi Riscattati",
-                  subtitle: "Visualizza la cronologia dei tuoi premi",
-                  iconColor: primaryGreen,
-                  onTap: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (context) => const RedeemedRewardsScreen()),
-                    );
-                  },
+                // SFONDO VERDE (HEADER)
+                Container(
+                  height: 260,
+                  width: double.infinity,
+                  decoration: BoxDecoration(
+                    color: primaryGreen,
+                    borderRadius: const BorderRadius.only(
+                      bottomLeft: Radius.circular(30),
+                      bottomRight: Radius.circular(30),
+                    ),
+                  ),
                 ),
-                // ------------------------------------------
 
-                // LISTA INFORMAZIONI con dati dinamici
-                _buildInfoCard(Icons.email_outlined, "Email", data['email'], primaryGreen),
-                _buildInfoCard(Icons.phone_outlined, "Telefono", data['phone'], primaryGreen),
+                // CONTENUTO SCORREVOLE
+                SafeArea(
+                  child: SingleChildScrollView(
+                    child: Column(
+                      children: [
+                        // Intestazione
+                        Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    "Profilo",
+                                    style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: Colors.white),
+                                  ),
+                                  SizedBox(height: 5),
+                                  Text(
+                                    "Le tue informazioni",
+                                    style: TextStyle(fontSize: 16, color: Colors.white70),
+                                  ),
+                                ],
+                              ),
+                              // BOTTONE IMPOSTAZIONI ATTIVO
+                              IconButton(
+                                onPressed: () {
+                                  // Apre la schermata impostazioni
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(builder: (context) => const SettingsScreen()),
+                                  );
+                                },
+                                icon: const Icon(Icons.settings, color: Colors.white, size: 28),
+                                tooltip: "Impostazioni",
+                              ),
+                            ],
+                          ),
+                        ),
 
-                const SizedBox(height: 30),
+                        const SizedBox(height: 10),
+
+                        // CARD BIANCA PRINCIPALE
+                        Container(
+                          margin: const EdgeInsets.symmetric(horizontal: 20),
+                          padding: const EdgeInsets.all(20),
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(20),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withOpacity(0.1),
+                                blurRadius: 10,
+                                offset: const Offset(0, 5),
+                              ),
+                            ],
+                          ),
+                          child: Column(
+                            children: [
+                              CircleAvatar(
+                                radius: 50,
+                                backgroundColor: lightGreen,
+                                child: Icon(Icons.person_outline, size: 50, color: primaryGreen),
+                              ),
+                              const SizedBox(height: 15),
+                              Text("$nome $cognome", style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
+                              const Text("Membro dal 2024", style: TextStyle(color: Colors.grey)),
+                              const SizedBox(height: 25),
+                              Row(
+                                children: [
+                                  Expanded(child: _buildStatBox(icon: Icons.calendar_today, value: ordini, label: "Ordini", color: primaryGreen)),
+                                  const SizedBox(width: 15),
+                                  Expanded(child: _buildStatBox(icon: Icons.workspace_premium, value: punti, label: "Punti", color: primaryGreen)),
+                                ],
+                              ),
+                            ],
+                          ),
+                        ),
+
+                        const SizedBox(height: 20),
+
+                        // LISTA INFORMAZIONI
+                        _buildInfoCard(Icons.email_outlined, "Email", email, primaryGreen),
+                        _buildInfoCard(Icons.phone_outlined, "Telefono", "+39 123 456 7890", primaryGreen),
+
+                        const SizedBox(height: 30),
+
+                        // TEST BUTTON FOR SUPABASE
+                        Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 20),
+                          child: ElevatedButton.icon(
+                            onPressed: () => _testWriteToSupabase(context),
+                            icon: const Icon(Icons.cloud_upload),
+                            label: const Text("Test Scrittura & Lettura"),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: primaryGreen,
+                              foregroundColor: Colors.white,
+                              minimumSize: const Size(double.infinity, 50),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 30),
+                      ],
+                    ),
+                  ),
+                ),
               ],
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-
-  // --- WIDGET HELPER PER LEGGIBILITÀ ---
-
-  Widget _buildHeader(BuildContext context, String title, String subtitle) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(title, style: const TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: Colors.white)),
-              const SizedBox(height: 5),
-              Text(subtitle, style: const TextStyle(fontSize: 16, color: Colors.white70)),
-            ],
-          ),
-          IconButton(
-            onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const SettingsScreen())),
-            icon: const Icon(Icons.settings, color: Colors.white, size: 28),
-            tooltip: "Impostazioni",
-          ),
-        ],
+            );
+          }
       ),
     );
   }
 
-  Widget _buildMainProfileCard(BuildContext context, Map<String, dynamic> data, Color primaryGreen) {
-    return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 20),
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
-        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.1), blurRadius: 10, offset: const Offset(0, 5))],
-      ),
-      child: Column(
-        children: [
-          CircleAvatar(
-            radius: 50,
-            backgroundColor: Colors.green[100],
-            child: Icon(Icons.person_outline, size: 50, color: primaryGreen),
-          ),
-          const SizedBox(height: 15),
-          Text(data['name'], style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
-          Text("Membro dal ${data['memberSince']}", style: const TextStyle(color: Colors.grey)),
-          const SizedBox(height: 25),
-          Row(
-            children: [
-              Expanded(child: _buildStatBox(icon: Icons.calendar_today, value: data['orders'].toString(), label: "Ordini", color: primaryGreen)),
-              const SizedBox(width: 15),
-              Expanded(child: _buildStatBox(icon: Icons.workspace_premium, value: data['points'].toString(), label: "Punti", color: primaryGreen)),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
+  // WIDGET HELPER
   Widget _buildStatBox({required IconData icon, required String value, required String label, required Color color}) {
     return Container(
       padding: const EdgeInsets.all(15),
@@ -268,4 +307,45 @@ class _ProfileScreenState extends State<ProfileScreen> {
       ),
     );
   }
+
+  Future<void> _testWriteToSupabase(BuildContext context) async {
+    try {
+      // Dati fittizi per il test
+      final dummyUser = {
+        'idutente': DateTime.now().millisecondsSinceEpoch.toString(), // ID univoco
+        'nome': 'Mario',
+        'cognome': 'Rossi',
+        'email': 'mario.rossi.test@example.com',
+        'password': 'passwordSegreta123',
+        'saldopunti': 100,
+        'codicerefferal': 'MARIO123',
+        'fotoprofilo': 'https://example.com/avatar.jpg',
+        'isadmin': false,
+      };
+
+      // Upsert: se esiste aggiorna, altrimenti crea
+      await supabase.from('utente').upsert(dummyUser, onConflict: 'email');
+
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Dati scritti! Aggiornamento vista...'),
+            backgroundColor: Colors.green,
+          ),
+        );
+        // Ricarica i dati per mostrarli
+        _refreshData();
+      }
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Errore: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
 }
+
