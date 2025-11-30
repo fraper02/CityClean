@@ -4,6 +4,8 @@ import 'package:cityclean/screens/profile_screen.dart';
 import 'package:cityclean/screens/settings_screen.dart';
 import 'package:cityclean/screens/guilds_list_screen.dart';
 import 'package:cityclean/screens/redeemed_rewards_screen.dart';
+import 'package:cityclean/screens/subscribed_events_screen.dart';
+import 'package:cityclean/screens/qr_scanner_screen.dart'; // 1. IMPORTA LA SCHERMATA DELLO SCANNER
 import 'package:cityclean/components/bottom_nav_bar.dart';
 import 'package:flutter/material.dart';
 
@@ -42,9 +44,8 @@ class _HomeScreenState extends State<HomeScreen> {
 
           return Stack(
             children: [
-              // Header Verde
               Container(
-                height: 180,
+                height: 200, 
                 width: double.infinity,
                 decoration: BoxDecoration(
                   color: Colors.green[700],
@@ -60,22 +61,20 @@ class _HomeScreenState extends State<HomeScreen> {
                   padding: const EdgeInsets.symmetric(horizontal: 20.0),
                   child: Column(
                     children: [
-                      // INTESTAZIONE
                       _buildHeader(context, userProfile),
                       const SizedBox(height: 30),
                       
-                      // CARD PROFILO
                       _buildProfileCard(context, userProfile),
                       const SizedBox(height: 20),
 
-                      // BOTTONE PRINCIPALE
-                      _buildMainAction(),
+                      _buildMainAction(context), // Passa il contesto
+                      const SizedBox(height: 15),
+
+                      _buildSubscribedEventsAction(context),
                       const SizedBox(height: 20),
 
-                      // GRIGLIA OPZIONI
                       _buildOptionsGrid(context),
-
-                      const Spacer(), // Occupa lo spazio rimanente
+                      const Spacer(),
                     ],
                   ),
                 ),
@@ -84,7 +83,7 @@ class _HomeScreenState extends State<HomeScreen> {
           );
         },
       ),
-      bottomNavigationBar: const BottomNavBar(currentIndex: 2), // Home è l'indice 2
+      bottomNavigationBar: const CityCleanBottomNavBar(currentIndex: 2),
     );
   }
 
@@ -129,10 +128,10 @@ class _HomeScreenState extends State<HomeScreen> {
         ),
         child: Row(
           children: [
-            const CircleAvatar(
+            CircleAvatar(
               radius: 30,
-              backgroundColor: Color(0xFFE0F2F1), // Verde chiarissimo
-              child: Icon(Icons.person, size: 30, color: Colors.green),
+              backgroundColor: const Color(0xFFE0F2F1),
+              child: const Icon(Icons.person, size: 30, color: Colors.green),
             ),
             const SizedBox(width: 15),
             Column(
@@ -162,18 +161,52 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  Widget _buildMainAction() {
+  // CORREZIONE: Altezza e logica del pulsante aggiornate
+  Widget _buildMainAction(BuildContext context) {
+    return SizedBox(
+      width: double.infinity,
+      height: 90,
+      child: ElevatedButton.icon(
+        // 2. COLLEGA LA NUOVA SCHERMATA
+        onPressed: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (context) => const QrScannerScreen()),
+          );
+        },
+        // 3. AGGIORNA L'ICONA
+        icon: const Icon(Icons.qr_code_scanner, size: 30),
+        label: const Text("Inizia a Riciclare", style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+        style: ElevatedButton.styleFrom(
+          backgroundColor: Colors.green[600],
+          foregroundColor: Colors.white,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSubscribedEventsAction(BuildContext context) {
     return SizedBox(
       width: double.infinity,
       height: 55,
       child: ElevatedButton.icon(
-        onPressed: () {},
-        icon: const Icon(Icons.camera_alt_outlined),
-        label: const Text("Inizia a Riciclare", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+        onPressed: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (context) => const SubscribedEventsScreen()),
+          );
+        },
+        icon: Icon(Icons.event_available_outlined, color: Colors.green[700]),
+        label: Text(
+          "I Miei Eventi",
+          style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.green[700]),
+        ),
         style: ElevatedButton.styleFrom(
-          backgroundColor: Colors.green[600],
-          foregroundColor: Colors.white,
+          backgroundColor: Colors.white,
+          foregroundColor: Colors.green[100],
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+          side: BorderSide(color: Colors.green[700]!, width: 2),
         ),
       ),
     );
@@ -186,7 +219,7 @@ class _HomeScreenState extends State<HomeScreen> {
         crossAxisSpacing: 15,
         mainAxisSpacing: 15,
         shrinkWrap: true,
-        physics: const NeverScrollableScrollPhysics(), // La pagina principale non deve scrollare
+        physics: const NeverScrollableScrollPhysics(),
         children: [
           _buildOptionCard(Icons.shield_outlined, "Cerca Gilda", onTap: () {
             Navigator.push(context, MaterialPageRoute(builder: (context) => const GuildsListScreen()));

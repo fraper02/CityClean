@@ -1,11 +1,9 @@
-// lib/models/userProfile.dart
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 class UserProfile {
-  // --- Proprietà del modello (invariate) ---
   final String id;
   final String nome;
-  final String? cognome; // Può essere nullo
+  final String? cognome;
   final String email;
   final int saldoPunti;
   final String codiceReferral;
@@ -23,56 +21,23 @@ class UserProfile {
     required this.isAdmin,
   });
 
-  // --- Metodi di conversione (invariati) ---
+  // Converte un oggetto JSON (dal DB) in un'istanza di UserProfile
   factory UserProfile.fromJson(Map<String, dynamic> json) {
     return UserProfile(
-      id: json['idutente'], // Assicurati che i nomi colonne corrispondano!
-      nome: json['nome'] ?? '',
-      cognome: json['cognome'] ?? '',
-      email: json['email'] ?? '',
-      saldoPunti: json['saldopunti'] ?? 0,
-      codiceReferral: json['codicereferral'] ?? '',
-      fotoProfilo: json['fotoprofilo'],
-      isAdmin: json['isadmin'] ?? false,
+      // Assicurati che i nomi delle chiavi qui corrispondano esattamente
+      // a quelli delle colonne nel tuo database Supabase.
+      id: json['idutente'] as String? ?? '', 
+      nome: json['nome'] as String? ?? 'Nome utente',
+      cognome: json['cognome'] as String?, // Assegna null se non presente
+      email: json['email'] as String? ?? '',
+      saldoPunti: json['saldopunti'] as int? ?? 0,
+      codiceReferral: json['codicereferral'] as String? ?? '',
+      fotoProfilo: json['fotoprofilo'] as String?, // Assegna null se non presente
+      isAdmin: json['isadmin'] as bool? ?? false,
     );
   }
 
-  Map<String, dynamic> toJson() {
-    // ... metodo toJson ...
-    return { 'idutente': id, /* ...altri campi */ };
-  }
-
-  // --- LOGICA DAO INTEGRATA (METODI STATICI) ---
-  static final _supabase = Supabase.instance.client;
-
-  /// Recupera i punti per un dato utente.
-  static Future<int> getPoints(String userId) async {
-    final response = await _supabase
-        .from('utente') // Usa il nome tabella corretto
-        .select('saldopunti') // Usa il nome colonna corretto
-        .eq('idutente', userId)
-        .single();
-    return response['saldopunti'] as int;
-  }
-
-  /// Aggiorna i punti di un utente.
-  static Future<void> updatePoints(String userId, int newPoints) async {
-    await _supabase
-        .from('utente') // Usa il nome tabella corretto
-        .update({'saldopunti': newPoints}) // Usa il nome colonna corretto
-        .eq('idutente', userId);
-      id: json['idutente'],
-      nome: json['nome'] ?? '',
-      cognome: json['cognome'], // Può essere null
-      email: json['email'] ?? '',
-      saldoPunti: json['saldopunti'] ?? 0, // Nome colonna corretto e valore di default
-      codiceReferral: json['codicereferral'] ?? '', // Nome colonna corretto
-      fotoProfilo: json['fotoprofilo'], // Nome colonna corretto
-      isAdmin: json['is_admin'] ?? false, // Nome colonna corretto
-    );
-  }
-
-  // Metodo per inviare i dati a Supabase
+  // Converte un'istanza di UserProfile in un oggetto JSON (per il DB)
   Map<String, dynamic> toJson() {
     return {
       'idutente': id,
@@ -82,7 +47,34 @@ class UserProfile {
       'saldopunti': saldoPunti,
       'codicereferral': codiceReferral,
       'fotoprofilo': fotoProfilo,
-      'is_admin': isAdmin,
+      'isadmin': isAdmin,
     };
+  }
+
+  // --- METODI STATICI PER INTERAGIRE CON IL DATABASE ---
+  static final _supabase = Supabase.instance.client;
+  static const _tableName = 'utente'; // Nome della tabella centralizzato
+
+  /// Recupera i punti per un dato utente.
+  static Future<int> getPoints(String userId) async {
+    try {
+      final response = await _supabase
+          .from(_tableName)
+          .select('saldopunti')
+          .eq('idutente', userId)
+          .single();
+      return response['saldopunti'] as int? ?? 0;
+    } catch (e) {
+      // Gestisce l'errore se l'utente non viene trovato o c'è un altro problema
+      return 0;
+    }
+  }
+
+  /// Aggiorna i punti di un utente.
+  static Future<void> updatePoints(String userId, int newPoints) async {
+    await _supabase
+        .from(_tableName)
+        .update({'saldopunti': newPoints})
+        .eq('idutente', userId);
   }
 }

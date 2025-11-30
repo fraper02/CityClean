@@ -1,10 +1,9 @@
 import 'package:flutter/material.dart';
 import '../components/bottom_nav_bar.dart';
 import 'redeemed_rewards_screen.dart';
-import 'guilds_list_screen.dart'; // <--- Importa la nuova schermata
+import 'guilds_list_screen.dart';
 import '../models/userProfile.dart';
 import '../services/user_service.dart';
-import 'home_screen.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -13,10 +12,6 @@ class ProfileScreen extends StatefulWidget {
   State<ProfileScreen> createState() => _ProfileScreenState();
 }
 
-Future<int> getMockPoints() async {
-  await Future.delayed(const Duration(seconds: 1));
-  return 350;
-}
 class _ProfileScreenState extends State<ProfileScreen> {
   final UserService _userService = UserService();
   late Future<UserProfile> _profileDataFuture;
@@ -31,7 +26,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.grey[100],
-      bottomNavigationBar: const BottomNavBar(currentIndex: 2),
+      bottomNavigationBar: const CityCleanBottomNavBar(currentIndex: 2),
       body: FutureBuilder<UserProfile>(
         future: _profileDataFuture,
         builder: (context, snapshot) {
@@ -55,7 +50,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     return Stack(
       children: [
         Container(
-          height: 260,
+          height: 200, // CORREZIONE: Altezza standardizzata
           width: double.infinity,
           decoration: BoxDecoration(
             color: primaryGreen,
@@ -92,7 +87,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                             : null,
                       ),
                       const SizedBox(height: 15),
-                      Text("${user.nome} ${user.cognome}", style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
+                      Text("${user.nome} ${user.cognome ?? ''}", style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
                       const Text("Membro CityClean", style: TextStyle(color: Colors.grey)),
                       const SizedBox(height: 25),
                       Row(
@@ -126,7 +121,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 // INFO EMAIL
                 _buildInfoCard(Icons.email_outlined, "Email", user.email, primaryGreen),
 
-                // --- NUOVA SEZIONE GILDA (Al posto del telefono) ---
+                // --- NUOVA SEZIONE GILDA ---
                 _buildGuildCard(context, "Gilda", "Cerca o crea una gilda", primaryGreen),
 
                 const SizedBox(height: 30),
@@ -138,11 +133,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  // Widget specifico per la Gilda (cliccabile con freccia)
   Widget _buildGuildCard(BuildContext context, String label, String value, Color iconColor) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-      child: InkWell( // Rende la card cliccabile
+      child: InkWell(
         onTap: () {
           Navigator.push(
             context,
@@ -167,7 +161,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           ),
           child: Row(
             children: [
-              Icon(Icons.shield_outlined, color: iconColor, size: 28), // Icona Scudo per Gilda
+              Icon(Icons.shield_outlined, color: iconColor, size: 28),
               const SizedBox(width: 20),
               Expanded(
                 child: Column(
@@ -179,7 +173,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   ],
                 ),
               ),
-              // Freccia a destra
               Icon(Icons.arrow_forward_ios, color: Colors.grey[400], size: 16),
             ],
           ),
@@ -188,7 +181,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  // --- WIDGET HELPER (Già presenti, lasciali pure) ---
   Widget _buildHeader(BuildContext context, String title, String subtitle) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
@@ -204,11 +196,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
               Text(subtitle, style: const TextStyle(fontSize: 16, color: Colors.white70)),
             ],
           ),
-          IconButton(
-            onPressed: () => Navigator.pop(context),
-            icon: const Icon(Icons.arrow_back, color: Colors.white, size: 28),
-            tooltip: "Indietro",
-          ),
+          // Non c'è un tasto per tornare indietro nella schermata principale del profilo
         ],
       ),
     );
