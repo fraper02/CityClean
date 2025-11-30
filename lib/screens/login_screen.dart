@@ -4,6 +4,34 @@ import 'package:cityclean/services/supabase_service.dart'; // Per usare 'supabas
 import 'package:cityclean/services/storage_service.dart'; // Per salvare l'ID
 import 'register_screen.dart';
 
+// metodo per tradurre gli errori
+String translateSupabaseError(String? message) {
+  if (message == null || message.isEmpty) {
+    return "Si è verificato un errore di autenticazione.";
+  }
+
+  final lower = message.toLowerCase();
+
+  if (lower.contains("missing email") || lower.contains("missing phone")) {
+    return "Inserisci la tua email.";
+  }
+
+  if (lower.contains("invalid login credentials") || lower.contains("password")) {
+    return "Email o password non corretti.";
+  }
+
+  if (lower.contains("email not confirmed")) {
+    return "Devi confermare la tua email prima di accedere.";
+  }
+
+  if (lower.contains("user not found")) {
+    return "Nessun account trovato con questa email.";
+  }
+
+  // fallback generico
+  return "Errore: $message";
+}
+
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
 
@@ -11,16 +39,64 @@ class LoginScreen extends StatefulWidget {
   State<LoginScreen> createState() => _LoginScreenState();
 }
 
-class _LoginScreenState extends State<LoginScreen> {
+class _LoginScreenState extends State<LoginScreen> with TickerProviderStateMixin {
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
+  bool _passwordVisible = false;
+
+  // variabili per l'animazione di login
+  late AnimationController _fingerprintController;
+  late Animation<double> _fingerprintAnimation;
+
+  late AnimationController _buttonController;
+  late Animation<double> _buttonWidthAnimation;
+
   bool _isLoading = false;
+
+  @override
+  void initState() {
+    super.initState();
+
+    // animazione dell'impronta (pulsante TouchID)
+    _fingerprintController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 800),
+    )..repeat(reverse: true);
+
+    _fingerprintAnimation = Tween<double>(begin: 0.7, end: 1.2).animate(
+      CurvedAnimation(parent: _fingerprintController, curve: Curves.easeInOut),
+    );
+
+    // animazione contrazione bottone
+    _buttonController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 300),
+    );
+
+    _buttonWidthAnimation = Tween<double>(begin: 1.0, end: 55 / 350) // 350 è larghezza bottone normale
+        .animate(CurvedAnimation(parent: _buttonController, curve: Curves.easeInOut));
+  }
+
+  @override
+  void dispose() {
+    _emailController.dispose();
+    _passwordController.dispose();
+    _fingerprintController.dispose();
+    _buttonController.dispose();
+    super.dispose();
+  }
 
   // Funzione di Login Reale
   Future<void> _signIn() async {
     setState(() {
       _isLoading = true;
     });
+
+    // fa partire l'animazione di contrazione bottone
+    await _buttonController.forward();
+
+    // Simula un ritardo di 3 secondi prima di fare la chiamata (caricamento)
+    await Future.delayed(const Duration(seconds: 2));
 
     try {
       // 1. Chiamata a Supabase
@@ -46,7 +122,10 @@ class _LoginScreenState extends State<LoginScreen> {
     } on AuthException catch (error) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(error.message), backgroundColor: Colors.red),
+          SnackBar(
+            content: Text(translateSupabaseError(error.message)), // traduzione errori
+            backgroundColor: Colors.red,
+          ),
         );
       }
     } catch (error) {
@@ -60,6 +139,7 @@ class _LoginScreenState extends State<LoginScreen> {
         setState(() {
           _isLoading = false;
         });
+        _buttonController.reverse(); // torna bottone normale
       }
     }
   }
@@ -123,14 +203,27 @@ class _LoginScreenState extends State<LoginScreen> {
                 const SizedBox(height: 8),
                 TextField(
                   controller: _passwordController,
-                  obscureText: true,
+                  obscureText: !_passwordVisible, // controlla se mostrare la password
                   decoration: InputDecoration(
                     prefixIcon: const Icon(Icons.lock_outline, color: Colors.grey),
-                    suffixIcon: const Icon(Icons.visibility_outlined, color: Colors.grey),
+                    suffixIcon: IconButton(
+                      icon: Icon(
+                        _passwordVisible ? Icons.visibility : Icons.visibility_off,
+                        color: Colors.grey,
+                      ),
+                      onPressed: () {
+                        setState(() {
+                          _passwordVisible = !_passwordVisible; // toggle
+                        });
+                      },
+                    ),
                     hintText: "........",
                     filled: true,
                     fillColor: Colors.white,
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(15), borderSide: BorderSide.none),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(15),
+                      borderSide: BorderSide.none,
+                    ),
                   ),
                 ),
 
@@ -144,23 +237,42 @@ class _LoginScreenState extends State<LoginScreen> {
 
                 const SizedBox(height: 20),
 
-                SizedBox(
-                  width: double.infinity,
-                  height: 55,
-                  child: ElevatedButton(
-                    onPressed: _isLoading ? null : _signIn, // Chiama la funzione _signIn
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.white,
-                      foregroundColor: primaryGreen,
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
-                      elevation: 5,
-                    ),
-                    child: _isLoading
-                        ? const CircularProgressIndicator(color: Colors.green)
-                        : const Text("Accedi", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-                  ),
+                // BOTTONE ANIMATO ACCEDI
+                AnimatedBuilder(
+                  animation: _buttonController,
+                  builder: (context, child) {
+                    return SizedBox(
+                      width: _isLoading
+                          ? 55
+                          : MediaQuery.of(context).size.width * _buttonWidthAnimation.value,
+                      height: 55,
+                      child: _isLoading
+                          ? ScaleTransition(
+                        scale: _fingerprintAnimation,
+                        child: Container(
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            shape: BoxShape.circle,
+                          ),
+                          child: const Center(
+                            child: Icon(Icons.fingerprint, color: Colors.green, size: 30),
+                          ),
+                        ),
+                      )
+                          : ElevatedButton(
+                        onPressed: _signIn,
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.white,
+                          foregroundColor: primaryGreen,
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+                          elevation: 5,
+                        ),
+                        child: const Text("Accedi", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                      ),
+                    );
+                  },
                 ),
-                // ... (Resto del codice UI Registrati) ...
+
                 const SizedBox(height: 30),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
