@@ -1,8 +1,8 @@
+import 'package:cityclean/screens/home_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:cityclean/services/supabase_service.dart';
 import '../screens/login_screen.dart';
-import '../screens/profile_screen.dart';
-import '../main.dart'; // Per accedere alla variabile 'supabase'
 
 class AuthGate extends StatelessWidget {
   const AuthGate({super.key});
@@ -25,8 +25,8 @@ class AuthGate extends StatelessWidget {
 
         // 3. Logica di reindirizzamento
         if (session != null) {
-          // UTENTE LOGGATO -> Vai all'App (Profilo)
-          return const ProfileScreen();
+          // UTENTE LOGGATO -> Vai all'App (Home)
+          return const HomeScreen();
         } else {
           // UTENTE NON LOGGATO -> Vai al Login
           return const LoginScreen();

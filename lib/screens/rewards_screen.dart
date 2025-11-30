@@ -76,22 +76,21 @@ class _RewardsScreenState extends State<RewardsScreen> {
 
     return Scaffold(
       backgroundColor: Colors.grey[100],
-      bottomNavigationBar: const CityCleanBottomNavBar(currentIndex: 1),
-      // 3. Usa ValueListenableBuilder per reagire ai cambiamenti di stato
-      body: ValueListenableBuilder<ScreenState>(
-        valueListenable: _controller.state,
-        builder: (context, state, _) {
-          switch (state) {
-            case ScreenState.loading:
-            case ScreenState.initial:
-              return const Center(child: CircularProgressIndicator());
-            case ScreenState.error:
-              return Center(child: ValueListenableBuilder<String>(
-                valueListenable: _controller.errorMessage,
-                builder: (context, message, _) => Text("Errore: $message"),
-              ));
-            case ScreenState.success:
-              return _buildContentUI();
+      bottomNavigationBar: const BottomNavBar
+        (currentIndex: 1),
+      body: FutureBuilder<Map<String, dynamic>>(
+        future: _dataFuture,
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const Center(child: CircularProgressIndicator());
+          }
+
+          if (snapshot.hasError) {
+            return Center(child: Text("Errore nel caricamento dei dati: ${snapshot.error}"));
+          }
+
+          if (!snapshot.hasData || snapshot.data == null) {
+            return const Center(child: Text("Nessun dato disponibile."));
           }
         },
       ),

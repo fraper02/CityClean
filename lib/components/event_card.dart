@@ -4,12 +4,14 @@ import '../models/event.dart';
 
 class EventCard extends StatelessWidget {
   final Event event;
-  final VoidCallback onTap;
+  final bool isSubscribed;
+  final VoidCallback onSubscribeToggle;
 
   const EventCard({
     super.key,
     required this.event,
-    required this.onTap,
+    required this.onSubscribeToggle,
+    this.isSubscribed = false,
   });
 
   @override
@@ -115,22 +117,30 @@ class EventCard extends StatelessWidget {
 
                 const SizedBox(height: 20),
 
-                // Bottone Maggiori Info
+                // Bottone Iscriviti
                 SizedBox(
                   width: double.infinity,
                   child: ElevatedButton.icon(
-                    onPressed: onTap,
-                    icon: const Icon(Icons.info_outline, size: 20),
-                    label: const Text("Maggiori Info"),
+                    onPressed: onSubscribeToggle,
+                    icon: Icon(
+                      isSubscribed ? Icons.cancel : Icons.person_add,
+                      size: 20,
+                      color: Colors.white,
+                    ),
+                    label: Text(
+                      isSubscribed ? "Annulla iscrizione" : "Iscriviti",
+                      style: const TextStyle(color: Colors.white),
+                    ),
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.green[700],
-                      foregroundColor: Colors.white,
+                      backgroundColor: isSubscribed ? Colors.grey : Colors.green[700],
                       padding: const EdgeInsets.symmetric(vertical: 12),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(15),
                       ),
                       textStyle: const TextStyle(
-                          fontSize: 16, fontWeight: FontWeight.bold),
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                   ),
                 ),

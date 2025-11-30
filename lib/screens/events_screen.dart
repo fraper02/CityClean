@@ -13,7 +13,7 @@ class EventsScreen extends StatefulWidget {
 
 class _EventsScreenState extends State<EventsScreen> {
   final TextEditingController _searchController = TextEditingController();
-
+  Map<String, bool> _subscribed = {}; // Mappa per controllare se un utente è iscritto o meno a quell'evento
   List<Event> _allEvents = [];
   List<Event> _filteredEvents = [];
   bool _isLoading = true;
@@ -87,7 +87,7 @@ class _EventsScreenState extends State<EventsScreen> {
 
     return Scaffold(
       backgroundColor: Colors.grey[100],
-      bottomNavigationBar: const CityCleanBottomNavBar(currentIndex: 3),
+      bottomNavigationBar: const BottomNavBar(currentIndex: 3),
       body: Stack(
         children: [
           Container(
@@ -171,11 +171,26 @@ class _EventsScreenState extends State<EventsScreen> {
 
           return EventCard(
             event: event,
-            onTap: () {
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(content: Text("Hai selezionato: ${event.title}")),
-              );
-            },
+            isSubscribed: _subscribed[event.id] ?? false,
+              onSubscribeToggle: () {
+                setState(() {
+                  _subscribed[event.id] = !(_subscribed[event.id] ?? false);
+                });
+
+                if (_subscribed[event.id] == true) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text("Ti sei iscritto all'evento: ${event.title}"),
+                    ),
+                  );
+                } else {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text("Hai annullato l'iscrizione all'evento: ${event.title}"),
+                    ),
+                  );
+                }
+              },
           );
         },
       ),
