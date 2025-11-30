@@ -1,6 +1,6 @@
 // lib/controllers/rewards_controller.dart
 
-import 'package:cityclean/services/reedeem_service.dart';
+import 'package:cityclean/services/redeem_service.dart';
 import 'package:flutter/foundation.dart';
 import '../models/prizes.dart';
 

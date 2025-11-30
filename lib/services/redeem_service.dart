@@ -1,24 +1,19 @@
 // lib/services/redeem_service.dart
 
-import 'dart:developer';// CORREZIONE: Usa il nome file corretto in snake_case.
-import 'package:cityclean/dao/prize_dao.dart';
+import 'dart:developer';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import '../dao/prize_possession_dao.dart';
-import '../dao/user_dao.dart';
 import '../models/prizes.dart';
+import '../models/prize_possession.dart';
+import '../models/userProfile.dart';
 
-// ... il resto della classe RedeemService rimane invariato ...
+/// Service che orchestra la logica di business per il riscatto dei premi.
+/// Interagisce direttamente con i metodi statici dei modelli (Active Record pattern).
 class RedeemService {
-  final UserDAO _userDAO;
-  final PrizeDAO _prizeDAO;
-  final PrizePossessionDAO _possessionDAO;
   final SupabaseClient _supabase;
 
-  RedeemService({UserDAO? userDAO, PrizeDAO? prizeDAO, PrizePossessionDAO? possessionDAO, SupabaseClient? supabase})
-      : _userDAO = userDAO ?? UserDAO(),
-        _prizeDAO = prizeDAO ?? PrizeDAO(),
-        _possessionDAO = possessionDAO ?? PrizePossessionDAO(),
-        _supabase = supabase ?? Supabase.instance.client;
+  // Il costruttore non ha più bisogno di iniettare i DAO.
+  RedeemService({SupabaseClient? supabase})
+      : _supabase = supabase ?? Supabase.instance.client;
 
   /// Carica i dati necessari per la schermata (punti utente e premi).
   Future<Map<String, dynamic>> loadRewardsScreenData() async {
@@ -26,9 +21,10 @@ class RedeemService {
     if (user == null) throw Exception("Utente non autenticato.");
 
     try {
+      // CORREZIONE: Usa la classe UserProfile importata
       final results = await Future.wait([
-        _userDAO.getUserPoints(user.id),
-        _prizeDAO.getAvailablePrizes(),
+        UserProfile.getPoints(user.id),
+        Prize.fetchAll(),
       ]);
       return {
         'userPoints': results[0] as int,
@@ -45,8 +41,11 @@ class RedeemService {
     final user = _supabase.auth.currentUser;
     if (user == null) throw Exception("Utente non autenticato.");
 
-    final currentUserPoints = await _userDAO.getUserPoints(user.id);
+    // Recupera i punti freschi prima di ogni transazione.
+    // CORREZIONE: Usa la classe UserProfile importata
+    final currentUserPoints = await UserProfile.getPoints(user.id);
 
+    // Controlli di business logic
     if (prize.quantitaDisponibile <= 0) throw Exception('Premio esaurito.');
     if (currentUserPoints < prize.costoPunti) throw Exception('Punti insufficienti.');
 
@@ -54,11 +53,12 @@ class RedeemService {
       final newPoints = currentUserPoints - prize.costoPunti;
       final newQuantity = prize.quantitaDisponibile - 1;
 
-      // Esegue le operazioni di scrittura tramite i rispettivi DAO
+      // Esegue le operazioni di scrittura tramite i metodi statici dei modelli.
+      // CORREZIONE: Usa la classe UserProfile importata
       await Future.wait([
-        _userDAO.updateUserPoints(user.id, newPoints),
-        _prizeDAO.updatePrizeQuantity(prize.id, newQuantity),
-        _possessionDAO.create(user.id, prize.id),
+        UserProfile.updatePoints(user.id, newPoints),
+        Prize.updateQuantity(prize.id, newQuantity),
+        PrizePossession.create(user.id, prize.id),
       ]);
     } catch (e) {
       log("Errore durante la transazione di riscatto: $e");
