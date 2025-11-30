@@ -9,6 +9,7 @@ import 'dart:async';
 import '../data/map_data.dart';
 
 class MapScreen extends StatefulWidget {
+
   const MapScreen({super.key});
 
   @override
@@ -78,6 +79,8 @@ class _MapScreenState extends State<MapScreen> {
       _isLoading = true;
     });
 
+    await Future.delayed(const Duration(seconds: 1)); //non sembra funzionare
+
     try {
       final zones = MockMapData.pollutedZones;
       final mockPoints = MockMapData.ecoPoints;
@@ -119,7 +122,7 @@ class _MapScreenState extends State<MapScreen> {
 
     return Scaffold(
       backgroundColor: Colors.grey[100],
-      bottomNavigationBar: const CityCleanBottomNavBar(currentIndex: 0),
+      bottomNavigationBar: const BottomNavBar(currentIndex: 0),
       body: Stack(
         children: [
           FlutterMap(
