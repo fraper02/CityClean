@@ -87,7 +87,7 @@ class _EventsScreenState extends State<EventsScreen> {
 
     return Scaffold(
       backgroundColor: Colors.grey[100],
-      bottomNavigationBar: const CityCleanBottomNavBar(currentIndex: 3),
+      bottomNavigationBar: const BottomNavBar(currentIndex: 3),
       body: Stack(
         children: [
           Container(

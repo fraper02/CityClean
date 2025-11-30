@@ -149,7 +149,8 @@ class _RewardsScreenState extends State<RewardsScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.grey[100],
-      bottomNavigationBar: const CityCleanBottomNavBar(currentIndex: 1),
+      bottomNavigationBar: const BottomNavBar
+        (currentIndex: 1),
       body: FutureBuilder<Map<String, dynamic>>(
         future: _dataFuture,
         builder: (context, snapshot) {

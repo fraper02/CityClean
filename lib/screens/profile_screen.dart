@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import '../components/bottom_nav_bar.dart';
 import 'redeemed_rewards_screen.dart';
-import 'settings_screen.dart';
 import 'guilds_list_screen.dart'; // <--- Importa la nuova schermata
 import '../models/userProfile.dart';
 import '../services/user_service.dart';
+import 'home_screen.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -31,7 +31,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.grey[100],
-      bottomNavigationBar: const CityCleanBottomNavBar(currentIndex: 2),
+      bottomNavigationBar: const BottomNavBar(currentIndex: 2),
       body: FutureBuilder<UserProfile>(
         future: _profileDataFuture,
         builder: (context, snapshot) {
@@ -205,9 +205,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
             ],
           ),
           IconButton(
-            onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const SettingsScreen())),
-            icon: const Icon(Icons.settings, color: Colors.white, size: 28),
-            tooltip: "Impostazioni",
+            onPressed: () => Navigator.pop(context),
+            icon: const Icon(Icons.arrow_back, color: Colors.white, size: 28),
+            tooltip: "Indietro",
           ),
         ],
       ),

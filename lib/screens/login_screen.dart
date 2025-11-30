@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import '../main.dart'; // Per usare 'supabase'
-import '../services/storage_service.dart'; // Per salvare l'ID
+import 'package:cityclean/services/supabase_service.dart'; // Per usare 'supabase'
+import 'package:cityclean/services/storage_service.dart'; // Per salvare l'ID
 import 'register_screen.dart';
 
 // metodo per tradurre gli errori
