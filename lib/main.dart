@@ -1,3 +1,4 @@
+import 'package:cityclean/screens/splash_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:intl/date_symbol_data_local.dart'; // <-- IMPORT NECESSARIO
@@ -38,7 +39,7 @@ class MyApp extends StatelessWidget {
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.green),
         useMaterial3: true,
       ),
-      home: const AuthGate(),
+      home: SplashScreen(),
     );
   }
 }
