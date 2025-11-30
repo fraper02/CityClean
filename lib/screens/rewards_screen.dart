@@ -70,30 +70,10 @@ class _RewardsScreenState extends State<RewardsScreen> {
 
   @override
   Widget build(BuildContext context) {
-    // Correzione del refuso nell'import del service
-    // Questo controllo non è più necessario qui, ma lo lascio come commento
-    // import 'package:cityclean/services/redeem_service.dart';
-
     return Scaffold(
       backgroundColor: Colors.grey[100],
-      bottomNavigationBar: const BottomNavBar
-        (currentIndex: 1),
-      body: FutureBuilder<Map<String, dynamic>>(
-        future: _dataFuture,
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(child: CircularProgressIndicator());
-          }
-
-          if (snapshot.hasError) {
-            return Center(child: Text("Errore nel caricamento dei dati: ${snapshot.error}"));
-          }
-
-          if (!snapshot.hasData || snapshot.data == null) {
-            return const Center(child: Text("Nessun dato disponibile."));
-          }
-        },
-      ),
+      bottomNavigationBar: const BottomNavBar(currentIndex: 1),
+      body: _buildContentUI(),
     );
   }
 

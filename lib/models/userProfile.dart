@@ -1,4 +1,6 @@
 // lib/models/userProfile.dart
+import 'dart:convert';
+
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 class UserProfile {
@@ -23,23 +25,32 @@ class UserProfile {
     required this.isAdmin,
   });
 
-  // --- Metodi di conversione (invariati) ---
+  // --- Metodi di conversione ---
   factory UserProfile.fromJson(Map<String, dynamic> json) {
     return UserProfile(
-      id: json['idutente'], // Assicurati che i nomi colonne corrispondano!
+      id: json['idutente'],
       nome: json['nome'] ?? '',
-      cognome: json['cognome'] ?? '',
+      cognome: json['cognome'], // Può essere null
       email: json['email'] ?? '',
       saldoPunti: json['saldopunti'] ?? 0,
       codiceReferral: json['codicereferral'] ?? '',
       fotoProfilo: json['fotoprofilo'],
-      isAdmin: json['isadmin'] ?? false,
+      isAdmin: json['is_admin'] ?? false, // Nome colonna corretto
     );
   }
 
+  // Metodo per inviare i dati a Supabase
   Map<String, dynamic> toJson() {
-    // ... metodo toJson ...
-    return { 'idutente': id, /* ...altri campi */ };
+    return {
+      'idutente': id,
+      'nome': nome,
+      'cognome': cognome,
+      'email': email,
+      'saldopunti': saldoPunti,
+      'codicereferral': codiceReferral,
+      'fotoprofilo': fotoProfilo,
+      'is_admin': isAdmin, // Nome colonna corretto
+    };
   }
 
   // --- LOGICA DAO INTEGRATA (METODI STATICI) ---
@@ -61,28 +72,5 @@ class UserProfile {
         .from('utente') // Usa il nome tabella corretto
         .update({'saldopunti': newPoints}) // Usa il nome colonna corretto
         .eq('idutente', userId);
-      id: json['idutente'],
-      nome: json['nome'] ?? '',
-      cognome: json['cognome'], // Può essere null
-      email: json['email'] ?? '',
-      saldoPunti: json['saldopunti'] ?? 0, // Nome colonna corretto e valore di default
-      codiceReferral: json['codicereferral'] ?? '', // Nome colonna corretto
-      fotoProfilo: json['fotoprofilo'], // Nome colonna corretto
-      isAdmin: json['is_admin'] ?? false, // Nome colonna corretto
-    );
-  }
-
-  // Metodo per inviare i dati a Supabase
-  Map<String, dynamic> toJson() {
-    return {
-      'idutente': id,
-      'nome': nome,
-      'cognome': cognome,
-      'email': email,
-      'saldopunti': saldoPunti,
-      'codicereferral': codiceReferral,
-      'fotoprofilo': fotoProfilo,
-      'is_admin': isAdmin,
-    };
   }
 }
