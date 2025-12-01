@@ -37,19 +37,19 @@ class UserProfile {
     );
   }
 
-  // Converte un'istanza di UserProfile in un oggetto JSON (per il DB)
-  Map<String, dynamic> toJson() {
-    return {
-      'idutente': id,
-      'nome': nome,
-      'cognome': cognome,
-      'email': email,
-      'saldopunti': saldoPunti,
-      'codicereferral': codiceReferral,
-      'fotoprofilo': fotoProfilo,
-      'isadmin': isAdmin,
-    };
-  }
+
+    Map<String, dynamic> toJson() {
+      return {
+        'idutente': id,
+        'nome': nome,
+        'cognome': cognome,
+        'email': email,
+        'saldopunti': saldoPunti,
+        'codicereferral': codiceReferral,
+        'fotoprofilo': fotoProfilo,
+        'isadmin': isAdmin,
+      };
+    }
 
   // --- METODI STATICI PER INTERAGIRE CON IL DATABASE ---
   static final _supabase = Supabase.instance.client;
@@ -77,4 +77,5 @@ class UserProfile {
         .update({'saldopunti': newPoints})
         .eq('idutente', userId);
   }
+
 }

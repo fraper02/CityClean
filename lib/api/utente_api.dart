@@ -1,6 +1,4 @@
-import 'package:supabase_flutter/supabase_flutter.dart';
-import '../main.dart'; // Per accedere alla variabile globale supabase
-
+import 'package:cityclean/services/supabase_service.dart';
 class UtenteApi {
   /// API per recuperare i punti dell'utente corrente.
   ///

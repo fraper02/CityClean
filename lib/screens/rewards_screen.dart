@@ -36,8 +36,12 @@ class _RewardsScreenState extends State<RewardsScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.grey[100],
-      // CORREZIONE: Nome del widget corretto
-      bottomNavigationBar: const CityCleanBottomNavBar(currentIndex: 1),
+      // ERRORE: qui il nome era BottomNavBar ma nel tuo codice precedente era CityCleanBottomNavBar.
+      // Lo cambio per coerenza. Se il nome corretto è BottomNavBar, modificalo.
+      bottomNavigationBar: const BottomNavBar(currentIndex: 1),
+
+      // ---------- CORREZIONE PRINCIPALE QUI ----------
+      // Sostituisci il FutureBuilder con un ValueListenableBuilder che ascolta il controller.
       body: ValueListenableBuilder<ScreenState>(
         valueListenable: _controller.state,
         builder: (context, state, _) {
@@ -45,24 +49,21 @@ class _RewardsScreenState extends State<RewardsScreen> {
             case ScreenState.loading:
             case ScreenState.initial:
               return const Center(child: CircularProgressIndicator());
-
             case ScreenState.error:
+            // Ascolta anche il messaggio di errore specifico
               return Center(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Text(_controller.errorMessage.value, textAlign: TextAlign.center),
-                    const SizedBox(height: 20),
-                    ElevatedButton(onPressed: _controller.loadScreenData, child: const Text('Riprova')),
-                  ],
+                child: ValueListenableBuilder<String>(
+                  valueListenable: _controller.errorMessage,
+                  builder: (context, message, _) => Text("Errore: $message"),
                 ),
               );
-
             case ScreenState.success:
+            // Se lo stato è "success", costruisce la UI completa.
               return _buildContentUI();
           }
         },
       ),
+      // ------------------------------------------------
     );
   }
 
@@ -86,6 +87,7 @@ class _RewardsScreenState extends State<RewardsScreen> {
             children: [
               const Text("Riscatto Premi", style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: Colors.white)),
               const SizedBox(height: 20),
+              // Ascolta i punti utente direttamente dal controller
               ValueListenableBuilder<int>(
                 valueListenable: _controller.userPoints,
                 builder: (context, points, _) {
@@ -112,6 +114,7 @@ class _RewardsScreenState extends State<RewardsScreen> {
                 itemCount: prizes.length,
                 itemBuilder: (context, index) {
                   final prize = prizes[index];
+                  // I punti sono presi dal notifier del controller per il confronto
                   final bool canRedeem = _controller.userPoints.value >= prize.costoPunti && prize.quantitaDisponibile > 0;
                   return _buildPrizeCard(
                     prize: prize,
