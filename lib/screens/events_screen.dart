@@ -2,7 +2,8 @@ import 'package:flutter/material.dart';
 import '../components/bottom_nav_bar.dart';
 import '../components/event_card.dart';
 import '../models/event.dart';
-import '../main.dart'; // Import for supabase client
+import '../main.dart';
+import '../services/supabase_service.dart'; // Import for supabase client
 
 class EventsScreen extends StatefulWidget {
   const EventsScreen({super.key});

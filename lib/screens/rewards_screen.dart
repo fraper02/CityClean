@@ -70,30 +70,36 @@ class _RewardsScreenState extends State<RewardsScreen> {
 
   @override
   Widget build(BuildContext context) {
-    // Correzione del refuso nell'import del service
-    // Questo controllo non è più necessario qui, ma lo lascio come commento
-    // import 'package:cityclean/services/redeem_service.dart';
-
     return Scaffold(
       backgroundColor: Colors.grey[100],
-      bottomNavigationBar: const BottomNavBar
-        (currentIndex: 1),
-      body: FutureBuilder<Map<String, dynamic>>(
-        future: _dataFuture,
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(child: CircularProgressIndicator());
-          }
+      // ERRORE: qui il nome era BottomNavBar ma nel tuo codice precedente era CityCleanBottomNavBar.
+      // Lo cambio per coerenza. Se il nome corretto è BottomNavBar, modificalo.
+      bottomNavigationBar: const BottomNavBar(currentIndex: 1),
 
-          if (snapshot.hasError) {
-            return Center(child: Text("Errore nel caricamento dei dati: ${snapshot.error}"));
-          }
-
-          if (!snapshot.hasData || snapshot.data == null) {
-            return const Center(child: Text("Nessun dato disponibile."));
+      // ---------- CORREZIONE PRINCIPALE QUI ----------
+      // Sostituisci il FutureBuilder con un ValueListenableBuilder che ascolta il controller.
+      body: ValueListenableBuilder<ScreenState>(
+        valueListenable: _controller.state,
+        builder: (context, state, _) {
+          switch (state) {
+            case ScreenState.loading:
+            case ScreenState.initial:
+              return const Center(child: CircularProgressIndicator());
+            case ScreenState.error:
+            // Ascolta anche il messaggio di errore specifico
+              return Center(
+                child: ValueListenableBuilder<String>(
+                  valueListenable: _controller.errorMessage,
+                  builder: (context, message, _) => Text("Errore: $message"),
+                ),
+              );
+            case ScreenState.success:
+            // Se lo stato è "success", costruisce la UI completa.
+              return _buildContentUI();
           }
         },
       ),
+      // ------------------------------------------------
     );
   }
 
@@ -117,7 +123,7 @@ class _RewardsScreenState extends State<RewardsScreen> {
             children: [
               const Text("Riscatto Premi", style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: Colors.white)),
               const SizedBox(height: 20),
-              // Ascolta i punti utente
+              // Ascolta i punti utente direttamente dal controller
               ValueListenableBuilder<int>(
                 valueListenable: _controller.userPoints,
                 builder: (context, points, _) {
@@ -145,7 +151,7 @@ class _RewardsScreenState extends State<RewardsScreen> {
                 itemCount: prizes.length,
                 itemBuilder: (context, index) {
                   final prize = prizes[index];
-                  // I punti sono presi dal notifier del controller
+                  // I punti sono presi dal notifier del controller per il confronto
                   final bool canRedeem = _controller.userPoints.value >= prize.costoPunti && prize.quantitaDisponibile > 0;
                   return _buildPrizeCard(
                     prize: prize,

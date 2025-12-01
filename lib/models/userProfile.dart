@@ -70,28 +70,6 @@ class UserProfile {
         .from('utente') // Usa il nome tabella corretto
         .update({'saldopunti': newPoints}) // Usa il nome colonna corretto
         .eq('idutente', userId);
-      id: json['idutente'],
-      nome: json['nome'] ?? '',
-      cognome: json['cognome'], // Può essere null
-      email: json['email'] ?? '',
-      saldoPunti: json['saldopunti'] ?? 0, // Nome colonna corretto e valore di default
-      codiceReferral: json['codicereferral'] ?? '', // Nome colonna corretto
-      fotoProfilo: json['fotoprofilo'], // Nome colonna corretto
-      isAdmin: json['is_admin'] ?? false, // Nome colonna corretto
-    );
   }
 
-  // Metodo per inviare i dati a Supabase
-  Map<String, dynamic> toJson() {
-    return {
-      'idutente': id,
-      'nome': nome,
-      'cognome': cognome,
-      'email': email,
-      'saldopunti': saldoPunti,
-      'codicereferral': codiceReferral,
-      'fotoprofilo': fotoProfilo,
-      'is_admin': isAdmin,
-    };
-  }
 }
