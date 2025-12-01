@@ -1,6 +1,6 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
-import 'package:image_picker/image_picker.dart'; // Importato
-import 'dart:io'; // Importato
+import 'package:image_picker/image_picker.dart';
 import '../components/bottom_nav_bar.dart';
 
 class IAScreen extends StatefulWidget {
@@ -11,25 +11,20 @@ class IAScreen extends StatefulWidget {
 }
 
 class _IAScreenState extends State<IAScreen> {
-  File? _selectedImage; // Stato per l'immagine selezionata
+  File? _selectedImage;
 
-  // Funzione unificata per ottenere un'immagine (da fotocamera o galleria)
   Future<void> _pickImage(ImageSource source) async {
     final ImagePicker picker = ImagePicker();
-    // imageQuality riduce la dimensione del file per velocizzare l'upload
     final XFile? pickedFile = await picker.pickImage(source: source, imageQuality: 80);
 
-    if (pickedFile == null) return; // L'utente ha annullato la selezione
+    if (pickedFile == null) return;
 
     setState(() {
       _selectedImage = File(pickedFile.path);
     });
-
-    // Avvia la finta analisi dell'immagine
     _runAnalysis();
   }
 
-  // Simula un processo di analisi e mostra il dialog di successo
   void _runAnalysis() async {
     showDialog(
       context: context,
@@ -39,11 +34,10 @@ class _IAScreenState extends State<IAScreen> {
 
     await Future.delayed(const Duration(milliseconds: 1500));
 
-    if (mounted) Navigator.of(context).pop(); // Chiude il caricamento
-    if (mounted) _showSuccessDialog(); // Mostra il successo
+    if (mounted) Navigator.of(context).pop();
+    if (mounted) _showSuccessDialog();
   }
 
-  // Dialog mostrato dopo l'analisi
   void _showSuccessDialog() {
     showDialog(
       context: context,
@@ -55,16 +49,9 @@ class _IAScreenState extends State<IAScreen> {
           children: const [
             Icon(Icons.check_circle, color: Colors.green, size: 60),
             SizedBox(height: 10),
-            Text(
-              "Foto analizzata!",
-              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 20),
-              textAlign: TextAlign.center,
-            ),
+            Text("Foto Analizzata!", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 20), textAlign: TextAlign.center),
             SizedBox(height: 10),
-            Text(
-              "Il sistema ha identificato il rifiuto.",
-              textAlign: TextAlign.center,
-            ),
+            Text("Il sistema ha identificato il rifiuto.", textAlign: TextAlign.center),
           ],
         ),
         actions: [
@@ -72,9 +59,7 @@ class _IAScreenState extends State<IAScreen> {
             child: ElevatedButton(
               onPressed: () {
                 Navigator.of(ctx).pop();
-                setState(() {
-                  _selectedImage = null; // Rimuove l'immagine per un nuovo upload
-                });
+                setState(() => _selectedImage = null);
               },
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.green,
@@ -95,10 +80,10 @@ class _IAScreenState extends State<IAScreen> {
     final Color primaryGreen = Colors.green[700]!;
     return Scaffold(
         backgroundColor: Colors.grey[100],
+        // CORREZIONE: Nome del widget corretto
         bottomNavigationBar: const CityCleanBottomNavBar(currentIndex: 4),
         body: Stack(
           children: [
-            // 1. SFONDO VERDE (HEADER)
             Container(
               height: 200,
               width: double.infinity,
@@ -110,33 +95,22 @@ class _IAScreenState extends State<IAScreen> {
                 ),
               ),
             ),
-            // 2. CONTENUTO SCORREVOLE
             SafeArea(
               child: SingleChildScrollView(
                 child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // Titolo
                     const Padding(
                       padding: EdgeInsets.fromLTRB(20, 20, 20, 25),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text(
-                            "Riconoscimento IA",
-                            style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: Colors.white),
-                          ),
+                          Text("Riconoscimento IA", style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: Colors.white)),
                           SizedBox(height: 5),
-                          Text(
-                            "Identifica i rifiuti con l'intelligenza artificiale",
-                            style: TextStyle(fontSize: 16, color: Colors.white70),
-                          ),
+                          Text("Identifica i rifiuti con l'intelligenza artificiale", style: TextStyle(fontSize: 16, color: Colors.white70)),
                         ],
                       ),
                     ),
                     const SizedBox(height: 15),
-
-                    // CARD BIANCA
                     Container(
                       width: double.infinity,
                       margin: const EdgeInsets.symmetric(horizontal: 20),
@@ -148,9 +122,8 @@ class _IAScreenState extends State<IAScreen> {
                       ),
                       child: Column(
                         children: [
-                          // AREA DI UPLOAD / VISUALIZZAZIONE
                           GestureDetector(
-                            onTap: () => _pickImage(ImageSource.gallery), // Apre la galleria
+                            onTap: () => _pickImage(ImageSource.gallery),
                             child: Container(
                               width: double.infinity,
                               height: 200,
@@ -177,13 +150,11 @@ class _IAScreenState extends State<IAScreen> {
                             ),
                           ),
                           const SizedBox(height: 30),
-
-                          // BOTTONE FOTOCAMERA
                           SizedBox(
                             width: double.infinity,
                             height: 55,
                             child: ElevatedButton.icon(
-                              onPressed: () => _pickImage(ImageSource.camera), // Apre la fotocamera
+                              onPressed: () => _pickImage(ImageSource.camera),
                               icon: const Icon(Icons.camera_alt_outlined, size: 24),
                               label: const Text("Usa la fotocamera", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
                               style: ElevatedButton.styleFrom(

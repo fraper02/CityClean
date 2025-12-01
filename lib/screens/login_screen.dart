@@ -1,36 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import '../main.dart'; // Per usare 'supabase'
-import '../services/storage_service.dart'; // Per salvare l'ID
+import 'package:cityclean/services/supabase_service.dart';
+import 'package:cityclean/services/storage_service.dart';
 import 'register_screen.dart';
 
-// metodo per tradurre gli errori
-String translateSupabaseError(String? message) {
-  if (message == null || message.isEmpty) {
-    return "Si è verificato un errore di autenticazione.";
-  }
-
-  final lower = message.toLowerCase();
-
-  if (lower.contains("missing email") || lower.contains("missing phone")) {
-    return "Inserisci la tua email.";
-  }
-
-  if (lower.contains("invalid login credentials") || lower.contains("password")) {
-    return "Email o password non corretti.";
-  }
-
-  if (lower.contains("email not confirmed")) {
-    return "Devi confermare la tua email prima di accedere.";
-  }
-
-  if (lower.contains("user not found")) {
-    return "Nessun account trovato con questa email.";
-  }
-
-  // fallback generico
-  return "Errore: $message";
-}
+// ... (la funzione translateSupabaseError rimane invariata)
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -43,37 +17,27 @@ class _LoginScreenState extends State<LoginScreen> with TickerProviderStateMixin
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
   bool _passwordVisible = false;
-
-  // variabili per l'animazione di login
   late AnimationController _fingerprintController;
   late Animation<double> _fingerprintAnimation;
-
   late AnimationController _buttonController;
   late Animation<double> _buttonWidthAnimation;
-
   bool _isLoading = false;
 
   @override
   void initState() {
     super.initState();
-
-    // animazione dell'impronta (pulsante TouchID)
     _fingerprintController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 800),
     )..repeat(reverse: true);
-
     _fingerprintAnimation = Tween<double>(begin: 0.7, end: 1.2).animate(
       CurvedAnimation(parent: _fingerprintController, curve: Curves.easeInOut),
     );
-
-    // animazione contrazione bottone
     _buttonController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 300),
     );
-
-    _buttonWidthAnimation = Tween<double>(begin: 1.0, end: 55 / 350) // 350 è larghezza bottone normale
+    _buttonWidthAnimation = Tween<double>(begin: 1.0, end: 55 / 350)
         .animate(CurvedAnimation(parent: _buttonController, curve: Curves.easeInOut));
   }
 
@@ -86,20 +50,13 @@ class _LoginScreenState extends State<LoginScreen> with TickerProviderStateMixin
     super.dispose();
   }
 
-  // Funzione di Login Reale
   Future<void> _signIn() async {
     setState(() {
       _isLoading = true;
     });
-
-    // fa partire l'animazione di contrazione bottone
     await _buttonController.forward();
 
-    // Simula un ritardo di 3 secondi prima di fare la chiamata (caricamento)
-    await Future.delayed(const Duration(seconds: 2));
-
     try {
-      // 1. Chiamata a Supabase
       final AuthResponse res = await supabase.auth.signInWithPassword(
         email: _emailController.text.trim(),
         password: _passwordController.text.trim(),
@@ -109,21 +66,20 @@ class _LoginScreenState extends State<LoginScreen> with TickerProviderStateMixin
       final Session? session = res.session;
 
       if (user != null && session != null) {
-        // 2. Salva i dati sensibili nello Storage Sicuro (Opzionale ma richiesto da te)
         await StorageService.saveSession(
             session.accessToken,
             session.refreshToken ?? '',
             user.id
         );
-
-        // NON serve Navigator.pushReplacement qui!
-        // AuthGate rileverà il cambio di stato e mostrerà la Home.
+        // --- CORREZIONE CHIAVE ---
+        // Rimuovendo qualsiasi navigazione manuale, permettiamo ad AuthGate
+        // di gestire il reindirizzamento alla HomeScreen.
       }
     } on AuthException catch (error) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(translateSupabaseError(error.message)), // traduzione errori
+            content: Text(translateSupabaseError(error.message)),
             backgroundColor: Colors.red,
           ),
         );
@@ -139,13 +95,14 @@ class _LoginScreenState extends State<LoginScreen> with TickerProviderStateMixin
         setState(() {
           _isLoading = false;
         });
-        _buttonController.reverse(); // torna bottone normale
+        _buttonController.reverse();
       }
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    // ... (il resto del metodo build rimane invariato)
     final Color primaryGreen = Colors.green[600]!;
     final Gradient bgGradient = LinearGradient(
       begin: Alignment.topCenter,
@@ -305,4 +262,33 @@ class _LoginScreenState extends State<LoginScreen> with TickerProviderStateMixin
       ),
     );
   }
+}
+
+// La funzione translateSupabaseError la lascio qui per brevità, 
+// ma potrebbe essere spostata in un file di utility.
+String translateSupabaseError(String? message) {
+  if (message == null || message.isEmpty) {
+    return "Si è verificato un errore di autenticazione.";
+  }
+
+  final lower = message.toLowerCase();
+
+  if (lower.contains("missing email") || lower.contains("missing phone")) {
+    return "Inserisci la tua email.";
+  }
+
+  if (lower.contains("invalid login credentials") || lower.contains("password")) {
+    return "Email o password non corretti.";
+  }
+
+  if (lower.contains("email not confirmed")) {
+    return "Devi confermare la tua email prima di accedere.";
+  }
+
+  if (lower.contains("user not found")) {
+    return "Nessun account trovato con questa email.";
+  }
+
+  // fallback generico
+  return "Errore: $message";
 }

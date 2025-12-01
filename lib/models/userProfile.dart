@@ -1,49 +1,81 @@
+import 'package:supabase_flutter/supabase_flutter.dart';
+
 class UserProfile {
   final String id;
   final String nome;
-  final String cognome;
+  final String? cognome;
   final String email;
-  // ATTENZIONE: password (gestita da Supabase Auth) ??????
   final int saldoPunti;
-  final String codiceReferral; // Corretto typo (una f, due r) ????
-  final String? fotoProfilo;   // Messo '?' (nullable) perché può essere vuota all'inizio
+  final String codiceReferral;
+  final String? fotoProfilo;
   final bool isAdmin;
 
   UserProfile({
     required this.id,
     required this.nome,
-    required this.cognome,
+    this.cognome,
     required this.email,
     required this.saldoPunti,
     required this.codiceReferral,
-    this.fotoProfilo, // Non è required
+    this.fotoProfilo,
     required this.isAdmin,
   });
 
-  // Metodo per convertire i dati che arrivano da Supabase (JSON)
+  // Converte un oggetto JSON (dal DB) in un'istanza di UserProfile
   factory UserProfile.fromJson(Map<String, dynamic> json) {
     return UserProfile(
-      id: json['id'], // Assicurati che su Supabase la colonna si chiami 'id'
-      nome: json['nome'],
-      cognome: json['cognome'],
-      email: json['email'],
-      saldoPunti: json['saldoPunti'], // Nota lo snake_case tipico dei DB
-      codiceReferral: json['codiceReferral'],
-      fotoProfilo: json['fotoProfilo'], // Può essere null, va bene così
-      isAdmin: json['isAdmin'] ?? false, // Se è null, di default è false
+      // Assicurati che i nomi delle chiavi qui corrispondano esattamente
+      // a quelli delle colonne nel tuo database Supabase.
+      id: json['idutente'] as String? ?? '', 
+      nome: json['nome'] as String? ?? 'Nome utente',
+      cognome: json['cognome'] as String?, // Assegna null se non presente
+      email: json['email'] as String? ?? '',
+      saldoPunti: json['saldopunti'] as int? ?? 0,
+      codiceReferral: json['codicereferral'] as String? ?? '',
+      fotoProfilo: json['fotoprofilo'] as String?, // Assegna null se non presente
+      isAdmin: json['isadmin'] as bool? ?? false,
     );
   }
 
-  // 2. Metodo per inviare i dati a Supabase
-  Map<String, dynamic> toJson() {
-    return {
-      'nome': nome,
-      'cognome': cognome,
-      'email': email,
-      'saldoPunti': saldoPunti,
-      'codiceReferral': codiceReferral,
-      'fotoProfilo': fotoProfilo,
-      'isAdmin': isAdmin,
-    };
+
+    Map<String, dynamic> toJson() {
+      return {
+        'idutente': id,
+        'nome': nome,
+        'cognome': cognome,
+        'email': email,
+        'saldopunti': saldoPunti,
+        'codicereferral': codiceReferral,
+        'fotoprofilo': fotoProfilo,
+        'isadmin': isAdmin,
+      };
+    }
+
+  // --- METODI STATICI PER INTERAGIRE CON IL DATABASE ---
+  static final _supabase = Supabase.instance.client;
+  static const _tableName = 'utente'; // Nome della tabella centralizzato
+
+  /// Recupera i punti per un dato utente.
+  static Future<int> getPoints(String userId) async {
+    try {
+      final response = await _supabase
+          .from(_tableName)
+          .select('saldopunti')
+          .eq('idutente', userId)
+          .single();
+      return response['saldopunti'] as int? ?? 0;
+    } catch (e) {
+      // Gestisce l'errore se l'utente non viene trovato o c'è un altro problema
+      return 0;
+    }
   }
+
+  /// Aggiorna i punti di un utente.
+  static Future<void> updatePoints(String userId, int newPoints) async {
+    await _supabase
+        .from(_tableName)
+        .update({'saldopunti': newPoints})
+        .eq('idutente', userId);
+  }
+
 }

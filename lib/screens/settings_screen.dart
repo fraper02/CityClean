@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
-import 'login_screen.dart'; // Per il logout
-import '../main.dart'; // Per supabase
+import '../services/supabase_service.dart'; // Per supabase
 import '../services/storage_service.dart';
 import '../components/auth_gate.dart'; // Importiamo AuthGate
 

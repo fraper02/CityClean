@@ -23,32 +23,32 @@ class Event {
   // --- SERIALIZZAZIONE (Supabase <-> Flutter) ---
 
   factory Event.fromJson(Map<String, dynamic> json) {
-    // Legge l'URL dell'immagine in modo sicuro, usando la convenzione snake_case
+    // CORREZIONE: Usa la chiave esatta 'immagine' fornita dall'utente
     final imageUrlFromDb = json['immagine'] as String?;
 
     return Event(
-      // MODIFICA: Utilizzo di chiavi snake_case, standard per Supabase
-      id: json['idevento'] as String? ?? '',
+      // CORREZIONE: Utilizzo delle chiavi esatte fornite dall'utente
+      id: json['idevento']?.toString() ?? '', 
       title: json['titolo'] as String? ?? 'Titolo non disponibile', 
       description: json['descrizione'] as String? ?? 'Descrizione non disponibile', 
       location: json['localita'] as String? ?? 'Luogo non disponibile',
       category: json['categoria'] as String? ?? 'Nessuna categoria', 
 
-      // MODIFICA: Chiavi snake_case per le date per matchare il DB
+      // CORREZIONE: Chiavi esatte 'dataorainizio' e 'dataorafine'
       startDateTime: json['dataorainizio'] != null
-          ? DateTime.parse(json['dataorainizio'])
-          : DateTime.now(), // Fallback solo se il dato è davvero nullo
+          ? DateTime.parse(json['dataorainizio'] as String)
+          : DateTime.now(),
       endDateTime: json['dataorafine'] != null
-          ? DateTime.parse(json['dataorafine'])
+          ? DateTime.parse(json['dataorafine'] as String)
           : DateTime.now(),
 
       imageUrl: (imageUrlFromDb == null || imageUrlFromDb.isEmpty)
-          ? 'https://placehold.co/600x400/2E7D32/FFFFFF?text=CityClean' // URL del placeholder
+          ? 'https://placehold.co/600x400/2E7D32/FFFFFF?text=CityClean' // Placeholder
           : imageUrlFromDb,
     );
   }
 
-  // MODIFICA: Aggiornato anche toJson per coerenza
+  // CORREZIONE: Aggiornato toJson per usare le chiavi esatte del DB
   Map<String, dynamic> toJson() {
     return {
       'idevento': id,

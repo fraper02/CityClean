@@ -1,21 +1,33 @@
-import '../models/userProfile.dart';
+import 'package:cityclean/models/userProfile.dart';
+import 'package:cityclean/services/supabase_service.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 class UserService {
-  // Simuliamo il recupero del profilo dal database
   Future<UserProfile> getCurrentUser() async {
-    // Simula l'attesa della rete (es. chiamata a Supabase)
-    await Future.delayed(const Duration(milliseconds: 800));
+    final user = supabase.auth.currentUser;
+    if (user == null) {
+      throw Exception("Nessun utente loggato.");
+    }
 
-    // Restituisce un oggetto UserProfile "vero"
-    return UserProfile(
-      id: "user_123",
-      nome: "Mario",
-      cognome: "Rossi",
-      email: "mario.rossi@email.com",
-      saldoPunti: 350,
-      codiceReferral: "MARIO24",
-      fotoProfilo: null, // Metti un URL qui se vuoi provare l'immagine
-      isAdmin: false,
-    );
+    try {
+      final response = await supabase
+          .from('utente')
+          .select()
+          .eq('idutente', user.id)
+          .single();
+
+      if (response.isEmpty) {
+        throw Exception("Profilo utente non trovato nel database.");
+      }
+
+      // FIX: Mappiamo i nomi delle colonne dal DB ai campi del modello UserProfile
+      return UserProfile.fromJson(response);
+
+    } catch (e) {
+      // In caso di errore (es. utente non trovato, errore di rete),
+      // lanciamo un'eccezione che può essere gestita dalla UI.
+      print("Errore nel recupero del profilo: $e");
+      throw Exception("Impossibile caricare i dati del profilo.");
+    }
   }
 }

@@ -1,9 +1,11 @@
+// lib/components/bottom_nav_bar.dart
+
 import 'package:flutter/material.dart';
-import '../screens/profile_screen.dart';
+import '../screens/map_screen.dart';
 import '../screens/rewards_screen.dart';
+import '../screens/home_screen.dart'; // CORREZIONE: Importa HomeScreen
 import '../screens/events_screen.dart';
 import '../screens/ia_screen.dart';
-import '../screens/map_screen.dart';
 
 class CityCleanBottomNavBar extends StatelessWidget {
   final int currentIndex;
@@ -13,90 +15,73 @@ class CityCleanBottomNavBar extends StatelessWidget {
     required this.currentIndex,
   });
 
+  void _onItemTapped(int index, BuildContext context) {
+    if (index == currentIndex) return;
+
+    Widget page;
+    // --- CORREZIONE: La logica di navigazione ora punta a HomeScreen per l'indice 2 ---
+    switch (index) {
+      case 0: // MAPPA
+        page = const MapScreen();
+        break;
+      case 1: // PREMI
+        page = const RewardsScreen();
+        break;
+      case 2: // PROFILO (che ora è la HomeScreen)
+        page = const HomeScreen();
+        break;
+      case 3: // EVENTI
+        page = const EventsScreen();
+        break;
+      case 4: // IA
+        page = const IAScreen();
+        break;
+      default:
+        return;
+    }
+
+    Navigator.pushReplacement(
+      context,
+      PageRouteBuilder(
+        pageBuilder: (context, animation1, animation2) => page,
+        transitionDuration: Duration.zero,
+        reverseTransitionDuration: Duration.zero,
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
-    final Color primaryGreen = Colors.green[700]!;
-
     return BottomNavigationBar(
       currentIndex: currentIndex,
-      selectedItemColor: primaryGreen,
-      unselectedItemColor: Colors.grey,
+      onTap: (index) => _onItemTapped(index, context),
+      selectedItemColor: Colors.green[800],
+      unselectedItemColor: Colors.grey[600],
       type: BottomNavigationBarType.fixed,
-      onTap: (index) {
-        if (index == currentIndex) return;
-
-        switch (index) {
-          case 0: // CASO MAPPA
-            Navigator.pushReplacement(
-              context,
-              PageRouteBuilder(
-                pageBuilder: (context, animation1, animation2) => const MapScreen(),
-                transitionDuration: Duration.zero,
-                reverseTransitionDuration: Duration.zero,
-              ),
-            );
-            break;
-          case 1:
-            Navigator.pushReplacement(
-              context,
-              PageRouteBuilder(
-                pageBuilder: (context, animation1, animation2) => const RewardsScreen(),
-                transitionDuration: Duration.zero,
-                reverseTransitionDuration: Duration.zero,
-              ),
-            );
-            break;
-          case 2:
-            Navigator.pushReplacement(
-              context,
-              PageRouteBuilder(
-                pageBuilder: (context, animation1, animation2) => const ProfileScreen(),
-                transitionDuration: Duration.zero,
-                reverseTransitionDuration: Duration.zero,
-              ),
-            );
-            break;
-          case 3:
-            Navigator.pushReplacement(
-              context,
-              PageRouteBuilder(
-                pageBuilder: (context, animation1, animation2) => const EventsScreen(),
-                transitionDuration: Duration.zero,
-                reverseTransitionDuration: Duration.zero,
-              ),
-            );
-            break;
-          case 4:
-            Navigator.pushReplacement(
-              context,
-              PageRouteBuilder(
-                pageBuilder: (context, animation1, animation2) => const IAScreen(),
-                transitionDuration: Duration.zero,
-                reverseTransitionDuration: Duration.zero,
-              ),
-            );
-            break;
-        }
-      },
       items: const [
         BottomNavigationBarItem(
           icon: Icon(Icons.map_outlined),
+          activeIcon: Icon(Icons.map),
           label: 'Mappa',
         ),
         BottomNavigationBarItem(
-          icon: Icon(Icons.card_giftcard),
+          icon: Icon(Icons.card_giftcard_outlined),
+          activeIcon: Icon(Icons.card_giftcard),
           label: 'Premi',
         ),
         BottomNavigationBarItem(
-          icon: Icon(Icons.person),
+          icon: Icon(Icons.person_outline),
+          activeIcon: Icon(Icons.person),
           label: 'Profilo',
         ),
         BottomNavigationBarItem(
-          icon: Icon(Icons.event_note),
+          icon: Icon(Icons.event_outlined),
+          activeIcon: Icon(Icons.event),
           label: 'Eventi',
         ),
         BottomNavigationBarItem(
-          icon: Icon(Icons.camera_enhance),
+          icon: Icon(Icons.camera_enhance_outlined),
+          activeIcon: Icon(Icons.camera_enhance),
           label: 'IA',
         ),
       ],

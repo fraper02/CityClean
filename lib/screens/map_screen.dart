@@ -9,6 +9,7 @@ import 'dart:async';
 import '../data/map_data.dart';
 
 class MapScreen extends StatefulWidget {
+
   const MapScreen({super.key});
 
   @override
@@ -78,6 +79,8 @@ class _MapScreenState extends State<MapScreen> {
       _isLoading = true;
     });
 
+    await Future.delayed(const Duration(seconds: 1)); //non sembra funzionare
+
     try {
       final zones = MockMapData.pollutedZones;
       final mockPoints = MockMapData.ecoPoints;
@@ -85,7 +88,7 @@ class _MapScreenState extends State<MapScreen> {
       LatLng centerToUse = _currentCenter;
       try {
         centerToUse = _mapController.camera.center;
-      } catch(_){}
+      } catch(_) {}
 
       final realPoints = await _osmService.fetchRecyclingPoints(centerToUse, 2000);
 
@@ -178,7 +181,7 @@ class _MapScreenState extends State<MapScreen> {
             left: 0,
             right: 0,
             child: Container(
-              // Rimosso height fisso per evitare overflow
+              height: 200, // CORREZIONE: Altezza standardizzata
               decoration: BoxDecoration(
                 color: primaryGreen.withOpacity(0.95),
                 borderRadius: const BorderRadius.only(
@@ -354,16 +357,17 @@ class _MapScreenState extends State<MapScreen> {
             decoration: BoxDecoration(
               color: markerColor,
               shape: BoxShape.circle,
-              boxShadow: const [BoxShadow(blurRadius: 5, color: Colors.black26)],
+              border: Border.all(color: iconColor, width: 2),
             ),
             child: Icon(markerIcon, color: iconColor, size: 24),
           ),
+          // Opzionale: triangolino per indicare il punto esatto
           ClipPath(
-            clipper: _TriangleClipper(),
+            clipper: _MarkerClipper(),
             child: Container(
-              color: markerColor,
-              width: 10,
-              height: 8,
+              width: 15,
+              height: 10,
+              color: iconColor,
             ),
           ),
         ],
@@ -372,26 +376,12 @@ class _MapScreenState extends State<MapScreen> {
   }
 }
 
-class _UserLocationMarker extends StatelessWidget {
-  const _UserLocationMarker();
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.blueAccent,
-        shape: BoxShape.circle,
-        border: Border.all(color: Colors.white, width: 3),
-        boxShadow: const [BoxShadow(blurRadius: 5, color: Colors.black26)],
-      ),
-    );
-  }
-}
-
-class _TriangleClipper extends CustomClipper<Path> {
+// Clipper per creare il triangolino sotto al marker
+class _MarkerClipper extends CustomClipper<Path> {
   @override
   Path getClip(Size size) {
     final path = Path();
+    path.moveTo(0, 0);
     path.lineTo(size.width / 2, size.height);
     path.lineTo(size.width, 0);
     path.close();
@@ -400,4 +390,20 @@ class _TriangleClipper extends CustomClipper<Path> {
 
   @override
   bool shouldReclip(covariant CustomClipper<Path> oldClipper) => false;
+}
+
+// Widget per il marker dell'utente
+class _UserLocationMarker extends StatelessWidget {
+  const _UserLocationMarker();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        color: Colors.blue.withOpacity(0.3),
+        border: Border.all(color: Colors.blue, width: 3),
+      ),
+    );
+  }
 }
