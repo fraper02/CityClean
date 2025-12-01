@@ -1,11 +1,9 @@
-// lib/models/userProfile.dart
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 class UserProfile {
-  // --- Proprietà del modello (invariate) ---
   final String id;
   final String nome;
-  final String? cognome; // Può essere nullo
+  final String? cognome;
   final String email;
   final int saldoPunti;
   final String codiceReferral;
@@ -23,17 +21,19 @@ class UserProfile {
     required this.isAdmin,
   });
 
-  // --- Metodi di conversione (invariati) ---
+  // Converte un oggetto JSON (dal DB) in un'istanza di UserProfile
   factory UserProfile.fromJson(Map<String, dynamic> json) {
     return UserProfile(
-      id: json['idutente'], // Assicurati che i nomi colonne corrispondano!
-      nome: json['nome'] ?? '',
-      cognome: json['cognome'] ?? '',
-      email: json['email'] ?? '',
-      saldoPunti: json['saldopunti'] ?? 0,
-      codiceReferral: json['codicereferral'] ?? '',
-      fotoProfilo: json['fotoprofilo'],
-      isAdmin: json['isadmin'] ?? false,
+      // Assicurati che i nomi delle chiavi qui corrispondano esattamente
+      // a quelli delle colonne nel tuo database Supabase.
+      id: json['idutente'] as String? ?? '', 
+      nome: json['nome'] as String? ?? 'Nome utente',
+      cognome: json['cognome'] as String?, // Assegna null se non presente
+      email: json['email'] as String? ?? '',
+      saldoPunti: json['saldopunti'] as int? ?? 0,
+      codiceReferral: json['codicereferral'] as String? ?? '',
+      fotoProfilo: json['fotoprofilo'] as String?, // Assegna null se non presente
+      isAdmin: json['isadmin'] as bool? ?? false,
     );
   }
 
@@ -51,24 +51,30 @@ class UserProfile {
       };
     }
 
-  // --- LOGICA DAO INTEGRATA (METODI STATICI) ---
+  // --- METODI STATICI PER INTERAGIRE CON IL DATABASE ---
   static final _supabase = Supabase.instance.client;
+  static const _tableName = 'utente'; // Nome della tabella centralizzato
 
   /// Recupera i punti per un dato utente.
   static Future<int> getPoints(String userId) async {
-    final response = await _supabase
-        .from('utente') // Usa il nome tabella corretto
-        .select('saldopunti') // Usa il nome colonna corretto
-        .eq('idutente', userId)
-        .single();
-    return response['saldopunti'] as int;
+    try {
+      final response = await _supabase
+          .from(_tableName)
+          .select('saldopunti')
+          .eq('idutente', userId)
+          .single();
+      return response['saldopunti'] as int? ?? 0;
+    } catch (e) {
+      // Gestisce l'errore se l'utente non viene trovato o c'è un altro problema
+      return 0;
+    }
   }
 
   /// Aggiorna i punti di un utente.
   static Future<void> updatePoints(String userId, int newPoints) async {
     await _supabase
-        .from('utente') // Usa il nome tabella corretto
-        .update({'saldopunti': newPoints}) // Usa il nome colonna corretto
+        .from(_tableName)
+        .update({'saldopunti': newPoints})
         .eq('idutente', userId);
   }
 

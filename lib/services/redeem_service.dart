@@ -11,7 +11,6 @@ import '../models/userProfile.dart';
 class RedeemService {
   final SupabaseClient _supabase;
 
-  // Il costruttore non ha più bisogno di iniettare i DAO.
   RedeemService({SupabaseClient? supabase})
       : _supabase = supabase ?? Supabase.instance.client;
 
@@ -21,7 +20,6 @@ class RedeemService {
     if (user == null) throw Exception("Utente non autenticato.");
 
     try {
-      // CORREZIONE: Usa la classe UserProfile importata
       final results = await Future.wait([
         UserProfile.getPoints(user.id),
         Prize.fetchAll(),
@@ -41,11 +39,8 @@ class RedeemService {
     final user = _supabase.auth.currentUser;
     if (user == null) throw Exception("Utente non autenticato.");
 
-    // Recupera i punti freschi prima di ogni transazione.
-    // CORREZIONE: Usa la classe UserProfile importata
     final currentUserPoints = await UserProfile.getPoints(user.id);
 
-    // Controlli di business logic
     if (prize.quantitaDisponibile <= 0) throw Exception('Premio esaurito.');
     if (currentUserPoints < prize.costoPunti) throw Exception('Punti insufficienti.');
 
@@ -53,12 +48,11 @@ class RedeemService {
       final newPoints = currentUserPoints - prize.costoPunti;
       final newQuantity = prize.quantitaDisponibile - 1;
 
-      // Esegue le operazioni di scrittura tramite i metodi statici dei modelli.
-      // CORREZIONE: Usa la classe UserProfile importata
+      // Ora passiamo anche il costo del premio al momento del riscatto.
       await Future.wait([
         UserProfile.updatePoints(user.id, newPoints),
         Prize.updateQuantity(prize.id, newQuantity),
-        PrizePossession.create(user.id, prize.id),
+        PrizePossession.create(user.id, prize.id, prize.costoPunti), // <-- MODIFICA QUI
       ]);
     } catch (e) {
       log("Errore durante la transazione di riscatto: $e");
