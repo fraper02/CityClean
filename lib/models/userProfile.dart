@@ -37,10 +37,19 @@ class UserProfile {
     );
   }
 
-  Map<String, dynamic> toJson() {
-    // ... metodo toJson ...
-    return { 'idutente': id, /* ...altri campi */ };
-  }
+
+    Map<String, dynamic> toJson() {
+      return {
+        'idutente': id,
+        'nome': nome,
+        'cognome': cognome,
+        'email': email,
+        'saldopunti': saldoPunti,
+        'codicereferral': codiceReferral,
+        'fotoprofilo': fotoProfilo,
+        'isadmin': isAdmin,
+      };
+    }
 
   // --- LOGICA DAO INTEGRATA (METODI STATICI) ---
   static final _supabase = Supabase.instance.client;
