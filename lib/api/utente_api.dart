@@ -1,6 +1,5 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
-import '../main.dart';
-import '../services/supabase_service.dart'; // Per accedere a `supabase`
+import '../main.dart'; // Per accedere alla variabile globale supabase
 
 class UtenteApi {
   /// API per recuperare i punti dell'utente corrente.
@@ -12,17 +11,25 @@ class UtenteApi {
       return 0; // Utente non autenticato
     }
 
-    final data = await supabase
-        .from('utente')
-        .select('saldopunti') // Nome colonna corretto, tutto minuscolo
-        .eq('id', user.id)
-        .limit(1)
-        .maybeSingle();
+    try {
+      final data = await supabase
+          .from('utente')
+          .select('saldopunti')
+          // CORREZIONE: La colonna che contiene l'ID dell'utente si chiama 'idutente'
+          .eq('idutente', user.id) 
+          .limit(1)
+          .maybeSingle();
 
-    if (data == null) {
-      return 0; // Profilo non trovato
+      if (data == null) {
+        return 0; // Profilo non trovato
+      }
+
+      // Gestisce il caso in cui 'saldopunti' sia null nel database
+      return (data['saldopunti'] as int?) ?? 0;
+    } catch (e) {
+      // In caso di errore di rete o altro, restituisce 0 e stampa l'errore
+      print("Errore in fetchUserPoints: $e");
+      return 0;
     }
-
-    return data['saldopunti'] ?? 0;
   }
 }
