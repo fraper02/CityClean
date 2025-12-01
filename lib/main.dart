@@ -1,3 +1,4 @@
+import 'package:cityclean/screens/splash_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:intl/date_symbol_data_local.dart'; // <-- 1. IMPORTA PER LE DATE
@@ -28,8 +29,31 @@ Future<void> main() async {
   runApp(const MyApp());
 }
 
-class MyApp extends StatelessWidget {
+class MyApp extends StatefulWidget {
   const MyApp({super.key});
+
+  @override
+  State<MyApp> createState() => _MyAppState();
+}
+
+class _MyAppState extends State<MyApp> {
+  late final Future<void> _initializationFuture;
+
+  @override
+  void initState() {
+    super.initState();
+    // 2. Avvia entrambe le inizializzazioni
+    _initializationFuture = _initializeApp();
+  }
+
+  // 3. Crea un metodo per raggruppare le inizializzazioni
+  Future<void> _initializeApp() async {
+    // Eseguiamo le inizializzazioni in parallelo per massima efficienza
+    await Future.wait([
+      SupabaseService.initialize(),
+      initializeDateFormatting('it_IT', null),
+    ]);
+  }
 
   @override
   Widget build(BuildContext context) {
