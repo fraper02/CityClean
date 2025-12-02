@@ -2,7 +2,6 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 class Prize {
-  // ... (proprietà e costruttore invariati) ...
   final String id;
   final String nome;
   final String descrizione;
@@ -19,8 +18,6 @@ class Prize {
     required this.idPartner,
   });
 
-
-  // ... (fromJson e toJson invariati) ...
   factory Prize.fromJson(Map<String, dynamic> json) {
     return Prize(
       id: json['idpremio'] ?? '',
@@ -47,7 +44,7 @@ class Prize {
     };
   }
 
-  // --- LOGICA DAO INTEGRATA NEL MODELLO ---
+  // --- LOGICA DAO ---
   static final _supabase = Supabase.instance.client;
 
   /// Recupera tutti i premi disponibili.
@@ -56,13 +53,5 @@ class Prize {
     return (response as List).map((item) => Prize.fromJson(item)).toList();
   }
 
-  // ---------- CORREZIONE QUI ----------
-  /// Aggiorna la quantità di un premio.
-  static Future<void> updateQuantity(String prizeId, int newQuantity) async {
-    await _supabase
-        .from('premio')
-        .update({'quantitadisponibile': newQuantity})
-        .eq('idpremio', prizeId);
-  }
-// ------------------------------------
+// IL METODO updateQuantity È STATO RIMOSSO PERCHÉ GESTITO DALLA RPC LATO SERVER
 }
