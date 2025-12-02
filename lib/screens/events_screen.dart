@@ -1,12 +1,9 @@
-// lib/screens/events_screen.dart
-
 import 'package:flutter/material.dart';
 import '../components/bottom_nav_bar.dart';
 import '../components/event_card.dart';
 import '../controllers/events_controller.dart';
 import '../models/event.dart';
 import '../main.dart';
-import '../services/supabase_service.dart'; // Import for supabase client
 
 class EventsScreen extends StatefulWidget {
   const EventsScreen({super.key});
@@ -35,32 +32,6 @@ class _EventsScreenState extends State<EventsScreen> {
     _controller.dispose();
     _searchController.dispose();
     super.dispose();
-  }
-
-  // Funzione che chiama il controller per aggiornare il DB
-  Future<void> _handleSubscriptionToggle(String eventId, String eventTitle) async {
-    try {
-      await _controller.toggleSubscription(eventId);
-      
-      final isSubscribed = _controller.subscribedEventIds.value.contains(eventId);
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(isSubscribed
-                ? "Ti sei iscritto a: $eventTitle"
-                : "Hai annullato l'iscrizione a: $eventTitle"),
-            backgroundColor: isSubscribed ? Colors.green : Colors.orange,
-          ),
-        );
-      }
-
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(e.toString()), backgroundColor: Colors.red),
-        );
-      }
-    }
   }
 
   @override
@@ -157,7 +128,7 @@ class _EventsScreenState extends State<EventsScreen> {
       ],
     );
   }
-  
+
   Widget _buildEventsList() {
     return ValueListenableBuilder<List<Event>>(
       valueListenable: _controller.filteredEvents,
@@ -166,7 +137,6 @@ class _EventsScreenState extends State<EventsScreen> {
           return const Center(child: Text("Nessun evento trovato.", style: TextStyle(fontSize: 16, color: Colors.grey)));
         }
 
-        // CORREZIONE: Ascolta anche lo stato delle iscrizioni dal controller
         return ValueListenableBuilder<Set<String>>(
           valueListenable: _controller.subscribedEventIds,
           builder: (context, subscribedIds, _) {
@@ -177,14 +147,13 @@ class _EventsScreenState extends State<EventsScreen> {
                 itemCount: events.length,
                 itemBuilder: (context, index) {
                   final event = events[index];
-                  // CORREZIONE: Lo stato di iscrizione viene dal controller
                   final isSubscribed = subscribedIds.contains(event.id);
 
                   return EventCard(
                     event: event,
                     isSubscribed: isSubscribed,
-                    // CORREZIONE: Chiama la funzione che contatta il controller
-                    onSubscribeToggle: () => _handleSubscriptionToggle(event.id, event.title),
+                    // Lo Screen ora si limita a chiamare il controller, passando il contesto.
+                    onSubscribeToggle: () => _controller.toggleSubscription(context, event.id, event.title),
                   );
                 },
               ),
