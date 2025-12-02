@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:cityclean/components/auth_gate.dart';
 
 import '../components/auth_gate.dart';  // importa il tuo AuthGate
 

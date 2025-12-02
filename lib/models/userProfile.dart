@@ -59,13 +59,13 @@ class UserProfile {
   static Future<int> getPoints(String userId) async {
     try {
       final response = await _supabase
-          .from(_tableName)
+          .from(_tableName) // 'utente'
           .select('saldopunti')
           .eq('idutente', userId)
           .single();
       return response['saldopunti'] as int? ?? 0;
     } catch (e) {
-      // Gestisce l'errore se l'utente non viene trovato o c'è un altro problema
+      print("ERRORE CARICAMENTO PUNTI: $e");
       return 0;
     }
   }
