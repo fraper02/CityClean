@@ -1,3 +1,4 @@
+import 'package:cityclean/screens/badge_screen.dart';
 import 'package:flutter/material.dart';
 import '../components/bottom_nav_bar.dart';
 import 'redeemed_rewards_screen.dart';
@@ -50,7 +51,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     return Stack(
       children: [
         Container(
-          height: 200, // CORREZIONE: Altezza standardizzata
+          height: 200,
           width: double.infinity,
           decoration: BoxDecoration(
             color: primaryGreen,
@@ -60,14 +61,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
             ),
           ),
         ),
-
         SafeArea(
           child: SingleChildScrollView(
             child: Column(
               children: [
                 _buildHeader(context, "Profilo", "Le tue informazioni"),
                 const SizedBox(height: 10),
-                // CARD PRINCIPALE
                 Container(
                   margin: const EdgeInsets.symmetric(horizontal: 20),
                   padding: const EdgeInsets.all(20),
@@ -100,7 +99,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     ],
                   ),
                 ),
-
                 const SizedBox(height: 20),
 
                 // CARD PREMI RISCATTATI
@@ -118,11 +116,37 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   },
                 ),
 
+                // --- CARD BADGE (NUOVA) ---
+                _buildNavigationCard(
+                  context: context,
+                  icon: Icons.shield_outlined, // Icona diversa
+                  label: "I Tuoi Badge",
+                  subtitle: "Scopri i badge che hai sbloccato",
+                  iconColor: primaryGreen,
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (context) => const BadgeScreen()),
+                    );
+                  },
+                ),
+
+                // CARD GILDA
+                _buildNavigationCard(
+                    context: context,
+                    icon: Icons.group_work_outlined,
+                    label: "Gilda",
+                    subtitle: "Cerca o crea una gilda",
+                    iconColor: primaryGreen,
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (context) => const GuildsListScreen()),
+                      );
+                    }),
+
                 // INFO EMAIL
                 _buildInfoCard(Icons.email_outlined, "Email", user.email, primaryGreen),
-
-                // --- NUOVA SEZIONE GILDA ---
-                _buildGuildCard(context, "Gilda", "Cerca o crea una gilda", primaryGreen),
 
                 const SizedBox(height: 30),
               ],
@@ -130,54 +154,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
           ),
         ),
       ],
-    );
-  }
-
-  Widget _buildGuildCard(BuildContext context, String label, String value, Color iconColor) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-      child: InkWell(
-        onTap: () {
-          Navigator.push(
-            context,
-            MaterialPageRoute(builder: (context) => const GuildsListScreen()),
-          );
-        },
-        borderRadius: BorderRadius.circular(15),
-        child: Container(
-          padding: const EdgeInsets.symmetric(vertical: 15, horizontal: 20),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(15),
-            border: Border.all(color: Colors.grey.shade200),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.grey.withOpacity(0.05),
-                spreadRadius: 1,
-                blurRadius: 5,
-                offset: const Offset(0, 2),
-              ),
-            ],
-          ),
-          child: Row(
-            children: [
-              Icon(Icons.shield_outlined, color: iconColor, size: 28),
-              const SizedBox(width: 20),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(label, style: const TextStyle(color: Colors.grey, fontSize: 14)),
-                    const SizedBox(height: 4),
-                    Text(value, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500)),
-                  ],
-                ),
-              ),
-              Icon(Icons.arrow_forward_ios, color: Colors.grey[400], size: 16),
-            ],
-          ),
-        ),
-      ),
     );
   }
 
@@ -196,7 +172,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
               Text(subtitle, style: const TextStyle(fontSize: 16, color: Colors.white70)),
             ],
           ),
-          // Non c'è un tasto per tornare indietro nella schermata principale del profilo
         ],
       ),
     );

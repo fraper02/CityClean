@@ -1,6 +1,4 @@
-// lib/controllers/events_controller.dart
-
-import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart';
 import '../models/event.dart';
 import '../services/event_service.dart';
 import '../main.dart'; // Per accedere a supabase.auth.currentUser
@@ -45,27 +43,49 @@ class EventsController {
     }
   }
 
-  Future<void> toggleSubscription(String eventId) async {
+  // Ora questo metodo accetta anche il BuildContext e il titolo dell'evento
+  // per poter mostrare la SnackBar.
+  Future<void> toggleSubscription(BuildContext context, String eventId, String eventTitle) async {
     final userId = supabase.auth.currentUser?.id;
     if (userId == null) {
-      throw Exception("Devi essere autenticato per iscriverti.");
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Devi essere autenticato per iscriverti."), backgroundColor: Colors.red),
+      );
+      return;
     }
 
-    final isSubscribed = subscribedEventIds.value.contains(eventId);
-    final currentIds = Set<String>.from(subscribedEventIds.value);
+    final isCurrentlySubscribed = subscribedEventIds.value.contains(eventId);
 
     try {
-      if (isSubscribed) {
+      if (isCurrentlySubscribed) {
         await _service.unsubscribeFromEvent(eventId, userId);
-        currentIds.remove(eventId);
+        final newIds = Set<String>.from(subscribedEventIds.value)..remove(eventId);
+        subscribedEventIds.value = newIds;
       } else {
         await _service.subscribeToEvent(eventId, userId);
-        currentIds.add(eventId);
+        final newIds = Set<String>.from(subscribedEventIds.value)..add(eventId);
+        subscribedEventIds.value = newIds;
       }
-      subscribedEventIds.value = currentIds;
+      
+      // Mostra la SnackBar di successo.
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(!isCurrentlySubscribed
+                ? "Ti sei iscritto a: $eventTitle"
+                : "Hai annullato l'iscrizione a: $eventTitle"),
+            backgroundColor: !isCurrentlySubscribed ? Colors.green : Colors.orange,
+          ),
+        );
+      }
+
     } catch (e) {
-      debugPrint('Errore durante l\'aggiornamento dell\'iscrizione: $e');
-      throw Exception('Si è verificato un errore. Riprova.');
+      // Mostra la SnackBar di errore.
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(e.toString()), backgroundColor: Colors.red),
+        );
+      }
     }
   }
 
