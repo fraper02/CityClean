@@ -38,7 +38,7 @@ class _RewardsScreenState extends State<RewardsScreen> {
       backgroundColor: Colors.grey[100],
       // ERRORE: qui il nome era BottomNavBar ma nel tuo codice precedente era CityCleanBottomNavBar.
       // Lo cambio per coerenza. Se il nome corretto è BottomNavBar, modificalo.
-      bottomNavigationBar: const BottomNavBar(currentIndex: 1),
+      bottomNavigationBar: const CityCleanBottomNavBar(currentIndex: 1),
 
       // ---------- CORREZIONE PRINCIPALE QUI ----------
       // Sostituisci il FutureBuilder con un ValueListenableBuilder che ascolta il controller.

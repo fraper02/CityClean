@@ -1,5 +1,7 @@
+import 'package:cityclean/main.dart';
+import 'package:cityclean/components/auth_gate.dart';
 import 'package:flutter/material.dart';
-import 'register_preferences_screen.dart'; // Importa la seconda schermata
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({super.key});
@@ -10,14 +12,14 @@ class RegisterScreen extends StatefulWidget {
 
 class _RegisterScreenState extends State<RegisterScreen> {
   // Controller per i campi di testo
-  final TextEditingController _nameController = TextEditingController();
-  final TextEditingController _surnameController = TextEditingController();
-  final TextEditingController _emailController = TextEditingController();
-  final TextEditingController _passwordController = TextEditingController();
-  final TextEditingController _birthDateController = TextEditingController();
+  final _nameController = TextEditingController();
+  final _surnameController = TextEditingController();
+  final _emailController = TextEditingController();
+  final _passwordController = TextEditingController();
+  final _birthDateController = TextEditingController();
 
   bool _isPrivacyAccepted = false;
-  bool _isEnglish = false; // Stato per la lingua
+  bool _isLoading = false;
 
   // Funzione per mostrare il date picker
   Future<void> _selectDate(BuildContext context) async {
@@ -29,8 +31,63 @@ class _RegisterScreenState extends State<RegisterScreen> {
     );
     if (picked != null) {
       setState(() {
-        _birthDateController.text = "${picked.day}/${picked.month}/${picked.year}";
+        // Formatta la data in YYYY-MM-DD per il database
+        _birthDateController.text = picked.toIso8601String().split('T')[0];
       });
+    }
+  }
+
+  // Funzione di registrazione
+  Future<void> _handleRegister() async {
+    if (!_isPrivacyAccepted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Devi accettare la Privacy Policy per continuare.')),
+      );
+      return;
+    }
+
+    setState(() => _isLoading = true);
+
+    try {
+      // Chiama Supabase Auth per creare l'utente
+      // Passiamo i dati extra nel parametro `data` che verrà usato dal trigger
+      await supabase.auth.signUp(
+        email: _emailController.text.trim(),
+        password: _passwordController.text.trim(),
+        data: {
+          'nome': _nameController.text.trim(),
+          'cognome': _surnameController.text.trim(),
+          'data_nascita': _birthDateController.text.trim(),
+        },
+      );
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Registrazione avvenuta! Controlla la tua email per confermare l account.')),
+        );
+        // Naviga all'AuthGate, che gestirà il reindirizzamento
+        Navigator.pushAndRemoveUntil(
+          context,
+          MaterialPageRoute(builder: (context) => const AuthGate()),
+          (route) => false,
+        );
+      }
+    } on AuthException catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(backgroundColor: Colors.red, content: Text(e.message)),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(backgroundColor: Colors.red, content: Text('Si è verificato un errore inatteso: $e')),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
     }
   }
 
@@ -43,33 +100,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
       colors: [Colors.green[700]!, Colors.green[400]!],
     );
 
-    // Testi localizzati (simulati)
-    final Map<String, String> texts = _isEnglish
-        ? {
-      'title': 'Register',
-      'subtitle': 'Join CityClean today',
-      "name": "'Name",
-      "surname": "Surname",
-      'birthDate': 'Date of Birth',
-      'email': 'Email',
-      'password': 'Password',
-      'privacy': 'I accept the Privacy Policy',
-      'next': 'Next',
-      'login': 'Already have an account? Login',
-    }
-        : {
-      'title': 'Registrati',
-      'subtitle': 'Unisciti a CityClean oggi',
-      'name': 'Nome',
-      'surname': 'Cognome',
-      'birthDate': 'Data di Nascita',
-      'email': 'Email',
-      'password': 'Password',
-      'privacy': 'Accetto la Privacy Policy',
-      'next': 'Avanti',
-      'login': 'Hai già un account? Accedi',
-    };
-
     return Scaffold(
       body: Container(
         width: double.infinity,
@@ -77,92 +107,39 @@ class _RegisterScreenState extends State<RegisterScreen> {
         decoration: BoxDecoration(gradient: bgGradient),
         child: SafeArea(
           child: SingleChildScrollView(
-            padding: const EdgeInsets.symmetric(horizontal: 30),
+            padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 50),
             child: Column(
               children: [
-                // BARRA SUPERIORE CON LINGUA
-                Padding(
-                  padding: const EdgeInsets.only(top: 20),
-                  child: Align(
-                    alignment: Alignment.topRight,
-                    child: TextButton.icon(
-                      onPressed: () {
-                        setState(() {
-                          _isEnglish = !_isEnglish;
-                        });
-                      },
-                      icon: const Icon(Icons.language, color: Colors.white),
-                      label: Text(
-                        _isEnglish ? "IT" : "EN", // Mostra la lingua a cui cambiare
-                        style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
-                      ),
-                      style: TextButton.styleFrom(
-                        backgroundColor: Colors.white.withOpacity(0.2),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-                      ),
-                    ),
-                  ),
+                const Text(
+                  'Registrati',
+                  style: TextStyle(fontSize: 32, fontWeight: FontWeight.bold, color: Colors.white),
                 ),
-
-                const SizedBox(height: 20),
-
-                // TITOLO
-                Text(
-                  texts['title']!,
-                  style: const TextStyle(
-                    fontSize: 32,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.white,
-                  ),
-                ),
-                Text(
-                  texts['subtitle']!,
-                  style: const TextStyle(fontSize: 16, color: Colors.white70),
+                const Text(
+                  'Unisciti a CityClean oggi',
+                  style: TextStyle(fontSize: 16, color: Colors.white70),
                 ),
                 const SizedBox(height: 40),
 
-                // CAMPI DI INPUT
                 Row(
                   children: [
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          _buildLabel(_isEnglish ? "Name" : "Nome"),
-                          _buildTextField(_nameController, Icons.person_outline, "Mario"),
-                        ],
-                      ),
-                    ),
+                    Expanded(child: _buildTextField(_nameController, Icons.person_outline, "Nome")),
                     const SizedBox(width: 15),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          _buildLabel(_isEnglish ? "Surname" : "Cognome"),
-                          _buildTextField(_surnameController, Icons.person_outline, "Rossi"),
-                        ],
-                      ),
-                    ),
+                    Expanded(child: _buildTextField(_surnameController, Icons.person_outline, "Cognome")),
                   ],
                 ),
                 const SizedBox(height: 15),
-
-                _buildLabel(texts['birthDate']!),
                 GestureDetector(
                   onTap: () => _selectDate(context),
                   child: AbsorbPointer(
-                    child: _buildTextField(_birthDateController, Icons.calendar_today, "GG/MM/AAAA"),
+                    child: _buildTextField(_birthDateController, Icons.calendar_today, "Data di Nascita"),
                   ),
                 ),
                 const SizedBox(height: 15),
-                _buildLabel(texts['email']!),
                 _buildTextField(_emailController, Icons.email_outlined, "tuo@email.com"),
                 const SizedBox(height: 15),
-                _buildLabel(texts['password']!),
-                _buildTextField(_passwordController, Icons.lock_outline, "........", isPassword: true),
+                _buildTextField(_passwordController, Icons.lock_outline, "Password", isPassword: true),
                 const SizedBox(height: 20),
 
-                // CHECKBOX PRIVACY
                 Row(
                   children: [
                     Checkbox(
@@ -176,61 +153,45 @@ class _RegisterScreenState extends State<RegisterScreen> {
                         });
                       },
                     ),
-                    Expanded(
+                    const Expanded(
                       child: Text(
-                        texts['privacy']!,
-                        style: const TextStyle(color: Colors.white),
+                        'Accetto la Privacy Policy',
+                        style: TextStyle(color: Colors.white),
                       ),
                     ),
                   ],
                 ),
-
                 const SizedBox(height: 30),
 
-                // BOTTONE AVANTI
                 SizedBox(
                   width: double.infinity,
                   height: 55,
                   child: ElevatedButton(
-                    onPressed: _isPrivacyAccepted
-                        ? () {
-                      // Passiamo alla schermata successiva
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => RegisterPreferencesScreen(
-                            isEnglish: _isEnglish, // Passiamo la lingua scelta
-                            // Qui potresti passare anche i dati raccolti (nome,cognome,email, ecc.)
-                          ),
-                        ),
-                      );
-                    }
-                        : null, // Disabilita se privacy non accettata
+                    onPressed: _isLoading ? null : _handleRegister, // Usa la nuova funzione
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.white,
                       foregroundColor: primaryGreen,
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
                       elevation: 5,
                     ),
-                    child: Text(
-                      texts['next']!,
-                      style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                    ),
+                    child: _isLoading
+                        ? const CircularProgressIndicator()
+                        : const Text(
+                            'Registrati', // Testo del bottone cambiato
+                            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                          ),
                   ),
                 ),
 
                 const SizedBox(height: 20),
 
-                // LOGIN LINK
                 TextButton(
-                  onPressed: () => Navigator.pop(context), // Torna indietro (Login)
-                  child: Text(
-                    texts['login']!,
-                    style: const TextStyle(
-                        color: Colors.white, fontWeight: FontWeight.bold, decoration: TextDecoration.underline, decorationColor: Colors.white),
+                  onPressed: () => Navigator.pop(context),
+                  child: const Text(
+                    'Hai già un account? Accedi',
+                    style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, decoration: TextDecoration.underline, decorationColor: Colors.white),
                   ),
                 ),
-                const SizedBox(height: 40),
               ],
             ),
           ),
@@ -239,18 +200,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
     );
   }
 
-  // Helper per le etichette
-  Widget _buildLabel(String text) {
-    return Align(
-      alignment: Alignment.centerLeft,
-      child: Padding(
-        padding: const EdgeInsets.only(bottom: 8),
-        child: Text(text, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-      ),
-    );
-  }
-
-  // Helper per i campi di testo
   Widget _buildTextField(TextEditingController controller, IconData icon, String hint, {bool isPassword = false}) {
     return TextField(
       controller: controller,
