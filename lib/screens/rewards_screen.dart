@@ -29,7 +29,54 @@ class _RewardsScreenState extends State<RewardsScreen> {
   }
 
   Future<void> _handleRedeemPrize(Prize prize) async {
-    // ... (la logica di riscatto rimane invariata)
+
+    final int currentPoints = _controller.userPoints.value;
+
+    if (prize.quantitaDisponibile <= 0) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Questo premio non è più disponibile.")),
+      );
+      return;
+    }
+
+    if (currentPoints < prize.costoPunti) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Punti insufficienti. Ti servono ${prize.costoPunti} punti.")),
+      );
+      return;
+    }
+
+    final bool? confirm = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text("Conferma riscatto"),
+        content: Text("Vuoi riscattare '${prize.nome}' per ${prize.costoPunti} punti?"),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text("Annulla"),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text("Conferma"),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm != true) return;
+
+    try {
+      await _controller.redeemPrize(prize);
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Hai riscattato '${prize.nome}' con successo!")),
+      );
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Errore nel riscatto: $e")),
+      );
+    }
   }
 
   @override
