@@ -5,7 +5,8 @@ import 'package:cityclean/screens/settings_screen.dart';
 import 'package:cityclean/screens/guilds_list_screen.dart';
 import 'package:cityclean/screens/redeemed_rewards_screen.dart';
 import 'package:cityclean/screens/subscribed_events_screen.dart';
-import 'package:cityclean/screens/qr_scanner_screen.dart'; // 1. IMPORTA LA SCHERMATA DELLO SCANNER
+import 'package:cityclean/screens/qr_scanner_screen.dart';
+import 'package:cityclean/screens/badge_screen.dart';
 import 'package:cityclean/components/bottom_nav_bar.dart';
 import 'package:flutter/material.dart';
 
@@ -42,44 +43,45 @@ class _HomeScreenState extends State<HomeScreen> {
 
           final userProfile = snapshot.data!;
 
-          return Stack(
-            children: [
-              Container(
-                height: 200, 
-                width: double.infinity,
-                decoration: BoxDecoration(
-                  color: Colors.green[700],
-                  borderRadius: const BorderRadius.only(
-                    bottomLeft: Radius.circular(30),
-                    bottomRight: Radius.circular(30),
+          // Modifica: Utilizziamo un SingleChildScrollView per permettere lo scrolling
+          return SingleChildScrollView(
+            child: Stack(
+              children: [
+                // Contenitore verde di sfondo
+                Container(
+                  height: 200,
+                  width: double.infinity,
+                  decoration: BoxDecoration(
+                    color: Colors.green[700],
+                    borderRadius: const BorderRadius.only(
+                      bottomLeft: Radius.circular(30),
+                      bottomRight: Radius.circular(30),
+                    ),
                   ),
                 ),
-              ),
-
-              SafeArea(
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 20.0),
-                  child: Column(
-                    children: [
-                      _buildHeader(context, userProfile),
-                      const SizedBox(height: 30),
-                      
-                      _buildProfileCard(context, userProfile),
-                      const SizedBox(height: 20),
-
-                      _buildMainAction(context), // Passa il contesto
-                      const SizedBox(height: 15),
-
-                      _buildSubscribedEventsAction(context),
-                      const SizedBox(height: 20),
-
-                      _buildOptionsGrid(context),
-                      const Spacer(),
-                    ],
+                // Contenuti principali
+                SafeArea(
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 20.0),
+                    child: Column(
+                      children: [
+                        _buildHeader(context, userProfile),
+                        const SizedBox(height: 30),
+                        _buildProfileCard(context, userProfile),
+                        const SizedBox(height: 20),
+                        _buildMainAction(context),
+                        const SizedBox(height: 15),
+                        _buildSubscribedEventsAction(context),
+                        const SizedBox(height: 20),
+                        // La griglia ora è direttamente nella colonna scrollabile
+                        _buildOptionsGrid(context),
+                        const SizedBox(height: 20), // Spazio alla fine
+                      ],
+                    ),
                   ),
                 ),
-              ),
-            ],
+              ],
+            ),
           );
         },
       ),
@@ -161,20 +163,17 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  // CORREZIONE: Altezza e logica del pulsante aggiornate
   Widget _buildMainAction(BuildContext context) {
     return SizedBox(
       width: double.infinity,
       height: 90,
       child: ElevatedButton.icon(
-        // 2. COLLEGA LA NUOVA SCHERMATA
         onPressed: () {
           Navigator.push(
             context,
             MaterialPageRoute(builder: (context) => const QrScannerScreen()),
           );
         },
-        // 3. AGGIORNA L'ICONA
         icon: const Icon(Icons.qr_code_scanner, size: 30),
         label: const Text("Inizia a Riciclare", style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
         style: ElevatedButton.styleFrom(
@@ -212,23 +211,26 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
+  // Modifica: La griglia non ha più bisogno di Expanded e usa `NeverScrollableScrollPhysics`
+  // perché lo scrolling è gestito dal SingleChildScrollView esterno.
   Widget _buildOptionsGrid(BuildContext context) {
-    return Expanded(
-      child: GridView.count(
-        crossAxisCount: 2,
-        crossAxisSpacing: 15,
-        mainAxisSpacing: 15,
-        shrinkWrap: true,
-        physics: const NeverScrollableScrollPhysics(),
-        children: [
-          _buildOptionCard(Icons.shield_outlined, "Cerca Gilda", onTap: () {
-            Navigator.push(context, MaterialPageRoute(builder: (context) => const GuildsListScreen()));
-          }),
-          _buildOptionCard(Icons.card_giftcard_outlined, "Storico Premi", onTap: () {
-            Navigator.push(context, MaterialPageRoute(builder: (context) => const RedeemedRewardsScreen()));
-          }),
-        ],
-      ),
+    return GridView.count(
+      crossAxisCount: 2,
+      crossAxisSpacing: 15,
+      mainAxisSpacing: 15,
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      children: [
+        _buildOptionCard(Icons.group_work_outlined, "Cerca Gilda", onTap: () {
+          Navigator.push(context, MaterialPageRoute(builder: (context) => const GuildsListScreen()));
+        }),
+        _buildOptionCard(Icons.card_giftcard_outlined, "Storico Premi", onTap: () {
+          Navigator.push(context, MaterialPageRoute(builder: (context) => const RedeemedRewardsScreen()));
+        }),
+        _buildOptionCard(Icons.shield_outlined, "I Miei Badge", onTap: () {
+          Navigator.push(context, MaterialPageRoute(builder: (context) => const BadgeScreen()));
+        }),
+      ],
     );
   }
 

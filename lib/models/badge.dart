@@ -4,6 +4,7 @@ class Badge {
   final String descrizione;
   final String urlIcona;
   final String criterioSblocco;
+  final bool isUnlocked;
 
   Badge({
     required this.id,
@@ -11,27 +12,37 @@ class Badge {
     required this.descrizione,
     required this.urlIcona,
     required this.criterioSblocco,
+    this.isUnlocked = false,
   });
+
+  Badge copyWith({bool? isUnlocked}) {
+    return Badge(
+      id: id,
+      nome: nome,
+      descrizione: descrizione,
+      urlIcona: urlIcona,
+      criterioSblocco: criterioSblocco,
+      isUnlocked: isUnlocked ?? this.isUnlocked,
+    );
+  }
 
   factory Badge.fromJson(Map<String, dynamic> json) {
     return Badge(
-      id: json['id'],
+      id: json['idbadge'],
       nome: json['nome'],
       descrizione: json['descrizione'],
-      // DB camelCase: urlIcona
-      urlIcona: json['urlIcona'] ?? '',
-      // DB camelCase: criterioSblocco
-      criterioSblocco: json['criterioSblocco'] ?? '',
+      urlIcona: json['iconaurl'] ?? '',
+      criterioSblocco: json['criteriosblocco'] ?? '',
     );
   }
 
   Map<String, dynamic> toJson() {
     return {
-      'id': id,
+      'idbadge': id,
       'nome': nome,
       'descrizione': descrizione,
-      'urlIcona': urlIcona,
-      'criterioSblocco': criterioSblocco,
+      'iconaurl': urlIcona,
+      'criteriosblocco': criterioSblocco,
     };
   }
 }
