@@ -1,9 +1,7 @@
-// lib/components/bottom_nav_bar.dart
-
 import 'package:flutter/material.dart';
 import '../screens/map_screen.dart';
 import '../screens/rewards_screen.dart';
-import '../screens/home_screen.dart'; // CORREZIONE: Importa HomeScreen
+import '../screens/home_screen.dart';
 import '../screens/events_screen.dart';
 import '../screens/ia_screen.dart';
 
@@ -16,24 +14,31 @@ class CityCleanBottomNavBar extends StatelessWidget {
   });
 
   void _onItemTapped(int index, BuildContext context) {
-    if (index == currentIndex) return;
+    if (index == currentIndex) {
+      if (index == 2 && ModalRoute.of(context)!.settings.name != '/') {
+        Navigator.of(context).pushAndRemoveUntil(
+          MaterialPageRoute(builder: (context) => const HomeScreen(), settings: const RouteSettings(name: '/')),
+          (route) => false,
+        );
+      }
+      return;
+    }
 
     Widget page;
-    // --- CORREZIONE: La logica di navigazione ora punta a HomeScreen per l'indice 2 ---
     switch (index) {
-      case 0: // MAPPA
+      case 0:
         page = const MapScreen();
         break;
-      case 1: // PREMI
+      case 1:
         page = const RewardsScreen();
         break;
-      case 2: // PROFILO (che ora è la HomeScreen)
+      case 2:
         page = const HomeScreen();
         break;
-      case 3: // EVENTI
+      case 3:
         page = const EventsScreen();
         break;
-      case 4: // IA
+      case 4:
         page = const IAScreen();
         break;
       default:
