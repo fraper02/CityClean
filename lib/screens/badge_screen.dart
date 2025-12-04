@@ -87,9 +87,13 @@ class _BadgeScreenState extends State<BadgeScreen> {
   Widget _buildBadgeCard(app_badge.Badge badge) {
     final cardColor = badge.isUnlocked ? Colors.white : Colors.grey[200];
 
-    final Widget iconWidget = NetworkImageWithFallback(
-      imageUrl: badge.urlIcona,
-      fallbackWidget: Icon(Icons.shield_outlined, color: Colors.grey[600], size: 40),
+    final Widget iconWidget = SizedBox(
+      width: 50,
+      height: 50,
+      child: NetworkImageWithFallback(
+        imageUrl: badge.urlIcona,
+        fallbackWidget: Icon(Icons.shield_outlined, color: Colors.grey[600], size: 40),
+      ),
     );
 
     final Widget cardContent = Column(
@@ -126,18 +130,13 @@ class _BadgeScreenState extends State<BadgeScreen> {
         child: Stack(
           alignment: Alignment.center,
           children: [
-            // Layer 1: Il contenuto (icona e testo).
             cardContent,
-
-            // Layer 2 e 3: Velo scuro e lucchetto, solo per i badge bloccati.
             if (!badge.isUnlocked) ...[
-              // Questo Container crea un velo scuro uniforme.
               Positioned.fill(
                 child: Container(
-                  color: Colors.black.withOpacity(0.6),
+                  color: Colors.black.withOpacity(0.4),
                 ),
               ),
-              // Il lucchetto è sopra al velo scuro.
               const Icon(Icons.lock, color: Colors.white, size: 32),
             ],
           ],

@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import '../services/supabase_service.dart'; // Per supabase
+import '../services/supabase_service.dart';
 import '../services/storage_service.dart';
-import '../components/auth_gate.dart'; // Importiamo AuthGate
+import '../components/auth_gate.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -13,20 +13,14 @@ class SettingsScreen extends StatefulWidget {
 class _SettingsScreenState extends State<SettingsScreen> {
   bool _notificationsEnabled = true;
 
-  // Funzione Logout
   Future<void> _signOut() async {
-    // 1. Pulisci i dati locali
     await StorageService.clearSession();
-
-    // 2. Logout da Supabase
     await supabase.auth.signOut();
 
     if (mounted) {
-      // 3. FIX: Invece di popUntil, usiamo pushAndRemoveUntil.
-      // Questo cancella TUTTA la storia di navigazione e riavvia l'app da AuthGate (o LoginScreen).
       Navigator.of(context).pushAndRemoveUntil(
         MaterialPageRoute(builder: (context) => const AuthGate()),
-            (route) => false, // Rimuove tutte le rotte precedenti
+        (route) => false,
       );
     }
   }
@@ -39,7 +33,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
       backgroundColor: Colors.grey[100],
       body: Stack(
         children: [
-          // HEADER VERDE
           Container(
             height: 180,
             width: double.infinity,
@@ -51,14 +44,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
               ),
             ),
           ),
-
           SafeArea(
             child: SingleChildScrollView(
               padding: const EdgeInsets.symmetric(horizontal: 20),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Intestazione con tasto Indietro
                   Padding(
                     padding: const EdgeInsets.symmetric(vertical: 20),
                     child: Row(
@@ -84,21 +75,15 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       ],
                     ),
                   ),
-
                   const SizedBox(height: 80),
-
-                  // SEZIONE PREFERENZE
                   const Text("Preferenze", style: TextStyle(color: Colors.grey, fontSize: 16, fontWeight: FontWeight.w500)),
                   const SizedBox(height: 10),
-                  Container(
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(20),
-                      boxShadow: [BoxShadow(color: Colors.black12, blurRadius: 5, offset: const Offset(0, 2))],
-                    ),
+                  Material(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(20),
+                    clipBehavior: Clip.antiAlias, // Ritaglia l'effetto ripple
                     child: Column(
                       children: [
-                        // Switch Notifiche
                         SwitchListTile(
                           activeColor: primaryGreen,
                           secondary: Container(
@@ -115,7 +100,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
                           },
                         ),
                         const Divider(height: 1, indent: 60, endIndent: 20),
-                        // Lingua (Placeholder)
                         ListTile(
                           leading: Container(
                             padding: const EdgeInsets.all(8),
@@ -135,18 +119,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       ],
                     ),
                   ),
-
                   const SizedBox(height: 25),
-
-                  // SEZIONE ACCOUNT
                   const Text("Account", style: TextStyle(color: Colors.grey, fontSize: 16, fontWeight: FontWeight.w500)),
                   const SizedBox(height: 10),
-                  Container(
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(20),
-                      boxShadow: [BoxShadow(color: Colors.black12, blurRadius: 5, offset: const Offset(0, 2))],
-                    ),
+                  Material(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(20),
+                    clipBehavior: Clip.antiAlias, // Ritaglia l'effetto ripple
                     child: Column(
                       children: [
                         _buildListTile(Icons.lock_outline, "Privacy e Sicurezza", primaryGreen),
@@ -155,15 +134,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       ],
                     ),
                   ),
-
                   const SizedBox(height: 40),
-
-                  // BOTTONE ESCI
                   SizedBox(
                     width: double.infinity,
                     height: 55,
                     child: OutlinedButton.icon(
-                      onPressed: _signOut, // Chiama la funzione corretta
+                      onPressed: _signOut,
                       style: OutlinedButton.styleFrom(
                         foregroundColor: primaryGreen,
                         side: BorderSide(color: primaryGreen, width: 1.5),
@@ -173,7 +149,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       label: const Text("Esci", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
                     ),
                   ),
-
                   const SizedBox(height: 30),
                 ],
               ),

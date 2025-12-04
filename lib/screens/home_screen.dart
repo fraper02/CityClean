@@ -43,13 +43,11 @@ class _HomeScreenState extends State<HomeScreen> {
 
           final userProfile = snapshot.data!;
 
-          // Modifica: Utilizziamo un SingleChildScrollView per permettere lo scrolling
           return SingleChildScrollView(
             child: Stack(
               children: [
-                // Contenitore verde di sfondo
                 Container(
-                  height: 200,
+                  height: 200, 
                   width: double.infinity,
                   decoration: BoxDecoration(
                     color: Colors.green[700],
@@ -59,23 +57,27 @@ class _HomeScreenState extends State<HomeScreen> {
                     ),
                   ),
                 ),
-                // Contenuti principali
+
                 SafeArea(
                   child: Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 20.0),
                     child: Column(
                       children: [
                         _buildHeader(context, userProfile),
-                        const SizedBox(height: 30),
+                        // Ridotto lo spazio per portare la card più in alto
+                        const SizedBox(height: 20),
+                        
                         _buildProfileCard(context, userProfile),
                         const SizedBox(height: 20),
+
                         _buildMainAction(context),
                         const SizedBox(height: 15),
+
                         _buildSubscribedEventsAction(context),
                         const SizedBox(height: 20),
-                        // La griglia ora è direttamente nella colonna scrollabile
+
                         _buildOptionsGrid(context),
-                        const SizedBox(height: 20), // Spazio alla fine
+                        const SizedBox(height: 20),
                       ],
                     ),
                   ),
@@ -211,8 +213,6 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  // Modifica: La griglia non ha più bisogno di Expanded e usa `NeverScrollableScrollPhysics`
-  // perché lo scrolling è gestito dal SingleChildScrollView esterno.
   Widget _buildOptionsGrid(BuildContext context) {
     return GridView.count(
       crossAxisCount: 2,

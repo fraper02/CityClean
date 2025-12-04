@@ -80,7 +80,8 @@ class _EventsScreenState extends State<EventsScreen> {
 
   Widget _buildContentUI() {
     final Color primaryGreen = Colors.green[700]!;
-    const double fixedHeaderContentHeight = 170.0;
+    // Aumentato il valore per dare più spazio alla lista.
+    const double fixedHeaderContentHeight = 185.0;
 
     return Stack(
       children: [
@@ -101,7 +102,7 @@ class _EventsScreenState extends State<EventsScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text("Eventi in Zona", style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: Colors.white)),
+                const Text("Eventi in Zona", style: const TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: Colors.white)),
                 const SizedBox(height: 20),
                 TextField(
                   controller: _searchController,
@@ -152,7 +153,6 @@ class _EventsScreenState extends State<EventsScreen> {
                   return EventCard(
                     event: event,
                     isSubscribed: isSubscribed,
-                    // Lo Screen ora si limita a chiamare il controller, passando il contesto.
                     onSubscribeToggle: () => _controller.toggleSubscription(context, event.id, event.title),
                   );
                 },
