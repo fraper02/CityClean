@@ -146,12 +146,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   // SEZIONE PREFERENZE
                   const Text("Preferenze", style: TextStyle(color: Colors.grey, fontSize: 16, fontWeight: FontWeight.w500)),
                   const SizedBox(height: 10),
-                  Container(
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(20),
-                      boxShadow: [BoxShadow(color: Colors.black12, blurRadius: 5, offset: const Offset(0, 2))],
-                    ),
+                  Material(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(20),
+                    clipBehavior: Clip.antiAlias,
+                    elevation: 1,
+                    shadowColor: Colors.black12,
                     child: Column(
                       children: [
                         // Switch Notifiche
@@ -202,12 +202,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   // SEZIONE ACCOUNT
                   const Text("Account", style: TextStyle(color: Colors.grey, fontSize: 16, fontWeight: FontWeight.w500)),
                   const SizedBox(height: 10),
-                  Container(
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(20),
-                      boxShadow: [BoxShadow(color: Colors.black12, blurRadius: 5, offset: const Offset(0, 2))],
-                    ),
+                  Material(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(20),
+                    clipBehavior: Clip.antiAlias,
+                    elevation: 1,
+                    shadowColor: Colors.black12,
                     child: Column(
                       children: [
                         _buildListTile(
