@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import '../services/supabase_service.dart';
+import '../services/supabase_service.dart'; // Per supabase
 import '../services/storage_service.dart';
-import '../components/auth_gate.dart';
+import '../components/auth_gate.dart'; // Importiamo AuthGate
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -12,18 +12,80 @@ class SettingsScreen extends StatefulWidget {
 
 class _SettingsScreenState extends State<SettingsScreen> {
   bool _notificationsEnabled = true;
+  String _selectedLanguage = "Italiano";
 
+
+  // Funzione Logout
   Future<void> _signOut() async {
+
+    // 1. Pulisci i dati locali
     await StorageService.clearSession();
+
+    // 2. Logout da Supabase
     await supabase.auth.signOut();
 
     if (mounted) {
+      // 3. FIX: Invece di popUntil, usiamo pushAndRemoveUntil.
+      // Questo cancella TUTTA la storia di navigazione e riavvia l'app da AuthGate (o LoginScreen).
       Navigator.of(context).pushAndRemoveUntil(
         MaterialPageRoute(builder: (context) => const AuthGate()),
-        (route) => false,
+            (route) => false, // Rimuove tutte le rotte precedenti
       );
     }
   }
+  // 2. Funzione per mostrare il selettore di lingua
+  void _showLanguageBottomSheet(BuildContext context, Color primaryColor) {
+    final List<String> languages = ["Italiano", "English"];
+
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(25.0)),
+      ),
+      builder: (context) {
+        return Padding(
+          padding: const EdgeInsets.symmetric(vertical: 20),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Text(
+                "Seleziona una lingua",
+                style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 20),
+              // Genera la lista delle lingue
+              ...languages.map((lang) {
+                final isSelected = lang == _selectedLanguage;
+                return ListTile(
+                  leading: isSelected
+                      ? Icon(Icons.radio_button_checked, color: primaryColor)
+                      : const Icon(Icons.radio_button_unchecked, color: Colors.grey),
+                  title: Text(
+                    lang,
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                      color: isSelected ? primaryColor : Colors.black87,
+                    ),
+                  ),
+                  onTap: () {
+                    // Aggiorna lo stato e chiudi il pannello
+                    setState(() {
+                      _selectedLanguage = lang;
+                    });
+                    Navigator.pop(context);
+                  },
+                );
+              }),
+              const SizedBox(height: 20),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
 
   @override
   Widget build(BuildContext context) {
@@ -33,6 +95,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
       backgroundColor: Colors.grey[100],
       body: Stack(
         children: [
+          // HEADER VERDE
           Container(
             height: 180,
             width: double.infinity,
@@ -44,12 +107,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
               ),
             ),
           ),
+
           SafeArea(
             child: SingleChildScrollView(
               padding: const EdgeInsets.symmetric(horizontal: 20),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
+                  // Intestazione con tasto Indietro
                   Padding(
                     padding: const EdgeInsets.symmetric(vertical: 20),
                     child: Row(
@@ -75,15 +140,21 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       ],
                     ),
                   ),
+
                   const SizedBox(height: 80),
+
+                  // SEZIONE PREFERENZE
                   const Text("Preferenze", style: TextStyle(color: Colors.grey, fontSize: 16, fontWeight: FontWeight.w500)),
                   const SizedBox(height: 10),
-                  Material(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(20),
-                    clipBehavior: Clip.antiAlias, // Ritaglia l'effetto ripple
+                  Container(
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(20),
+                      boxShadow: [BoxShadow(color: Colors.black12, blurRadius: 5, offset: const Offset(0, 2))],
+                    ),
                     child: Column(
                       children: [
+                        // Switch Notifiche
                         SwitchListTile(
                           activeColor: primaryGreen,
                           secondary: Container(
@@ -100,6 +171,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                           },
                         ),
                         const Divider(height: 1, indent: 60, endIndent: 20),
+                        // Lingua (Placeholder)
                         ListTile(
                           leading: Container(
                             padding: const EdgeInsets.all(8),
@@ -107,39 +179,62 @@ class _SettingsScreenState extends State<SettingsScreen> {
                             child: Icon(Icons.language, color: primaryGreen),
                           ),
                           title: const Text("Lingua", style: TextStyle(fontWeight: FontWeight.w500)),
-                          trailing: const Row(
+                          trailing: Row(
                             mainAxisSize: MainAxisSize.min,
                             children: [
-                              Text("Italiano", style: TextStyle(color: Colors.grey)),
-                              Icon(Icons.chevron_right, color: Colors.grey),
+                              // Mostra la lingua attualmente selezionata
+                              Text(_selectedLanguage, style: const TextStyle(color: Colors.grey)),
+                              const SizedBox(width: 5),
+                              const Icon(Icons.chevron_right, color: Colors.grey),
                             ],
                           ),
-                          onTap: () {},
+                          onTap: () {
+                            // Apre il selettore
+                            _showLanguageBottomSheet(context, primaryGreen);
+                          },
                         ),
                       ],
                     ),
                   ),
+
                   const SizedBox(height: 25),
+
+                  // SEZIONE ACCOUNT
                   const Text("Account", style: TextStyle(color: Colors.grey, fontSize: 16, fontWeight: FontWeight.w500)),
                   const SizedBox(height: 10),
-                  Material(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(20),
-                    clipBehavior: Clip.antiAlias, // Ritaglia l'effetto ripple
+                  Container(
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(20),
+                      boxShadow: [BoxShadow(color: Colors.black12, blurRadius: 5, offset: const Offset(0, 2))],
+                    ),
                     child: Column(
                       children: [
-                        _buildListTile(Icons.lock_outline, "Privacy e Sicurezza", primaryGreen),
+                        _buildListTile(
+                            Icons.lock_outline,
+                            "Privacy e Sicurezza",
+                            primaryGreen,
+                                () => Navigator.push(context, MaterialPageRoute(builder: (context) => _buildPlaceholderPage("Privacy e Sicurezza")))
+                        ),
                         const Divider(height: 1, indent: 60, endIndent: 20),
-                        _buildListTile(Icons.help_outline, "Aiuto e Supporto", primaryGreen),
+                        _buildListTile(
+                            Icons.help_outline,
+                            "Aiuto e Supporto",
+                            primaryGreen,
+                                () => Navigator.push(context, MaterialPageRoute(builder: (context) => _buildPlaceholderPage("Aiuto e Supporto")))
+                        ),
                       ],
                     ),
                   ),
+
                   const SizedBox(height: 40),
+
+                  // BOTTONE ESCI
                   SizedBox(
                     width: double.infinity,
                     height: 55,
                     child: OutlinedButton.icon(
-                      onPressed: _signOut,
+                      onPressed: _signOut, // Chiama la funzione corretta
                       style: OutlinedButton.styleFrom(
                         foregroundColor: primaryGreen,
                         side: BorderSide(color: primaryGreen, width: 1.5),
@@ -149,6 +244,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       label: const Text("Esci", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
                     ),
                   ),
+
                   const SizedBox(height: 30),
                 ],
               ),
@@ -159,7 +255,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
   }
 
-  Widget _buildListTile(IconData icon, String title, Color color) {
+  Widget _buildListTile(IconData icon, String title, Color color, VoidCallback onTap) {
     return ListTile(
       leading: Container(
         padding: const EdgeInsets.all(8),
@@ -168,7 +264,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
       ),
       title: Text(title, style: const TextStyle(fontWeight: FontWeight.w500)),
       trailing: const Icon(Icons.chevron_right, color: Colors.grey),
-      onTap: () {},
+      onTap: onTap,
     );
   }
+  Widget _buildPlaceholderPage(String title) {
+    return Scaffold(
+      appBar: AppBar(title: Text(title), backgroundColor: Colors.green[700], foregroundColor: Colors.white),
+      body: Center(child: Text("Pagina $title")),
+    );
+  }
+
 }
