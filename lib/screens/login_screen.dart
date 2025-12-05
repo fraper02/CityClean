@@ -1,10 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'package:cityclean/services/supabase_service.dart';
-import 'package:cityclean/services/storage_service.dart';
+import '../services/storage_service.dart';
+import '../main.dart'; // Per la variabile globale supabase
 import 'register_screen.dart';
-
-// ... (la funzione translateSupabaseError rimane invariata)
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -71,9 +69,6 @@ class _LoginScreenState extends State<LoginScreen> with TickerProviderStateMixin
             session.refreshToken ?? '',
             user.id
         );
-        // --- CORREZIONE CHIAVE ---
-        // Rimuovendo qualsiasi navigazione manuale, permettiamo ad AuthGate
-        // di gestire il reindirizzamento alla HomeScreen.
       }
     } on AuthException catch (error) {
       if (mounted) {
@@ -102,7 +97,6 @@ class _LoginScreenState extends State<LoginScreen> with TickerProviderStateMixin
 
   @override
   Widget build(BuildContext context) {
-    // ... (il resto del metodo build rimane invariato)
     final Color primaryGreen = Colors.green[600]!;
     final Gradient bgGradient = LinearGradient(
       begin: Alignment.topCenter,
@@ -160,7 +154,7 @@ class _LoginScreenState extends State<LoginScreen> with TickerProviderStateMixin
                 const SizedBox(height: 8),
                 TextField(
                   controller: _passwordController,
-                  obscureText: !_passwordVisible, // controlla se mostrare la password
+                  obscureText: !_passwordVisible,
                   decoration: InputDecoration(
                     prefixIcon: const Icon(Icons.lock_outline, color: Colors.grey),
                     suffixIcon: IconButton(
@@ -170,7 +164,7 @@ class _LoginScreenState extends State<LoginScreen> with TickerProviderStateMixin
                       ),
                       onPressed: () {
                         setState(() {
-                          _passwordVisible = !_passwordVisible; // toggle
+                          _passwordVisible = !_passwordVisible;
                         });
                       },
                     ),
@@ -194,7 +188,6 @@ class _LoginScreenState extends State<LoginScreen> with TickerProviderStateMixin
 
                 const SizedBox(height: 20),
 
-                // BOTTONE ANIMATO ACCEDI
                 AnimatedBuilder(
                   animation: _buttonController,
                   builder: (context, child) {
@@ -264,8 +257,6 @@ class _LoginScreenState extends State<LoginScreen> with TickerProviderStateMixin
   }
 }
 
-// La funzione translateSupabaseError la lascio qui per brevità, 
-// ma potrebbe essere spostata in un file di utility.
 String translateSupabaseError(String? message) {
   if (message == null || message.isEmpty) {
     return "Si è verificato un errore di autenticazione.";
@@ -289,6 +280,5 @@ String translateSupabaseError(String? message) {
     return "Nessun account trovato con questa email.";
   }
 
-  // fallback generico
   return "Errore: $message";
 }

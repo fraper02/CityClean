@@ -79,51 +79,54 @@ class _EventsScreenState extends State<EventsScreen> {
   }
 
   Widget _buildContentUI() {
-    final Color primaryGreen = Colors.green[700]!;
-    // Aumentato il valore per dare più spazio alla lista.
-    const double fixedHeaderContentHeight = 185.0;
-
-    return Stack(
+    return Column(
       children: [
+        // 1. HEADER VERDE
         Container(
-          height: 200,
-          width: double.infinity,
           decoration: BoxDecoration(
-            color: primaryGreen,
+            color: Colors.green[700],
             borderRadius: const BorderRadius.only(
               bottomLeft: Radius.circular(30),
               bottomRight: Radius.circular(30),
             ),
           ),
-        ),
-        SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.all(20),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text("Eventi in Zona", style: const TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: Colors.white)),
-                const SizedBox(height: 20),
-                TextField(
-                  controller: _searchController,
-                  decoration: InputDecoration(
-                    hintText: "Cerca eventi...",
-                    prefixIcon: const Icon(Icons.search, color: Colors.green),
-                    filled: true,
-                    fillColor: Colors.white,
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(15), borderSide: BorderSide.none),
-                    contentPadding: const EdgeInsets.symmetric(vertical: 15),
+          child: SafeArea(
+            bottom: false,
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const SizedBox(height: 10),
+                  const Text(
+                    "Eventi in Zona",
+                    style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: Colors.white),
                   ),
-                ),
-              ],
+                  const SizedBox(height: 20),
+                  TextField(
+                    controller: _searchController,
+                    decoration: InputDecoration(
+                      hintText: "Cerca eventi...",
+                      prefixIcon: const Icon(Icons.search, color: Colors.green),
+                      filled: true,
+                      fillColor: Colors.white,
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(15),
+                        borderSide: BorderSide.none,
+                      ),
+                      contentPadding: const EdgeInsets.symmetric(vertical: 15),
+                    ),
+                  ),
+                  // Spazio aggiunto per distanziare la barra di ricerca dal bordo inferiore
+                  const SizedBox(height: 25),
+                ],
+              ),
             ),
           ),
         ),
-        Positioned(
-          top: MediaQuery.of(context).padding.top + fixedHeaderContentHeight,
-          left: 0,
-          right: 0,
-          bottom: 0,
+
+        // 2. LISTA DEGLI EVENTI
+        Expanded(
           child: _buildEventsList(),
         ),
       ],
@@ -138,27 +141,23 @@ class _EventsScreenState extends State<EventsScreen> {
           return const Center(child: Text("Nessun evento trovato.", style: TextStyle(fontSize: 16, color: Colors.grey)));
         }
 
-        return ValueListenableBuilder<Set<String>>(
-          valueListenable: _controller.subscribedEventIds,
-          builder: (context, subscribedIds, _) {
-            return RefreshIndicator(
-              onRefresh: _controller.loadEvents,
-              child: ListView.builder(
-                padding: const EdgeInsets.symmetric(horizontal: 20).copyWith(bottom: 20),
-                itemCount: events.length,
-                itemBuilder: (context, index) {
-                  final event = events[index];
-                  final isSubscribed = subscribedIds.contains(event.id);
+        return RefreshIndicator(
+          onRefresh: _controller.loadEvents,
+          child: ListView.builder(
+            // Aggiunto padding superiore per distanziare la lista dall'header
+            padding: const EdgeInsets.fromLTRB(20, 10, 20, 20),
+            itemCount: events.length,
+            itemBuilder: (context, index) {
+              final event = events[index];
+              final isSubscribed = _controller.subscribedEventIds.value.contains(event.id);
 
-                  return EventCard(
-                    event: event,
-                    isSubscribed: isSubscribed,
-                    onSubscribeToggle: () => _controller.toggleSubscription(context, event.id, event.title),
-                  );
-                },
-              ),
-            );
-          },
+              return EventCard(
+                event: event,
+                isSubscribed: isSubscribed,
+                onSubscribeToggle: () => _controller.toggleSubscription(context, event.id, event.title),
+              );
+            },
+          ),
         );
       },
     );

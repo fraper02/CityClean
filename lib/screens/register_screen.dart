@@ -1,7 +1,7 @@
-import 'package:cityclean/main.dart';
 import 'package:cityclean/components/auth_gate.dart';
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import '../main.dart';
 
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({super.key});
@@ -11,7 +11,6 @@ class RegisterScreen extends StatefulWidget {
 }
 
 class _RegisterScreenState extends State<RegisterScreen> {
-  // Controller per i campi di testo
   final _nameController = TextEditingController();
   final _surnameController = TextEditingController();
   final _emailController = TextEditingController();
@@ -21,7 +20,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
   bool _isPrivacyAccepted = false;
   bool _isLoading = false;
 
-  // Funzione per mostrare il date picker
   Future<void> _selectDate(BuildContext context) async {
     final DateTime? picked = await showDatePicker(
       context: context,
@@ -31,13 +29,11 @@ class _RegisterScreenState extends State<RegisterScreen> {
     );
     if (picked != null) {
       setState(() {
-        // Formatta la data in YYYY-MM-DD per il database
         _birthDateController.text = picked.toIso8601String().split('T')[0];
       });
     }
   }
 
-  // Funzione di registrazione
   Future<void> _handleRegister() async {
     if (!_isPrivacyAccepted) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -49,8 +45,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
     setState(() => _isLoading = true);
 
     try {
-      // Chiama Supabase Auth per creare l'utente
-      // Passiamo i dati extra nel parametro `data` che verrà usato dal trigger
       await supabase.auth.signUp(
         email: _emailController.text.trim(),
         password: _passwordController.text.trim(),
@@ -65,7 +59,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Registrazione avvenuta! Controlla la tua email per confermare l account.')),
         );
-        // Naviga all'AuthGate, che gestirà il reindirizzamento
         Navigator.pushAndRemoveUntil(
           context,
           MaterialPageRoute(builder: (context) => const AuthGate()),
@@ -167,7 +160,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   width: double.infinity,
                   height: 55,
                   child: ElevatedButton(
-                    onPressed: _isLoading ? null : _handleRegister, // Usa la nuova funzione
+                    onPressed: _isLoading ? null : _handleRegister,
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.white,
                       foregroundColor: primaryGreen,
@@ -177,7 +170,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     child: _isLoading
                         ? const CircularProgressIndicator()
                         : const Text(
-                            'Registrati', // Testo del bottone cambiato
+                            'Registrati',
                             style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                           ),
                   ),

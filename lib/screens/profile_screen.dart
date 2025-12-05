@@ -1,10 +1,10 @@
-import 'package:cityclean/screens/badge_screen.dart';
+import 'package:cityclean/controllers/profile_controller.dart';
+import 'package:cityclean/models/userProfile.dart';
 import 'package:flutter/material.dart';
 import '../components/bottom_nav_bar.dart';
 import 'redeemed_rewards_screen.dart';
 import 'guilds_list_screen.dart';
-import '../models/userProfile.dart';
-import '../services/user_service.dart';
+import 'badge_screen.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -14,13 +14,19 @@ class ProfileScreen extends StatefulWidget {
 }
 
 class _ProfileScreenState extends State<ProfileScreen> {
-  final UserService _userService = UserService();
-  late Future<UserProfile> _profileDataFuture;
+  late final ProfileController _controller;
 
   @override
   void initState() {
     super.initState();
-    _profileDataFuture = _userService.getCurrentUser();
+    _controller = ProfileController();
+    _controller.loadUserProfile();
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
   }
 
   @override
@@ -28,20 +34,25 @@ class _ProfileScreenState extends State<ProfileScreen> {
     return Scaffold(
       backgroundColor: Colors.grey[100],
       bottomNavigationBar: const CityCleanBottomNavBar(currentIndex: 2),
-      body: FutureBuilder<UserProfile>(
-        future: _profileDataFuture,
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
+      body: ValueListenableBuilder<ProfileScreenState>(
+        valueListenable: _controller.state,
+        builder: (context, state, _) {
+          if (state == ProfileScreenState.loading || state == ProfileScreenState.initial) {
             return const Center(child: CircularProgressIndicator());
           }
-          if (snapshot.hasError || !snapshot.hasData) {
-            return const Center(child: Text("Impossibile caricare il profilo."));
+          if (state == ProfileScreenState.error) {
+            return Center(child: Text(_controller.errorMessage.value));
           }
 
-          final userProfile = snapshot.data!;
-          final primaryGreen = Colors.green[700]!;
-
-          return _buildProfileUI(context, userProfile, primaryGreen);
+          return ValueListenableBuilder<UserProfile?>(
+            valueListenable: _controller.userProfile,
+            builder: (context, userProfile, _ ){
+              if (userProfile == null) {
+                return const Center(child: Text("Profilo non disponibile."));
+              }
+              return _buildProfileUI(context, userProfile, Colors.green[700]!);
+            }
+          );
         },
       ),
     );
@@ -87,7 +98,21 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       ),
                       const SizedBox(height: 15),
                       Text("${user.nome} ${user.cognome ?? ''}", style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
-                      const Text("Membro CityClean", style: TextStyle(color: Colors.grey)),
+                      const SizedBox(height: 5),
+                      GestureDetector(
+                        onTap: () => _controller.showTitleSelection(context, primaryGreen),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Text(
+                              user.titolo ?? 'No title', // Testo di fallback modificato
+                              style: const TextStyle(color: Colors.grey, fontSize: 16),
+                            ),
+                            const SizedBox(width: 8),
+                            Icon(Icons.edit, color: Colors.grey, size: 16),
+                          ],
+                        ),
+                      ),
                       const SizedBox(height: 25),
                       Row(
                         children: [
@@ -100,8 +125,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   ),
                 ),
                 const SizedBox(height: 20),
-
-                // CARD PREMI RISCATTATI
                 _buildNavigationCard(
                   context: context,
                   icon: Icons.card_giftcard_outlined,
@@ -115,11 +138,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     );
                   },
                 ),
-
-                // --- CARD BADGE (NUOVA) ---
                 _buildNavigationCard(
                   context: context,
-                  icon: Icons.shield_outlined, // Icona diversa
+                  icon: Icons.shield_outlined,
                   label: "I Tuoi Badge",
                   subtitle: "Scopri i badge che hai sbloccato",
                   iconColor: primaryGreen,
@@ -130,8 +151,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     );
                   },
                 ),
-
-                // CARD GILDA
                 _buildNavigationCard(
                     context: context,
                     icon: Icons.group_work_outlined,
@@ -144,10 +163,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         MaterialPageRoute(builder: (context) => const GuildsListScreen()),
                       );
                     }),
-
-                // INFO EMAIL
                 _buildInfoCard(Icons.email_outlined, "Email", user.email, primaryGreen),
-
                 const SizedBox(height: 30),
               ],
             ),

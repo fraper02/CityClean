@@ -9,6 +9,8 @@ class UserProfile {
   final String codiceReferral;
   final String? fotoProfilo;
   final bool isAdmin;
+  final String? idBadgeTitolo; // ID del badge scelto come titolo
+  final String? titolo;        // Nome del badge (verrà popolato dal service)
 
   UserProfile({
     required this.id,
@@ -19,47 +21,48 @@ class UserProfile {
     required this.codiceReferral,
     this.fotoProfilo,
     required this.isAdmin,
+    this.idBadgeTitolo,
+    this.titolo,
   });
 
-  // Converte un oggetto JSON (dal DB) in un'istanza di UserProfile
   factory UserProfile.fromJson(Map<String, dynamic> json) {
     return UserProfile(
-      // Assicurati che i nomi delle chiavi qui corrispondano esattamente
-      // a quelli delle colonne nel tuo database Supabase.
-      id: json['idutente'] as String? ?? '', 
+      id: json['idutente'] as String? ?? '',
       nome: json['nome'] as String? ?? 'Nome utente',
-      cognome: json['cognome'] as String?, // Assegna null se non presente
+      cognome: json['cognome'] as String?,
       email: json['email'] as String? ?? '',
       saldoPunti: json['saldopunti'] as int? ?? 0,
       codiceReferral: json['codicereferral'] as String? ?? '',
-      fotoProfilo: json['fotoprofilo'] as String?, // Assegna null se non presente
+      fotoProfilo: json['fotoprofilo'] as String?,
       isAdmin: json['isadmin'] as bool? ?? false,
+      idBadgeTitolo: json['id_badge_titolo'] as String?,
+      // Questo campo viene aggiunto dinamicamente dal service
+      titolo: json['titolo_nome'] as String?,
     );
   }
 
+  Map<String, dynamic> toJson() {
+    return {
+      'idutente': id,
+      'nome': nome,
+      'cognome': cognome,
+      'email': email,
+      'saldopunti': saldoPunti,
+      'codicereferral': codiceReferral,
+      'fotoprofilo': fotoProfilo,
+      'isadmin': isAdmin,
+      'id_badge_titolo': idBadgeTitolo,
+    };
+  }
 
-    Map<String, dynamic> toJson() {
-      return {
-        'idutente': id,
-        'nome': nome,
-        'cognome': cognome,
-        'email': email,
-        'saldopunti': saldoPunti,
-        'codicereferral': codiceReferral,
-        'fotoprofilo': fotoProfilo,
-        'isadmin': isAdmin,
-      };
-    }
-
-  // --- METODI STATICI PER INTERAGIRE CON IL DATABASE ---
+  // Questi metodi DAO rimangono per compatibilità con altre parti dell'app
   static final _supabase = Supabase.instance.client;
-  static const _tableName = 'utente'; // Nome della tabella centralizzato
+  static const _tableName = 'utente';
 
-  /// Recupera i punti per un dato utente.
   static Future<int> getPoints(String userId) async {
     try {
       final response = await _supabase
-          .from(_tableName) // 'utente'
+          .from(_tableName)
           .select('saldopunti')
           .eq('idutente', userId)
           .single();
@@ -70,12 +73,10 @@ class UserProfile {
     }
   }
 
-  /// Aggiorna i punti di un utente.
   static Future<void> updatePoints(String userId, int newPoints) async {
     await _supabase
         .from(_tableName)
         .update({'saldopunti': newPoints})
         .eq('idutente', userId);
   }
-
 }
