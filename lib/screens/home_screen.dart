@@ -7,6 +7,7 @@ import 'package:cityclean/screens/redeemed_rewards_screen.dart';
 import 'package:cityclean/screens/subscribed_events_screen.dart';
 import 'package:cityclean/screens/qr_scanner_screen.dart';
 import 'package:cityclean/screens/badge_screen.dart';
+import 'package:cityclean/screens/objectives_screen.dart';
 import 'package:cityclean/components/bottom_nav_bar.dart';
 import 'package:flutter/material.dart';
 
@@ -63,7 +64,6 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
 
           final userProfile = snapshot.data!;
 
-          // Ristrutturato con Column per un layout più semplice e meno spazi superflui
           return Column(
             children: [
               Container(
@@ -76,6 +76,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                   ),
                 ),
                 child: SafeArea(
+                  bottom: false,
                   child: Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 20.0),
                     child: Column(
@@ -234,22 +235,31 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   }
 
   Widget _buildOptionsGrid(BuildContext context) {
-    return GridView.count(
-      crossAxisCount: 2,
-      crossAxisSpacing: 15,
-      mainAxisSpacing: 15,
-      shrinkWrap: true,
-      physics: const NeverScrollableScrollPhysics(),
+    return Column(
       children: [
-        _buildOptionCard(Icons.shield_outlined, "I Miei Badge", onTap: () {
-          Navigator.push(context, MaterialPageRoute(builder: (context) => const BadgeScreen()));
-        }),
-        _buildOptionCard(Icons.card_giftcard_outlined, "Storico Premi", onTap: () {
-          Navigator.push(context, MaterialPageRoute(builder: (context) => const RedeemedRewardsScreen()));
-        }),
-        _buildOptionCard(Icons.group_work_outlined, "Cerca Gilda", onTap: () {
-          Navigator.push(context, MaterialPageRoute(builder: (context) => const GuildsListScreen()));
-        }),
+        Row(
+          children: [
+            Expanded(child: _buildOptionCard(Icons.shield_outlined, "I Miei Badge", onTap: () {
+              Navigator.push(context, MaterialPageRoute(builder: (context) => const BadgeScreen()));
+            })),
+            const SizedBox(width: 15),
+            Expanded(child: _buildOptionCard(Icons.card_giftcard_outlined, "Storico Premi", onTap: () {
+              Navigator.push(context, MaterialPageRoute(builder: (context) => const RedeemedRewardsScreen()));
+            })),
+          ],
+        ),
+        const SizedBox(height: 15),
+        Row(
+          children: [
+            Expanded(child: _buildOptionCard(Icons.group_work_outlined, "Cerca Gilda", onTap: () {
+              Navigator.push(context, MaterialPageRoute(builder: (context) => const GuildsListScreen()));
+            })),
+            const SizedBox(width: 15),
+            Expanded(child: _buildOptionCard(Icons.flag_outlined, "Obiettivi", onTap: () {
+              Navigator.push(context, MaterialPageRoute(builder: (context) => const ObjectivesScreen()));
+            })),
+          ],
+        ),
       ],
     );
   }
@@ -259,6 +269,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
       onTap: onTap,
       borderRadius: BorderRadius.circular(20),
       child: Container(
+        height: 130, // Aumentata l'altezza per rendere i pulsanti più grandi
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(20),
@@ -267,9 +278,9 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(icon, size: 40, color: Colors.green[700]),
+            Icon(icon, size: 45, color: Colors.green[700]), // Icona leggermente più grande
             const SizedBox(height: 10),
-            Text(label, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500)),
+            Text(label, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500), textAlign: TextAlign.center,),
           ],
         ),
       ),
