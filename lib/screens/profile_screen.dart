@@ -1,5 +1,6 @@
 import 'package:cityclean/controllers/profile_controller.dart';
 import 'package:cityclean/models/userProfile.dart';
+import 'package:cityclean/screens/objectives_screen.dart';
 import 'package:flutter/material.dart';
 import '../components/bottom_nav_bar.dart';
 import 'redeemed_rewards_screen.dart';
@@ -105,7 +106,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
                             Text(
-                              user.titolo ?? 'No title', // Testo di fallback modificato
+                              user.titolo ?? 'No title',
                               style: const TextStyle(color: Colors.grey, fontSize: 16),
                             ),
                             const SizedBox(width: 8),
@@ -148,6 +149,20 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     Navigator.push(
                       context,
                       MaterialPageRoute(builder: (context) => const BadgeScreen()),
+                    );
+                  },
+                ),
+                // Nuovo pulsante per gli obiettivi
+                _buildNavigationCard(
+                  context: context,
+                  icon: Icons.flag_outlined,
+                  label: "I Miei Obiettivi",
+                  subtitle: "Guarda i tuoi progressi e obiettivi",
+                  iconColor: primaryGreen,
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (context) => const ObjectivesScreen()),
                     );
                   },
                 ),
