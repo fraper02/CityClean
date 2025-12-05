@@ -2,7 +2,7 @@
 
 import 'package:flutter/material.dart';
 import '../components/bottom_nav_bar.dart';
-import '../controllers/rewards_controller.dart'; 
+import '../controllers/rewards_controller.dart';
 import '../models/prizes.dart';
 
 class RewardsScreen extends StatefulWidget {
@@ -29,7 +29,6 @@ class _RewardsScreenState extends State<RewardsScreen> {
   }
 
   Future<void> _handleRedeemPrize(Prize prize) async {
-
     final int currentPoints = _controller.userPoints.value;
 
     if (prize.quantitaDisponibile <= 0) {
@@ -79,16 +78,28 @@ class _RewardsScreenState extends State<RewardsScreen> {
     }
   }
 
+  void _showPrizeDescription(Prize prize) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(prize.nome),
+        content: Text(prize.descrizione ?? "Nessuna descrizione disponibile."),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text("Chiudi"),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.grey[100],
-      // ERRORE: qui il nome era BottomNavBar ma nel tuo codice precedente era CityCleanBottomNavBar.
-      // Lo cambio per coerenza. Se il nome corretto è BottomNavBar, modificalo.
       bottomNavigationBar: const CityCleanBottomNavBar(currentIndex: 1),
 
-      // ---------- CORREZIONE PRINCIPALE QUI ----------
-      // Sostituisci il FutureBuilder con un ValueListenableBuilder che ascolta il controller.
       body: ValueListenableBuilder<ScreenState>(
         valueListenable: _controller.state,
         builder: (context, state, _) {
@@ -97,7 +108,6 @@ class _RewardsScreenState extends State<RewardsScreen> {
             case ScreenState.initial:
               return const Center(child: CircularProgressIndicator());
             case ScreenState.error:
-            // Ascolta anche il messaggio di errore specifico
               return Center(
                 child: ValueListenableBuilder<String>(
                   valueListenable: _controller.errorMessage,
@@ -105,17 +115,14 @@ class _RewardsScreenState extends State<RewardsScreen> {
                 ),
               );
             case ScreenState.success:
-            // Se lo stato è "success", costruisce la UI completa.
               return _buildContentUI();
           }
         },
       ),
-      // ------------------------------------------------
     );
   }
 
   Widget _buildContentUI() {
-    // ... (il resto della UI rimane invariato)
     final Color primaryGreen = Colors.green[700]!;
     final Color lightGreenCard = Colors.lightGreen[100]!;
     final Color iconBgGreen = Colors.lightGreen[50]!;
@@ -126,15 +133,20 @@ class _RewardsScreenState extends State<RewardsScreen> {
           width: double.infinity,
           decoration: BoxDecoration(
             color: primaryGreen,
-            borderRadius: const BorderRadius.only(bottomLeft: Radius.circular(30), bottomRight: Radius.circular(30)),
+            borderRadius: const BorderRadius.only(
+              bottomLeft: Radius.circular(30),
+              bottomRight: Radius.circular(30),
+            ),
           ),
           padding: const EdgeInsets.only(top: 50, left: 20, right: 20, bottom: 20),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text("Riscatto Premi", style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: Colors.white)),
+              const Text(
+                "Riscatto Premi",
+                style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: Colors.white),
+              ),
               const SizedBox(height: 20),
-              // Ascolta i punti utente direttamente dal controller
               ValueListenableBuilder<int>(
                 valueListenable: _controller.userPoints,
                 builder: (context, points, _) {
@@ -147,7 +159,10 @@ class _RewardsScreenState extends State<RewardsScreen> {
         const SizedBox(height: 10),
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-          child: Text("Premi disponibili", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.green[800])),
+          child: Text(
+            "Premi disponibili",
+            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.green[800]),
+          ),
         ),
         Expanded(
           child: ValueListenableBuilder<List<Prize>>(
@@ -161,7 +176,6 @@ class _RewardsScreenState extends State<RewardsScreen> {
                 itemCount: prizes.length,
                 itemBuilder: (context, index) {
                   final prize = prizes[index];
-                  // I punti sono presi dal notifier del controller per il confronto
                   final bool canRedeem = _controller.userPoints.value >= prize.costoPunti && prize.quantitaDisponibile > 0;
                   return _buildPrizeCard(
                     prize: prize,
@@ -186,7 +200,13 @@ class _RewardsScreenState extends State<RewardsScreen> {
       decoration: BoxDecoration(
         color: cardColor,
         borderRadius: BorderRadius.circular(20),
-        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10, offset: const Offset(0, 5))],
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 10,
+            offset: const Offset(0, 5),
+          )
+        ],
       ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -196,7 +216,10 @@ class _RewardsScreenState extends State<RewardsScreen> {
             children: [
               Text("Punti disponibili", style: TextStyle(color: Colors.green[800], fontSize: 14)),
               const SizedBox(height: 5),
-              Text(userPoints.toString(), style: TextStyle(color: Colors.green[900], fontSize: 36, fontWeight: FontWeight.bold)),
+              Text(
+                userPoints.toString(),
+                style: TextStyle(color: Colors.green[900], fontSize: 36, fontWeight: FontWeight.bold),
+              ),
             ],
           ),
           Container(
@@ -217,40 +240,48 @@ class _RewardsScreenState extends State<RewardsScreen> {
     required VoidCallback onRedeem,
   }) {
     final bool isAvailable = prize.quantitaDisponibile > 0;
-    return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-      padding: const EdgeInsets.all(15),
-      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(15), border: Border.all(color: Colors.grey.shade200)),
-      child: Row(
-        children: [
-          Container(
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(color: iconBg, shape: BoxShape.circle),
-            child: Icon(Icons.redeem, color: iconColor, size: 28),
-          ),
-          const SizedBox(width: 15),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(prize.nome, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.black87)),
-                const SizedBox(height: 4),
-                Text("${prize.costoPunti} punti", style: TextStyle(fontSize: 14, color: Colors.grey[600])),
-              ],
+
+    return InkWell(
+      onTap: () => _showPrizeDescription(prize), // 👈 ATTIVA IL POP-UP
+      child: Container(
+        margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+        padding: const EdgeInsets.all(15),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(15),
+          border: Border.all(color: Colors.grey.shade200),
+        ),
+        child: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(color: iconBg, shape: BoxShape.circle),
+              child: Icon(Icons.redeem, color: iconColor, size: 28),
             ),
-          ),
-          ElevatedButton(
-            onPressed: canRedeem ? onRedeem : null,
-            style: ElevatedButton.styleFrom(
-              backgroundColor: iconColor,
-              foregroundColor: Colors.white,
-              disabledBackgroundColor: Colors.grey.shade300,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+            const SizedBox(width: 15),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(prize.nome, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.black87)),
+                  const SizedBox(height: 4),
+                  Text("${prize.costoPunti} punti", style: TextStyle(fontSize: 14, color: Colors.grey[600])),
+                ],
+              ),
             ),
-            child: Text(isAvailable ? "Riscatta" : "Terminato"),
-          ),
-        ],
+            ElevatedButton(
+              onPressed: canRedeem ? onRedeem : null,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: iconColor,
+                foregroundColor: Colors.white,
+                disabledBackgroundColor: Colors.grey.shade300,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+              ),
+              child: Text(isAvailable ? "Riscatta" : "Terminato"),
+            ),
+          ],
+        ),
       ),
     );
   }
