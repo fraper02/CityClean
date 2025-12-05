@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import '../services/supabase_service.dart'; // Per supabase
 import '../services/storage_service.dart';
 import '../components/auth_gate.dart'; // Importiamo AuthGate
+import 'privacy_security_page.dart';
+import 'help_support_page.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -214,14 +216,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
                             Icons.lock_outline,
                             "Privacy e Sicurezza",
                             primaryGreen,
-                                () => Navigator.push(context, MaterialPageRoute(builder: (context) => _buildPlaceholderPage("Privacy e Sicurezza")))
+                                () => Navigator.push(context, MaterialPageRoute(builder: (context) => const PrivacyESicurezzaPage()))
                         ),
                         const Divider(height: 1, indent: 60, endIndent: 20),
                         _buildListTile(
                             Icons.help_outline,
                             "Aiuto e Supporto",
                             primaryGreen,
-                                () => Navigator.push(context, MaterialPageRoute(builder: (context) => _buildPlaceholderPage("Aiuto e Supporto")))
+                                () => Navigator.push(context, MaterialPageRoute(builder: (context) => const AiutoESupportoPage()))
                         ),
                       ],
                     ),
