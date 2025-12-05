@@ -1,8 +1,13 @@
 import 'package:cityclean/controllers/profile_controller.dart';
 import 'package:cityclean/models/userProfile.dart';
 import 'package:cityclean/screens/objectives_screen.dart';
+import 'package:cityclean/services/report_service.dart'; // Import ReportService
 import 'package:flutter/material.dart';
+import 'package:geolocator/geolocator.dart'; // Import Geolocator
+import 'package:latlong2/latlong.dart'; // Import LatLong
+import 'package:intl/intl.dart'; // Import DateFormat
 import '../components/bottom_nav_bar.dart';
+import 'location_picker_screen.dart'; // Import Location Picker
 import 'redeemed_rewards_screen.dart';
 import 'guilds_list_screen.dart';
 import 'badge_screen.dart';
@@ -16,6 +21,7 @@ class ProfileScreen extends StatefulWidget {
 
 class _ProfileScreenState extends State<ProfileScreen> {
   late final ProfileController _controller;
+  final ReportService _reportService = ReportService();
 
   @override
   void initState() {
@@ -29,6 +35,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
     _controller.dispose();
     super.dispose();
   }
+
+
 
   @override
   Widget build(BuildContext context) {
@@ -126,6 +134,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   ),
                 ),
                 const SizedBox(height: 20),
+                
+                // --- NUOVO PULSANTE CREA EVENTO ---
+
+                
                 _buildNavigationCard(
                   context: context,
                   icon: Icons.card_giftcard_outlined,

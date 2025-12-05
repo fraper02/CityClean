@@ -1,15 +1,18 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
-import 'package:latlong2/latlong.dart' hide Path; // Fix per il conflitto Path
+import 'package:latlong2/latlong.dart' hide Path;
 import 'package:geolocator/geolocator.dart';
+import 'package:image_picker/image_picker.dart';
 import '../components/bottom_nav_bar.dart';
 import '../models/map_models.dart';
 import '../services/osm_service.dart';
+import '../services/report_service.dart';
+import '../services/storage_service.dart';
 import 'dart:async';
 import '../data/map_data.dart';
 
 class MapScreen extends StatefulWidget {
-
   const MapScreen({super.key});
 
   @override
@@ -19,6 +22,7 @@ class MapScreen extends StatefulWidget {
 class _MapScreenState extends State<MapScreen> {
   final MapController _mapController = MapController();
   final OsmService _osmService = OsmService();
+  final ReportService _reportService = ReportService();
 
   LatLng _currentCenter = const LatLng(40.6795, 14.7645);
   bool _isLocationLoaded = false;
@@ -26,8 +30,6 @@ class _MapScreenState extends State<MapScreen> {
   List<EcoPoint> _ecoPoints = [];
   List<PollutedZone> _pollutedZones = [];
   bool _isLoading = false;
-
-  // Filtro per i cestini
   bool _showBins = true;
 
   @override
@@ -79,7 +81,7 @@ class _MapScreenState extends State<MapScreen> {
       _isLoading = true;
     });
 
-    await Future.delayed(const Duration(seconds: 1)); //non sembra funzionare
+    await Future.delayed(const Duration(seconds: 1));
 
     try {
       final zones = MockMapData.pollutedZones;
@@ -111,14 +113,165 @@ class _MapScreenState extends State<MapScreen> {
     }
   }
 
+  // --- FUNZIONE PER IL POPUP SEGNALAZIONE RAPIDA ---
+  void _showQuickReportDialog(BuildContext context) async {
+    final userId = await StorageService.getUserId();
+    if (userId == null) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Errore: Utente non loggato")));
+      }
+      return;
+    }
+
+    final reportDescController = TextEditingController();
+    String reportLocationStatus = "Posizione attuale";
+    LatLng? reportLocation = _isLocationLoaded ? _currentCenter : null;
+    File? selectedImage;
+    bool isUploading = false;
+    final ImagePicker picker = ImagePicker();
+
+    if (!context.mounted) return;
+
+    showDialog(
+      context: context,
+      builder: (ctx) {
+        return StatefulBuilder(
+          builder: (context, setState) {
+            
+            Future<void> pickImage(ImageSource source) async {
+              final XFile? photo = await picker.pickImage(source: source, imageQuality: 50);
+              if (photo != null) {
+                setState(() {
+                  selectedImage = File(photo.path);
+                });
+              }
+            }
+
+            return AlertDialog(
+              title: const Row(
+                children: [
+                  Icon(Icons.warning_amber_rounded, color: Colors.orange),
+                  SizedBox(width: 10),
+                  Text("Segnalazione Rapida"),
+                ],
+              ),
+              content: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text("Scatta una foto e segnala rifiuti abbandonati qui.", style: TextStyle(fontSize: 13, color: Colors.grey)),
+                    const SizedBox(height: 15),
+                    
+                    GestureDetector(
+                      onTap: () => pickImage(ImageSource.camera),
+                      child: Container(
+                        height: 150,
+                        width: double.infinity,
+                        decoration: BoxDecoration(
+                          color: Colors.grey[200],
+                          borderRadius: BorderRadius.circular(15),
+                          border: Border.all(color: Colors.grey[400]!),
+                          image: selectedImage != null 
+                            ? DecorationImage(image: FileImage(selectedImage!), fit: BoxFit.cover)
+                            : null,
+                        ),
+                        child: selectedImage == null 
+                          ? const Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Icon(Icons.camera_alt, size: 40, color: Colors.grey),
+                                Text("Scatta foto (Obbligatorio)", style: TextStyle(color: Colors.grey)),
+                              ],
+                            )
+                          : null,
+                      ),
+                    ),
+                    const SizedBox(height: 15),
+
+                    TextField(
+                      controller: reportDescController,
+                      decoration: const InputDecoration(
+                        labelText: "Descrizione Rifiuti",
+                        border: OutlineInputBorder(),
+                      ),
+                      maxLines: 2,
+                    ),
+                    const SizedBox(height: 10),
+                    
+                    Row(
+                      children: [
+                        const Icon(Icons.location_on, size: 16, color: Colors.green),
+                        const SizedBox(width: 5),
+                        Expanded(child: Text(reportLocation != null ? "GPS: ${reportLocation!.latitude.toStringAsFixed(4)}, ${reportLocation!.longitude.toStringAsFixed(4)}" : "Posizione sconosciuta", style: const TextStyle(fontSize: 12))),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+              actions: [
+                TextButton(onPressed: () => Navigator.pop(context), child: const Text("Annulla")),
+                ElevatedButton(
+                  style: ElevatedButton.styleFrom(backgroundColor: Colors.orange),
+                  onPressed: isUploading ? null : () async {
+                    if (reportDescController.text.isEmpty) {
+                      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Inserisci descrizione")));
+                      return;
+                    }
+                    if (selectedImage == null) {
+                      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Foto obbligatoria")));
+                      return;
+                    }
+                    if (reportLocation == null) {
+                       // Prova a recuperare posizione se mancante
+                       try {
+                         Position p = await Geolocator.getCurrentPosition();
+                         reportLocation = LatLng(p.latitude, p.longitude);
+                       } catch (e) {
+                         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Impossibile recuperare posizione")));
+                         return;
+                       }
+                    }
+
+                    setState(() => isUploading = true);
+
+                    try {
+                      final imageId = await _reportService.uploadImageAndGetId(selectedImage!);
+                      
+                      await _reportService.createReport(
+                        description: reportDescController.text,
+                        wasteType: "Rapida",
+                        latitude: reportLocation!.latitude,
+                        longitude: reportLocation!.longitude,
+                        userId: userId,
+                        imageId: imageId,
+                      );
+
+                      if (context.mounted) {
+                        Navigator.pop(context);
+                        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Segnalazione inviata!")));
+                      }
+                    } catch (e) {
+                      setState(() => isUploading = false);
+                      if (context.mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Errore: $e")));
+                      }
+                    }
+                  },
+                  child: Text(isUploading ? "Invio..." : "Invia"),
+                ),
+              ],
+            );
+          }
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final Color primaryGreen = Colors.green[700]!;
-
-    // FILTRO DELLA LISTA DA MOSTRARE
-    final pointsToShow = _showBins
-        ? _ecoPoints
-        : _ecoPoints.where((p) => p.type != 'Cestino').toList();
+    final pointsToShow = _showBins ? _ecoPoints : _ecoPoints.where((p) => p.type != 'Cestino').toList();
 
     return Scaffold(
       backgroundColor: Colors.grey[100],
@@ -136,31 +289,24 @@ class _MapScreenState extends State<MapScreen> {
                 urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
                 userAgentPackageName: 'com.unisa.cityclean',
               ),
-
               CircleLayer(
-                circles: _pollutedZones.map((zone) {
-                  return CircleMarker(
-                    point: zone.center,
-                    radius: zone.radius,
-                    useRadiusInMeter: true,
-                    color: Colors.red.withOpacity(0.3),
-                    borderColor: Colors.red.withOpacity(0.7),
-                    borderStrokeWidth: 2,
-                  );
-                }).toList(),
+                circles: _pollutedZones.map((zone) => CircleMarker(
+                  point: zone.center,
+                  radius: zone.radius,
+                  useRadiusInMeter: true,
+                  color: Colors.red.withOpacity(0.3),
+                  borderColor: Colors.red.withOpacity(0.7),
+                  borderStrokeWidth: 2,
+                )).toList(),
               ),
-
               MarkerLayer(
-                markers: pointsToShow.map((point) {
-                  return Marker(
-                    point: point.location,
-                    width: 50,
-                    height: 60,
-                    child: _buildCustomEcoMarker(point),
-                  );
-                }).toList(),
+                markers: pointsToShow.map((point) => Marker(
+                  point: point.location,
+                  width: 50,
+                  height: 60,
+                  child: _buildCustomEcoMarker(point),
+                )).toList(),
               ),
-
               if (_isLocationLoaded)
                 MarkerLayer(
                   markers: [
@@ -175,43 +321,34 @@ class _MapScreenState extends State<MapScreen> {
             ],
           ),
 
-          // HEADER VERDE (Adattivo)
+          // HEADER
           Positioned(
             top: 0,
             left: 0,
             right: 0,
             child: Container(
-              height: 200, // CORREZIONE: Altezza standardizzata
+              height: 200,
               decoration: BoxDecoration(
                 color: primaryGreen.withOpacity(0.95),
-                borderRadius: const BorderRadius.only(
-                  bottomLeft: Radius.circular(30),
-                  bottomRight: Radius.circular(30),
-                ),
-                boxShadow: [
-                  BoxShadow(color: Colors.black.withOpacity(0.2), blurRadius: 10, offset: const Offset(0, 5))
-                ],
+                borderRadius: const BorderRadius.only(bottomLeft: Radius.circular(30), bottomRight: Radius.circular(30)),
+                boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.2), blurRadius: 10, offset: const Offset(0, 5))],
               ),
               child: SafeArea(
                 child: Padding(
-                  padding: const EdgeInsets.fromLTRB(20, 10, 20, 20), // Aumentato padding bottom
+                  padding: const EdgeInsets.fromLTRB(20, 10, 20, 20),
                   child: Column(
-                    mainAxisSize: MainAxisSize.min, // Si adatta al contenuto
+                    mainAxisSize: MainAxisSize.min,
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       const Text("Mappa", style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: Colors.white)),
                       const SizedBox(height: 5),
                       const Text("Salerno - Trova punti di interesse", style: TextStyle(fontSize: 16, color: Colors.white70)),
                       const SizedBox(height: 5),
-                      // Info punti trovati
                       Row(
                         children: [
                           const Icon(Icons.location_on, color: Colors.white70, size: 14),
                           const SizedBox(width: 5),
-                          Text(
-                            "Punti visibili: ${pointsToShow.length}",
-                            style: const TextStyle(fontSize: 14, color: Colors.white, fontWeight: FontWeight.bold),
-                          ),
+                          Text("Punti visibili: ${pointsToShow.length}", style: const TextStyle(fontSize: 14, color: Colors.white, fontWeight: FontWeight.bold)),
                         ],
                       ),
                     ],
@@ -221,15 +358,13 @@ class _MapScreenState extends State<MapScreen> {
             ),
           ),
 
-          // BOTTONE CERCA QUI (Spostato più in basso per non collidere con l'header dinamico)
+          // REFRESH BUTTON
           Positioned(
-            top: 190, // Aumentato da 150 a 190
+            top: 190,
             right: 20,
             child: ElevatedButton.icon(
               onPressed: _isLoading ? null : _loadPoints,
-              icon: _isLoading
-                  ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(color: Colors.green, strokeWidth: 2))
-                  : const Icon(Icons.refresh, color: Colors.green),
+              icon: _isLoading ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(color: Colors.green, strokeWidth: 2)) : const Icon(Icons.refresh, color: Colors.green),
               label: Text(_isLoading ? "Caricamento..." : "Cerca qui"),
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.white,
@@ -239,7 +374,7 @@ class _MapScreenState extends State<MapScreen> {
             ),
           ),
 
-          // SWITCH CESTINI (Basso Sinistra)
+          // SWITCH CESTINI
           Positioned(
             bottom: 30,
             left: 20,
@@ -248,31 +383,14 @@ class _MapScreenState extends State<MapScreen> {
               decoration: BoxDecoration(
                 color: Colors.white,
                 borderRadius: BorderRadius.circular(30),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withOpacity(0.2),
-                    blurRadius: 8,
-                    offset: const Offset(0, 4),
-                  ),
-                ],
+                boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.2), blurRadius: 8, offset: const Offset(0, 4))],
               ),
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Icon(
-                      Icons.delete_outline,
-                      color: _showBins ? Colors.orange[700] : Colors.grey,
-                      size: 24
-                  ),
+                  Icon(Icons.delete_outline, color: _showBins ? Colors.orange[700] : Colors.grey, size: 24),
                   const SizedBox(width: 8),
-                  Text(
-                    "Cestini",
-                    style: TextStyle(
-                      color: Colors.black87,
-                      fontWeight: FontWeight.bold,
-                      fontSize: 15,
-                    ),
-                  ),
+                  const Text("Cestini", style: TextStyle(color: Colors.black87, fontWeight: FontWeight.bold, fontSize: 15)),
                   const SizedBox(width: 5),
                   Switch(
                     value: _showBins,
@@ -280,27 +398,34 @@ class _MapScreenState extends State<MapScreen> {
                     activeTrackColor: Colors.orange[400],
                     inactiveThumbColor: Colors.grey[50],
                     inactiveTrackColor: Colors.grey[300],
-                    onChanged: (val) {
-                      setState(() {
-                        _showBins = val;
-                      });
-                    },
+                    onChanged: (val) => setState(() => _showBins = val),
                   ),
                 ],
               ),
             ),
           ),
 
-          // FAB GPS (Basso Destra)
+          // FAB GPS (Spostato in alto rispetto al nuovo FAB)
           Positioned(
-            bottom: 30,
+            bottom: 100, 
             right: 20,
             child: FloatingActionButton(
-              onPressed: () async {
-                await _initializeLocation();
-              },
+              heroTag: "gps_fab",
+              onPressed: _initializeLocation,
               backgroundColor: primaryGreen,
               child: const Icon(Icons.my_location, color: Colors.white),
+            ),
+          ),
+
+          // NUOVO FAB SEGNALAZIONE (!)
+          Positioned(
+            bottom: 30, 
+            right: 20,
+            child: FloatingActionButton(
+              heroTag: "report_fab",
+              onPressed: () => _showQuickReportDialog(context),
+              backgroundColor: Colors.red[600],
+              child: const Icon(Icons.priority_high, color: Colors.white, size: 30),
             ),
           ),
         ],
@@ -361,14 +486,9 @@ class _MapScreenState extends State<MapScreen> {
             ),
             child: Icon(markerIcon, color: iconColor, size: 24),
           ),
-          // Opzionale: triangolino per indicare il punto esatto
           ClipPath(
             clipper: _MarkerClipper(),
-            child: Container(
-              width: 15,
-              height: 10,
-              color: iconColor,
-            ),
+            child: Container(width: 15, height: 10, color: iconColor),
           ),
         ],
       ),
@@ -376,7 +496,6 @@ class _MapScreenState extends State<MapScreen> {
   }
 }
 
-// Clipper per creare il triangolino sotto al marker
 class _MarkerClipper extends CustomClipper<Path> {
   @override
   Path getClip(Size size) {
@@ -387,15 +506,12 @@ class _MarkerClipper extends CustomClipper<Path> {
     path.close();
     return path;
   }
-
   @override
   bool shouldReclip(covariant CustomClipper<Path> oldClipper) => false;
 }
 
-// Widget per il marker dell'utente
 class _UserLocationMarker extends StatelessWidget {
   const _UserLocationMarker();
-
   @override
   Widget build(BuildContext context) {
     return Container(
