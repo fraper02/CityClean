@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import '../models/event.dart';
 import '../services/event_service.dart';
-import '../main.dart'; // Per accedere a supabase.auth.currentUser
+import '../main.dart';
 
 enum ScreenState { initial, loading, success, error }
 
@@ -43,8 +43,6 @@ class EventsController {
     }
   }
 
-  // Ora questo metodo accetta anche il BuildContext e il titolo dell'evento
-  // per poter mostrare la SnackBar.
   Future<void> toggleSubscription(BuildContext context, String eventId, String eventTitle) async {
     final userId = supabase.auth.currentUser?.id;
     if (userId == null) {
@@ -67,7 +65,6 @@ class EventsController {
         subscribedEventIds.value = newIds;
       }
       
-      // Mostra la SnackBar di successo.
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -80,7 +77,6 @@ class EventsController {
       }
 
     } catch (e) {
-      // Mostra la SnackBar di errore.
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text(e.toString()), backgroundColor: Colors.red),

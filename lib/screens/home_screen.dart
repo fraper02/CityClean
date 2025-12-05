@@ -17,14 +17,34 @@ class HomeScreen extends StatefulWidget {
   State<HomeScreen> createState() => _HomeScreenState();
 }
 
-class _HomeScreenState extends State<HomeScreen> {
+class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   final UserService _userService = UserService();
-  late Future<UserProfile> _profileDataFuture;
+  Future<UserProfile>? _profileDataFuture;
 
   @override
   void initState() {
     super.initState();
-    _profileDataFuture = _userService.getCurrentUser();
+    WidgetsBinding.instance.addObserver(this);
+    _loadProfile();
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      _loadProfile();
+    }
+  }
+
+  void _loadProfile() {
+    setState(() {
+      _profileDataFuture = _userService.getCurrentUser();
+    });
   }
 
   @override
@@ -43,47 +63,46 @@ class _HomeScreenState extends State<HomeScreen> {
 
           final userProfile = snapshot.data!;
 
-          return SingleChildScrollView(
-            child: Stack(
-              children: [
-                Container(
-                  height: 200, 
-                  width: double.infinity,
-                  decoration: BoxDecoration(
-                    color: Colors.green[700],
-                    borderRadius: const BorderRadius.only(
-                      bottomLeft: Radius.circular(30),
-                      bottomRight: Radius.circular(30),
-                    ),
+          // Ristrutturato con Column per un layout più semplice e meno spazi superflui
+          return Column(
+            children: [
+              Container(
+                padding: const EdgeInsets.only(bottom: 20),
+                decoration: BoxDecoration(
+                  color: Colors.green[700],
+                  borderRadius: const BorderRadius.only(
+                    bottomLeft: Radius.circular(30),
+                    bottomRight: Radius.circular(30),
                   ),
                 ),
-
-                SafeArea(
+                child: SafeArea(
                   child: Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 20.0),
                     child: Column(
                       children: [
                         _buildHeader(context, userProfile),
-                        // Ridotto lo spazio per portare la card più in alto
-                        const SizedBox(height: 20),
-                        
-                        _buildProfileCard(context, userProfile),
-                        const SizedBox(height: 20),
-
-                        _buildMainAction(context),
                         const SizedBox(height: 15),
-
-                        _buildSubscribedEventsAction(context),
-                        const SizedBox(height: 20),
-
-                        _buildOptionsGrid(context),
-                        const SizedBox(height: 20),
+                        _buildProfileCard(context, userProfile),
                       ],
                     ),
                   ),
                 ),
-              ],
-            ),
+              ),
+              Expanded(
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 20.0),
+                  child: Column(
+                    children: [
+                      _buildMainAction(context),
+                      const SizedBox(height: 15),
+                      _buildSubscribedEventsAction(context),
+                      const SizedBox(height: 20),
+                      _buildOptionsGrid(context),
+                    ],
+                  ),
+                ),
+              ),
+            ],
           );
         },
       ),
@@ -120,8 +139,9 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Widget _buildProfileCard(BuildContext context, UserProfile user) {
     return GestureDetector(
-      onTap: () {
-        Navigator.push(context, MaterialPageRoute(builder: (context) => const ProfileScreen()));
+      onTap: () async {
+        await Navigator.push(context, MaterialPageRoute(builder: (context) => const ProfileScreen()));
+        _loadProfile();
       },
       child: Container(
         padding: const EdgeInsets.all(16),
@@ -142,7 +162,7 @@ class _HomeScreenState extends State<HomeScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(user.nome, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-                const Text("Membro dal 2024", style: TextStyle(color: Colors.grey)),
+                Text(user.titolo ?? 'Membro CityClean', style: const TextStyle(color: Colors.grey)),
               ],
             ),
             const Spacer(),
@@ -221,14 +241,14 @@ class _HomeScreenState extends State<HomeScreen> {
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
       children: [
-        _buildOptionCard(Icons.group_work_outlined, "Cerca Gilda", onTap: () {
-          Navigator.push(context, MaterialPageRoute(builder: (context) => const GuildsListScreen()));
+        _buildOptionCard(Icons.shield_outlined, "I Miei Badge", onTap: () {
+          Navigator.push(context, MaterialPageRoute(builder: (context) => const BadgeScreen()));
         }),
         _buildOptionCard(Icons.card_giftcard_outlined, "Storico Premi", onTap: () {
           Navigator.push(context, MaterialPageRoute(builder: (context) => const RedeemedRewardsScreen()));
         }),
-        _buildOptionCard(Icons.shield_outlined, "I Miei Badge", onTap: () {
-          Navigator.push(context, MaterialPageRoute(builder: (context) => const BadgeScreen()));
+        _buildOptionCard(Icons.group_work_outlined, "Cerca Gilda", onTap: () {
+          Navigator.push(context, MaterialPageRoute(builder: (context) => const GuildsListScreen()));
         }),
       ],
     );
