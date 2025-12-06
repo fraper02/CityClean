@@ -445,6 +445,7 @@ class _MapScreenState extends State<MapScreen> {
           context: context,
           backgroundColor: Colors.transparent,
           builder: (ctx) => Container(
+            width: double.infinity,
             padding: const EdgeInsets.all(20),
             decoration: const BoxDecoration(
               color: Colors.white,
@@ -464,6 +465,7 @@ class _MapScreenState extends State<MapScreen> {
                 ElevatedButton(
                   onPressed: () => Navigator.pop(ctx),
                   style: ElevatedButton.styleFrom(
+                    minimumSize: const Size(double.infinity, 50),
                     backgroundColor: isBin ? Colors.orange[700] : Colors.green[700],
                     foregroundColor: Colors.white,
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
