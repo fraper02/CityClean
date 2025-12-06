@@ -51,13 +51,21 @@ class _RewardsScreenState extends State<RewardsScreen> {
         title: const Text("Conferma riscatto"),
         content: Text("Vuoi riscattare '${prize.nome}' per ${prize.costoPunti} punti?"),
         actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text("Annulla"),
+          // MAESTRO ID: Bottone Annulla
+          Semantics(
+            identifier: 'dialog_cancel_button',
+            child: TextButton(
+              onPressed: () => Navigator.pop(context, false),
+              child: const Text("Annulla"),
+            ),
           ),
-          ElevatedButton(
-            onPressed: () => Navigator.pop(context, true),
-            child: const Text("Conferma"),
+          // MAESTRO ID: Bottone Conferma
+          Semantics(
+            identifier: 'dialog_confirm_button',
+            child: ElevatedButton(
+              onPressed: () => Navigator.pop(context, true),
+              child: const Text("Conferma"),
+            ),
           ),
         ],
       ),
@@ -68,13 +76,17 @@ class _RewardsScreenState extends State<RewardsScreen> {
     try {
       await _controller.redeemPrize(prize);
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Hai riscattato '${prize.nome}' con successo!")),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("Hai riscattato '${prize.nome}' con successo!")),
+        );
+      }
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Errore nel riscatto: $e")),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("Errore nel riscatto: $e")),
+        );
+      }
     }
   }
 
@@ -85,9 +97,13 @@ class _RewardsScreenState extends State<RewardsScreen> {
         title: Text(prize.nome),
         content: Text(prize.descrizione ?? "Nessuna descrizione disponibile."),
         actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text("Chiudi"),
+          // MAESTRO ID: Chiudi descrizione
+          Semantics(
+            identifier: 'dialog_close_description',
+            child: TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text("Chiudi"),
+            ),
           ),
         ],
       ),
@@ -99,7 +115,6 @@ class _RewardsScreenState extends State<RewardsScreen> {
     return Scaffold(
       backgroundColor: Colors.grey[100],
       bottomNavigationBar: const CityCleanBottomNavBar(currentIndex: 1),
-
       body: ValueListenableBuilder<ScreenState>(
         valueListenable: _controller.state,
         builder: (context, state, _) {
@@ -177,6 +192,7 @@ class _RewardsScreenState extends State<RewardsScreen> {
                 itemBuilder: (context, index) {
                   final prize = prizes[index];
                   final bool canRedeem = _controller.userPoints.value >= prize.costoPunti && prize.quantitaDisponibile > 0;
+
                   return _buildPrizeCard(
                     prize: prize,
                     iconBg: iconBgGreen,
@@ -216,9 +232,13 @@ class _RewardsScreenState extends State<RewardsScreen> {
             children: [
               Text("Punti disponibili", style: TextStyle(color: Colors.green[800], fontSize: 14)),
               const SizedBox(height: 5),
-              Text(
-                userPoints.toString(),
-                style: TextStyle(color: Colors.green[900], fontSize: 36, fontWeight: FontWeight.bold),
+              // MAESTRO ID
+              Semantics(
+                identifier: 'user_points_display',
+                child: Text(
+                  userPoints.toString(),
+                  style: TextStyle(color: Colors.green[900], fontSize: 36, fontWeight: FontWeight.bold),
+                ),
               ),
             ],
           ),
@@ -241,46 +261,65 @@ class _RewardsScreenState extends State<RewardsScreen> {
   }) {
     final bool isAvailable = prize.quantitaDisponibile > 0;
 
-    return InkWell(
-      onTap: () => _showPrizeDescription(prize), // 👈 ATTIVA IL POP-UP
-      child: Container(
-        margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-        padding: const EdgeInsets.all(15),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(15),
-          border: Border.all(color: Colors.grey.shade200),
-        ),
-        child: Row(
-          children: [
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(color: iconBg, shape: BoxShape.circle),
-              child: Icon(Icons.redeem, color: iconColor, size: 28),
-            ),
-            const SizedBox(width: 15),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(prize.nome, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.black87)),
-                  const SizedBox(height: 4),
-                  Text("${prize.costoPunti} punti", style: TextStyle(fontSize: 14, color: Colors.grey[600])),
-                ],
+    // Generazione nomi puliti
+    final String cleanName = prize.nome.replaceAll(' ', '');
+
+    // ID per il bottone verde
+    final String buttonId = "${cleanName}BottoneRiscatta";
+
+    // ID per l'intera card (l'item della lista)
+    final String itemId = "${cleanName}Item";
+
+    // 1. Semantics per l'intera card (per aprire i dettagli)
+    return Semantics(
+      identifier: itemId,
+      child: InkWell(
+        onTap: () => _showPrizeDescription(prize),
+        child: Container(
+          margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+          padding: const EdgeInsets.all(15),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(15),
+            border: Border.all(color: Colors.grey.shade200),
+          ),
+          child: Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(color: iconBg, shape: BoxShape.circle),
+                child: Icon(Icons.redeem, color: iconColor, size: 28),
               ),
-            ),
-            ElevatedButton(
-              onPressed: canRedeem ? onRedeem : null,
-              style: ElevatedButton.styleFrom(
-                backgroundColor: iconColor,
-                foregroundColor: Colors.white,
-                disabledBackgroundColor: Colors.grey.shade300,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+              const SizedBox(width: 15),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(prize.nome, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.black87)),
+                    const SizedBox(height: 4),
+                    Text("${prize.costoPunti} punti", style: TextStyle(fontSize: 14, color: Colors.grey[600])),
+                  ],
+                ),
               ),
-              child: Text(isAvailable ? "Riscatta" : "Terminato"),
-            ),
-          ],
+
+              // 2. Semantics specifico per il bottone "Riscatta"
+              Semantics(
+                identifier: buttonId,
+                container: true,
+                child: ElevatedButton(
+                  onPressed: canRedeem ? onRedeem : null,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: iconColor,
+                    foregroundColor: Colors.white,
+                    disabledBackgroundColor: Colors.grey.shade300,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                  ),
+                  child: Text(isAvailable ? "Riscatta" : "Terminato"),
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
