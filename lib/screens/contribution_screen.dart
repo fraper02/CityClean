@@ -1,3 +1,4 @@
+import 'package:cityclean/services/contribution_service.dart'; // Assicurati che questo import sia corretto
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
@@ -12,7 +13,7 @@ class ContributionScreen extends StatefulWidget {
 
 class _ContributionScreenState extends State<ContributionScreen> {
   // --- VALORI HARDCODATI PER IL CALCOLO PUNTI ---
-  static const int puntiPlastica = 5;   // Punti per unità
+  static const int puntiPlastica = 5;
   static const int puntiVetro = 10;
   static const int puntiAlluminio = 8;
 
@@ -22,11 +23,11 @@ class _ContributionScreenState extends State<ContributionScreen> {
   final _alluminioController = TextEditingController();
 
   int _totalePunti = 0;
+  bool _isLoading = false; // Stato per gestire il caricamento durante l'invio
 
   @override
   void initState() {
     super.initState();
-    // Aggiungiamo listener per ricalcolare i punti in tempo reale
     _plasticaController.addListener(_calcolaTotale);
     _vetroController.addListener(_calcolaTotale);
     _alluminioController.addListener(_calcolaTotale);
@@ -52,7 +53,7 @@ class _ContributionScreenState extends State<ContributionScreen> {
     });
   }
 
-  void _confermaOperazione() {
+  Future<void> _confermaOperazione() async {
     if (_totalePunti == 0) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text("Inserisci almeno un rifiuto per continuare.")),
@@ -60,9 +61,8 @@ class _ContributionScreenState extends State<ContributionScreen> {
       return;
     }
 
-    // Qui puoi chiamare il service per salvare i dati su Supabase
-    // Per ora mostriamo il riepilogo locale come richiesto
-    showDialog(
+    // Mostra Dialog di Conferma
+    final conferma = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
         title: const Text("Conferma Conferimento"),
@@ -72,24 +72,57 @@ class _ContributionScreenState extends State<ContributionScreen> {
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(ctx),
+            onPressed: () => Navigator.pop(ctx, false),
             child: const Text("Annulla"),
           ),
           ElevatedButton(
             style: ElevatedButton.styleFrom(backgroundColor: Colors.green),
-            onPressed: () {
-              // TODO: Inviare dati al backend qui
-              Navigator.pop(ctx); // Chiude dialog
-              Navigator.pop(context); // Torna alla home
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text("Punti accreditati con successo! (Simulazione)")),
-              );
-            },
+            onPressed: () => Navigator.pop(ctx, true),
             child: const Text("Conferma"),
           ),
         ],
       ),
     );
+
+    if (conferma == true) {
+      setState(() {
+        _isLoading = true; // Mostra indicatore di caricamento
+      });
+
+      // --- CHIAMATA AL DB ---
+      // Usiamo il ContributionService per inviare i dati a Supabase
+      final result = await ContributionService.submitContribution(
+          widget.ecopointId,
+          _totalePunti
+      );
+
+      if (!mounted) return;
+
+      setState(() {
+        _isLoading = false; // Nascondi caricamento
+      });
+
+      if (result['success'] == true) {
+        // SUCCESSO
+        Navigator.pop(context); // Torna alla Home o allo Scanner
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(result['message']),
+            backgroundColor: Colors.green,
+            duration: const Duration(seconds: 3),
+          ),
+        );
+      } else {
+        // ERRORE
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text("Errore: ${result['message']}"),
+            backgroundColor: Colors.red,
+            duration: const Duration(seconds: 4),
+          ),
+        );
+      }
+    }
   }
 
   @override
@@ -100,7 +133,10 @@ class _ContributionScreenState extends State<ContributionScreen> {
         backgroundColor: Colors.green[700],
         foregroundColor: Colors.white,
       ),
-      body: SingleChildScrollView(
+      // Se sta caricando, mostra lo spinner e blocca l'interazione
+      body: _isLoading
+          ? const Center(child: CircularProgressIndicator())
+          : SingleChildScrollView(
         padding: const EdgeInsets.all(20),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,

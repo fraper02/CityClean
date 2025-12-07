@@ -1,5 +1,5 @@
 import 'package:cityclean/models/userProfile.dart';
-import 'package:cityclean/services/user_service.dart';
+// import 'package:cityclean/services/user_service.dart'; // Non serve più per il real-time
 import 'package:cityclean/screens/profile_screen.dart';
 import 'package:cityclean/screens/settings_screen.dart';
 import 'package:cityclean/screens/guilds_list_screen.dart';
@@ -9,6 +9,7 @@ import 'package:cityclean/screens/qr_scanner_screen.dart';
 import 'package:cityclean/screens/badge_screen.dart';
 import 'package:cityclean/components/bottom_nav_bar.dart';
 import 'package:flutter/material.dart';
+import 'package:supabase_flutter/supabase_flutter.dart'; // Import necessario per lo stream
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -18,27 +19,52 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  final UserService _userService = UserService();
-  late Future<UserProfile> _profileDataFuture;
+  // Usiamo uno Stream invece di un Future per ascoltare i cambiamenti in tempo reale
+  late Stream<UserProfile> _profileStream;
 
   @override
   void initState() {
     super.initState();
-    _profileDataFuture = _userService.getCurrentUser();
+    _setupProfileStream();
+  }
+
+  void _setupProfileStream() {
+    final client = Supabase.instance.client;
+    final userId = client.auth.currentUser?.id;
+
+    if (userId != null) {
+      // Creiamo uno stream che ascolta la tabella 'utente' per l'ID corrente
+      _profileStream = client
+          .from('utente')
+          .stream(primaryKey: ['idutente']) // Serve per identificare le righe uniche
+          .eq('idutente', userId)
+          .map((data) {
+        // Lo stream restituisce una lista di mappe (righe)
+        if (data.isEmpty) {
+          throw Exception("Profilo utente non trovato");
+        }
+        // Convertiamo la prima riga in un oggetto UserProfile
+        return UserProfile.fromJson(data.first);
+      });
+    } else {
+      // Fallback se non c'è utente (non dovrebbe accadere grazie all'AuthGate)
+      _profileStream = const Stream.empty();
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.grey[100],
-      body: FutureBuilder<UserProfile>(
-        future: _profileDataFuture,
+      // StreamBuilder ricostruisce la UI ogni volta che arrivano nuovi dati dal DB
+      body: StreamBuilder<UserProfile>(
+        stream: _profileStream,
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
             return const Center(child: CircularProgressIndicator());
           }
           if (snapshot.hasError || !snapshot.hasData) {
-            return const Center(child: Text("Errore nel caricamento dei dati"));
+            return Center(child: Text("Errore nel caricamento dei dati: ${snapshot.error}"));
           }
 
           final userProfile = snapshot.data!;
@@ -47,7 +73,7 @@ class _HomeScreenState extends State<HomeScreen> {
             child: Stack(
               children: [
                 Container(
-                  height: 200, 
+                  height: 200,
                   width: double.infinity,
                   decoration: BoxDecoration(
                     color: Colors.green[700],
@@ -64,9 +90,8 @@ class _HomeScreenState extends State<HomeScreen> {
                     child: Column(
                       children: [
                         _buildHeader(context, userProfile),
-                        // Ridotto lo spazio per portare la card più in alto
                         const SizedBox(height: 20),
-                        
+
                         _buildProfileCard(context, userProfile),
                         const SizedBox(height: 20),
 
@@ -135,14 +160,16 @@ class _HomeScreenState extends State<HomeScreen> {
             CircleAvatar(
               radius: 30,
               backgroundColor: const Color(0xFFE0F2F1),
-              child: const Icon(Icons.person, size: 30, color: Colors.green),
+              // Gestione immagine profilo se presente
+              backgroundImage: user.fotoProfilo != null ? NetworkImage(user.fotoProfilo!) : null,
+              child: user.fotoProfilo == null ? const Icon(Icons.person, size: 30, color: Colors.green) : null,
             ),
             const SizedBox(width: 15),
             Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(user.nome, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-                const Text("Membro dal 2024", style: TextStyle(color: Colors.grey)),
+                const Text("Membro CityClean", style: TextStyle(color: Colors.grey)),
               ],
             ),
             const Spacer(),
@@ -154,6 +181,7 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
               child: Column(
                 children: [
+                  // Questo testo si aggiornerà automaticamente!
                   Text("${user.saldoPunti}", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.green[800])),
                   Text("Punti", style: TextStyle(color: Colors.green[800])),
                 ],
@@ -240,9 +268,9 @@ class _HomeScreenState extends State<HomeScreen> {
       borderRadius: BorderRadius.circular(20),
       child: Container(
         decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: Colors.grey[200]!)
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(color: Colors.grey[200]!)
         ),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,

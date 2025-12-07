@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart'; // Per copiare negli appunti
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 class AdminListEcopointsPage extends StatelessWidget {
@@ -60,19 +61,38 @@ class AdminListEcopointsPage extends StatelessWidget {
                         child: DataTable(
                           headingRowColor: MaterialStateProperty.all(Colors.green[50]),
                           columns: const [
+                            DataColumn(label: Text('ID', style: TextStyle(fontWeight: FontWeight.bold))),
                             DataColumn(label: Text('Nome', style: TextStyle(fontWeight: FontWeight.bold))),
                             DataColumn(label: Text('Tipologia', style: TextStyle(fontWeight: FontWeight.bold))),
                             DataColumn(label: Text('Coordinate', style: TextStyle(fontWeight: FontWeight.bold))),
                             DataColumn(label: Text('Azioni', style: TextStyle(fontWeight: FontWeight.bold))),
                           ],
                           rows: ecopoints.map((point) {
+                            final id = point['idpuntoraccolta'] ?? 'N/A';
                             final nome = point['nome'] ?? 'N/A';
                             final tipo = point['tipologia'] ?? '-';
                             final lat = point['latitudine']?.toStringAsFixed(4) ?? '0';
                             final long = point['longitudine']?.toStringAsFixed(4) ?? '0';
-                            final id = point['idpuntoraccolta'];
 
                             return DataRow(cells: [
+                              // Colonna ID con pulsante copia
+                              DataCell(
+                                InkWell(
+                                  onTap: () {
+                                    Clipboard.setData(ClipboardData(text: id));
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      const SnackBar(content: Text("ID copiato negli appunti"), duration: Duration(seconds: 1)),
+                                    );
+                                  },
+                                  child: Row(
+                                    children: [
+                                      const Icon(Icons.copy, size: 14, color: Colors.grey),
+                                      const SizedBox(width: 4),
+                                      Text(id, style: const TextStyle(fontFamily: 'monospace', fontWeight: FontWeight.bold, fontSize: 12)),
+                                    ],
+                                  ),
+                                ),
+                              ),
                               DataCell(Row(
                                 children: [
                                   Icon(Icons.location_on, color: Colors.green[700], size: 20),
