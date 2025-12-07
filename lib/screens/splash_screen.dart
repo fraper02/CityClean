@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
-
-import '../components/auth_gate.dart';  // importa il tuo AuthGate
+import '../components/auth_gate.dart';
 
 class SplashScreen extends StatefulWidget {
   @override
@@ -20,7 +19,7 @@ class _SplashScreenState extends State<SplashScreen>
 
     _controller = AnimationController(
       vsync: this,
-      duration: Duration(seconds: 2),
+      duration: const Duration(seconds: 2),
     );
 
     _fadeAnimation = Tween<double>(begin: 0, end: 1).animate(
@@ -33,12 +32,14 @@ class _SplashScreenState extends State<SplashScreen>
 
     _controller.forward();
 
-    // dopo la splash → vai alla logica di autenticazione
-    Future.delayed(Duration(seconds: 3), () {
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (_) => const AuthGate()),
-      );
+    // CORREZIONE: Aggiunto controllo `if (mounted)` per evitare il crash
+    Future.delayed(const Duration(seconds: 3), () {
+      if (mounted) { // Controlla se il widget è ancora nell'albero dei widget
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (_) => const AuthGate()),
+        );
+      }
     });
   }
 
@@ -51,7 +52,7 @@ class _SplashScreenState extends State<SplashScreen>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Color(0xFFA7FFB5),
+      backgroundColor: const Color(0xFFA7FFB5),
       body: Center(
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -69,9 +70,9 @@ class _SplashScreenState extends State<SplashScreen>
               ),
             ),
 
-            SizedBox(height: 30),
+            const SizedBox(height: 30),
 
-            CircularProgressIndicator(
+            const CircularProgressIndicator(
               strokeWidth: 3,
               color: Colors.black54,
             ),

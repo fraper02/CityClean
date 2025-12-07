@@ -1,9 +1,7 @@
-// lib/services/event_service.dart
-
 import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../models/event.dart';
-import '../main.dart'; // Per accedere a supabase
+import '../main.dart';
 
 class EventService {
   Future<List<Event>> getEvents() async {
@@ -45,13 +43,8 @@ class EventService {
     }
   }
 
-  // --- CORREZIONE DEFINITIVA ---
   Future<List<Event>> getSubscribedEvents(String userId) async {
     try {
-      // Usa una JOIN per recuperare direttamente gli eventi corretti in una sola chiamata.
-      // 1. Seleziona tutte le colonne (*) dalla tabella 'evento'.
-      // 2. Esegue una JOIN con la tabella 'partecipazione' (!inner).
-      // 3. Filtra i risultati dove 'idutente' nella tabella 'partecipazione' è quello corretto.
       final response = await supabase
           .from('evento')
           .select('*, partecipazione!inner(*)')

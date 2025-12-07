@@ -1,10 +1,9 @@
 // lib/screens/redeemed_rewards_screen.dart
 
 import 'package:flutter/material.dart';
-import '../controllers/redeemed_rewards_controller.dart'; // 1. Importa il Controller
+import '../controllers/redeemed_rewards_controller.dart';
 import '../models/redeemed_reward.dart';
 
-// La schermata diventa uno StatefulWidget per gestire il ciclo di vita del Controller
 class RedeemedRewardsScreen extends StatefulWidget {
   const RedeemedRewardsScreen({super.key});
 
@@ -13,20 +12,17 @@ class RedeemedRewardsScreen extends StatefulWidget {
 }
 
 class _RedeemedRewardsScreenState extends State<RedeemedRewardsScreen> {
-  // 2. Istanza del Controller
   late final RedeemedRewardsController _controller;
 
   @override
   void initState() {
     super.initState();
-    // Crea l'istanza del controller e avvia il caricamento dei dati
     _controller = RedeemedRewardsController();
     _controller.fetchRedeemedRewards();
   }
 
   @override
   void dispose() {
-    // Libera le risorse del controller quando la schermata viene distrutta
     _controller.dispose();
     super.dispose();
   }
@@ -40,12 +36,9 @@ class _RedeemedRewardsScreenState extends State<RedeemedRewardsScreen> {
         foregroundColor: Colors.white,
       ),
       backgroundColor: Colors.grey[100],
-
-      // 3. ValueListenableBuilder ascolta i cambiamenti di stato dal controller
       body: ValueListenableBuilder<ScreenState>(
         valueListenable: _controller.state,
         builder: (context, state, _) {
-          // In base allo stato, mostra il widget appropriato
           switch (state) {
             case ScreenState.loading:
             case ScreenState.initial:
@@ -53,16 +46,14 @@ class _RedeemedRewardsScreenState extends State<RedeemedRewardsScreen> {
 
             case ScreenState.error:
               return Center(
-                // Ascolta anche il messaggio di errore specifico
                 child: ValueListenableBuilder<String>(
                   valueListenable: _controller.errorMessage,
-                  builder: (context, message, _) => Text("Errore: $message"),
+                  builder: (context, message, _) =>
+                      Text("Errore: $message"),
                 ),
               );
 
             case ScreenState.success:
-            // Se lo stato è "success", costruisce la lista dei premi
-            // ascoltando il notifier dei dati.
               return _buildRewardsList();
           }
         },
@@ -70,13 +61,14 @@ class _RedeemedRewardsScreenState extends State<RedeemedRewardsScreen> {
     );
   }
 
-  // Widget helper per costruire la lista dei premi
+  // LISTA PREMI
   Widget _buildRewardsList() {
     return ValueListenableBuilder<List<RedeemedReward>>(
       valueListenable: _controller.rewards,
       builder: (context, rewards, _) {
         if (rewards.isEmpty) {
-          return const Center(child: Text("Non hai ancora riscattato nessun premio."));
+          return const Center(
+              child: Text("Non hai ancora riscattato nessun premio."));
         }
 
         return ListView.builder(
@@ -87,20 +79,69 @@ class _RedeemedRewardsScreenState extends State<RedeemedRewardsScreen> {
             return Card(
               margin: const EdgeInsets.symmetric(vertical: 8),
               elevation: 2,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
               child: ListTile(
-                leading: Icon(Icons.check_circle_outline, color: Colors.green[600]),
-                title: Text(reward.title, style: const TextStyle(fontWeight: FontWeight.bold)),
+                leading: Icon(Icons.check_circle_outline,
+                    color: Colors.green[600]),
+                title: Text(
+                  reward.title,
+                  style: const TextStyle(fontWeight: FontWeight.bold),
+                ),
                 subtitle: Text("${reward.points} punti"),
                 trailing: Text(
-                  "${reward.date.day.toString().padLeft(2, '0')}/${reward.date.month.toString().padLeft(2, '0')}/${reward.date.year}",
+                  "${reward.date.day.toString().padLeft(2, '0')}/"
+                      "${reward.date.month.toString().padLeft(2, '0')}/"
+                      "${reward.date.year}",
                   style: TextStyle(color: Colors.grey[600], fontSize: 12),
                 ),
+
+                // 👇 AGGIUNTO: TAP → POPUP DETTAGLI
+                onTap: () => _showRewardPopup(reward),
               ),
             );
           },
         );
       },
+    );
+  }
+
+  // POPUP DETTAGLI PREMIO
+  void _showRewardPopup(RedeemedReward reward) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+        ),
+        title: Text(
+          reward.title,
+          style: const TextStyle(fontWeight: FontWeight.bold),
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text("Punti spesi: ${reward.points}",
+                style: const TextStyle(fontSize: 16)),
+            const SizedBox(height: 8),
+            Text(
+              "Data riscatto: "
+                  "${reward.date.day.toString().padLeft(2, '0')}/"
+                  "${reward.date.month.toString().padLeft(2, '0')}/"
+                  "${reward.date.year}",
+              style: const TextStyle(fontSize: 14, color: Colors.grey),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text("Chiudi"),
+          ),
+        ],
+      ),
     );
   }
 }

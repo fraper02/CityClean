@@ -1,5 +1,5 @@
 import 'package:cityclean/models/userProfile.dart';
-// import 'package:cityclean/services/user_service.dart'; // Non serve più per il real-time
+import 'package:cityclean/services/user_service.dart';
 import 'package:cityclean/screens/profile_screen.dart';
 import 'package:cityclean/screens/settings_screen.dart';
 import 'package:cityclean/screens/guilds_list_screen.dart';
@@ -7,9 +7,14 @@ import 'package:cityclean/screens/redeemed_rewards_screen.dart';
 import 'package:cityclean/screens/subscribed_events_screen.dart';
 import 'package:cityclean/screens/qr_scanner_screen.dart';
 import 'package:cityclean/screens/badge_screen.dart';
+import 'package:cityclean/screens/objectives_screen.dart';
 import 'package:cityclean/components/bottom_nav_bar.dart';
 import 'package:flutter/material.dart';
-import 'package:supabase_flutter/supabase_flutter.dart'; // Import necessario per lo stream
+import 'package:cityclean/services/report_service.dart'; // Import ReportService
+import 'package:geolocator/geolocator.dart'; // Import Geolocator
+import 'package:latlong2/latlong.dart'; // Import LatLong
+import 'package:intl/intl.dart'; // Import DateFormat
+import 'location_picker_screen.dart'; // Import Location Picker
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -18,97 +23,251 @@ class HomeScreen extends StatefulWidget {
   State<HomeScreen> createState() => _HomeScreenState();
 }
 
-class _HomeScreenState extends State<HomeScreen> {
-  // Usiamo uno Stream invece di un Future per ascoltare i cambiamenti in tempo reale
-  late Stream<UserProfile> _profileStream;
+class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
+  final UserService _userService = UserService();
+  final ReportService _reportService = ReportService();
+  Future<UserProfile>? _profileDataFuture;
 
   @override
   void initState() {
     super.initState();
-    _setupProfileStream();
+    WidgetsBinding.instance.addObserver(this);
+    _loadProfile();
   }
 
-  void _setupProfileStream() {
-    final client = Supabase.instance.client;
-    final userId = client.auth.currentUser?.id;
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
 
-    if (userId != null) {
-      // Creiamo uno stream che ascolta la tabella 'utente' per l'ID corrente
-      _profileStream = client
-          .from('utente')
-          .stream(primaryKey: ['idutente']) // Serve per identificare le righe uniche
-          .eq('idutente', userId)
-          .map((data) {
-        // Lo stream restituisce una lista di mappe (righe)
-        if (data.isEmpty) {
-          throw Exception("Profilo utente non trovato");
-        }
-        // Convertiamo la prima riga in un oggetto UserProfile
-        return UserProfile.fromJson(data.first);
-      });
-    } else {
-      // Fallback se non c'è utente (non dovrebbe accadere grazie all'AuthGate)
-      _profileStream = const Stream.empty();
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      _loadProfile();
     }
+  }
+
+  void _loadProfile() {
+    setState(() {
+      _profileDataFuture = _userService.getCurrentUser();
+    });
+  }
+
+  // --- FUNZIONE PER IL POPUP CREA EVENTO (Reintrodotta per la Home Screen) ---
+  void _showCreateEventDialog(BuildContext context, String userId) {
+    final eventTitleController = TextEditingController();
+    final eventDescController = TextEditingController();
+    final eventWasteTypeController = TextEditingController();
+    DateTime eventDate = DateTime.now();
+    LatLng? eventLocation;
+    String eventLocationStatus = "Nessuna posizione selezionata";
+
+    showDialog(
+      context: context,
+      builder: (ctx) {
+        return StatefulBuilder(
+            builder: (context, setState) {
+              return AlertDialog(
+                title: const Row(
+                  children: [
+                    Icon(Icons.event, color: Colors.green),
+                    SizedBox(width: 10),
+                    Text("Crea Nuovo Evento"),
+                  ],
+                ),
+                content: SingleChildScrollView(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text("Organizza un evento di pulizia futuro.", style: TextStyle(fontSize: 13, color: Colors.grey)),
+                      const SizedBox(height: 15),
+
+                      TextField(
+                        controller: eventTitleController,
+                        decoration: const InputDecoration(labelText: "Titolo Evento"),
+                      ),
+                      TextField(
+                        controller: eventDescController,
+                        decoration: const InputDecoration(labelText: "Descrizione"),
+                        maxLines: 2,
+                      ),
+                      TextField(
+                        controller: eventWasteTypeController,
+                        decoration: const InputDecoration(labelText: "Tipologia Rifiuti Prevista"),
+                      ),
+                      const SizedBox(height: 10),
+
+                      // Data Picker
+                      Row(
+                        children: [
+                          const Text("Data:", style: TextStyle(fontWeight: FontWeight.bold)),
+                          const SizedBox(width: 10),
+                          Text(DateFormat('dd/MM/yyyy').format(eventDate)),
+                          const Spacer(),
+                          TextButton.icon(
+                            icon: const Icon(Icons.calendar_month),
+                            label: const Text("Cambia"),
+                            onPressed: () async {
+                              final picked = await showDatePicker(
+                                context: context,
+                                initialDate: eventDate,
+                                firstDate: DateTime.now(),
+                                lastDate: DateTime(2100),
+                              );
+                              if (picked != null) setState(() => eventDate = picked);
+                            },
+                          )
+                        ],
+                      ),
+
+                      const SizedBox(height: 10),
+                      const Text("Posizione:", style: TextStyle(fontWeight: FontWeight.bold)),
+                      Text(eventLocationStatus, style: TextStyle(fontSize: 12, color: eventLocation != null ? Colors.green : Colors.grey)),
+                      const SizedBox(height: 5),
+
+                      Row(
+                        children: [
+                          Expanded(
+                            child: OutlinedButton.icon(
+                              icon: const Icon(Icons.my_location),
+                              label: const Text("Usa GPS"),
+                              onPressed: () async {
+                                try {
+                                  Position pos = await Geolocator.getCurrentPosition();
+                                  setState(() {
+                                    eventLocation = LatLng(pos.latitude, pos.longitude);
+                                    eventLocationStatus = "GPS OK";
+                                  });
+                                } catch (e) {
+                                  setState(() => eventLocationStatus = "Errore GPS");
+                                }
+                              },
+                            ),
+                          ),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: OutlinedButton.icon(
+                              icon: const Icon(Icons.map),
+                              label: const Text("Mappa"),
+                              onPressed: () async {
+                                final result = await Navigator.push(
+                                    context,
+                                    MaterialPageRoute(builder: (_) => const LocationPickerScreen())
+                                );
+                                if (result != null && result is LatLng) {
+                                  setState(() {
+                                    eventLocation = result;
+                                    eventLocationStatus = "Mappa OK";
+                                  });
+                                }
+                              },
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+                actions: [
+                  TextButton(onPressed: () => Navigator.pop(context), child: const Text("Annulla")),
+                  ElevatedButton(
+                    style: ElevatedButton.styleFrom(backgroundColor: Colors.green[700], foregroundColor: Colors.white),
+                    onPressed: () async {
+                      if (eventTitleController.text.isEmpty || eventLocation == null) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text("Titolo e Posizione obbligatori!")),
+                        );
+                        return;
+                      }
+
+                      try {
+                        await _reportService.createEvent(
+                          title: eventTitleController.text,
+                          description: eventDescController.text,
+                          wasteType: eventWasteTypeController.text,
+                          date: eventDate,
+                          latitude: eventLocation!.latitude,
+                          longitude: eventLocation!.longitude,
+                          userId: userId,
+                        );
+                        if (context.mounted) {
+                          Navigator.pop(context);
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(content: Text("Evento creato!")),
+                          );
+                        }
+                      } catch (e) {
+                        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Errore: $e")));
+                      }
+                    },
+                    child: const Text("Segnala Evento"),
+                  ),
+                ],
+              );
+            }
+        );
+      },
+    );
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.grey[100],
-      // StreamBuilder ricostruisce la UI ogni volta che arrivano nuovi dati dal DB
-      body: StreamBuilder<UserProfile>(
-        stream: _profileStream,
+      body: FutureBuilder<UserProfile>(
+        future: _profileDataFuture,
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
             return const Center(child: CircularProgressIndicator());
           }
           if (snapshot.hasError || !snapshot.hasData) {
-            return Center(child: Text("Errore nel caricamento dei dati: ${snapshot.error}"));
+            return const Center(child: Text("Errore nel caricamento dei dati"));
           }
 
           final userProfile = snapshot.data!;
 
-          return SingleChildScrollView(
-            child: Stack(
-              children: [
-                Container(
-                  height: 200,
-                  width: double.infinity,
-                  decoration: BoxDecoration(
-                    color: Colors.green[700],
-                    borderRadius: const BorderRadius.only(
-                      bottomLeft: Radius.circular(30),
-                      bottomRight: Radius.circular(30),
-                    ),
+          return Column(
+            children: [
+              Container(
+                padding: const EdgeInsets.only(bottom: 20),
+                decoration: BoxDecoration(
+                  color: Colors.green[700],
+                  borderRadius: const BorderRadius.only(
+                    bottomLeft: Radius.circular(30),
+                    bottomRight: Radius.circular(30),
                   ),
                 ),
-
-                SafeArea(
+                child: SafeArea(
+                  bottom: false,
                   child: Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 20.0),
                     child: Column(
                       children: [
                         _buildHeader(context, userProfile),
-                        const SizedBox(height: 20),
-
-                        _buildProfileCard(context, userProfile),
-                        const SizedBox(height: 20),
-
-                        _buildMainAction(context),
                         const SizedBox(height: 15),
-
-                        _buildSubscribedEventsAction(context),
-                        const SizedBox(height: 20),
-
-                        _buildOptionsGrid(context),
-                        const SizedBox(height: 20),
+                        _buildProfileCard(context, userProfile),
                       ],
                     ),
                   ),
                 ),
-              ],
-            ),
+              ),
+              Expanded(
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 20.0),
+                  child: Column(
+                    children: [
+                      _buildMainAction(context),
+                      const SizedBox(height: 15),
+                      _buildSubscribedEventsAction(context),
+                      const SizedBox(height: 20),
+                      _buildOptionsGrid(context, userProfile.id),
+                    ],
+                  ),
+                ),
+              ),
+            ],
           );
         },
       ),
@@ -145,8 +304,9 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Widget _buildProfileCard(BuildContext context, UserProfile user) {
     return GestureDetector(
-      onTap: () {
-        Navigator.push(context, MaterialPageRoute(builder: (context) => const ProfileScreen()));
+      onTap: () async {
+        await Navigator.push(context, MaterialPageRoute(builder: (context) => const ProfileScreen()));
+        _loadProfile();
       },
       child: Container(
         padding: const EdgeInsets.all(16),
@@ -160,16 +320,14 @@ class _HomeScreenState extends State<HomeScreen> {
             CircleAvatar(
               radius: 30,
               backgroundColor: const Color(0xFFE0F2F1),
-              // Gestione immagine profilo se presente
-              backgroundImage: user.fotoProfilo != null ? NetworkImage(user.fotoProfilo!) : null,
-              child: user.fotoProfilo == null ? const Icon(Icons.person, size: 30, color: Colors.green) : null,
+              child: const Icon(Icons.person, size: 30, color: Colors.green),
             ),
             const SizedBox(width: 15),
             Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(user.nome, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-                const Text("Membro CityClean", style: TextStyle(color: Colors.grey)),
+                Text(user.titolo ?? 'Membro CityClean', style: const TextStyle(color: Colors.grey)),
               ],
             ),
             const Spacer(),
@@ -181,7 +339,6 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
               child: Column(
                 children: [
-                  // Questo testo si aggiornerà automaticamente!
                   Text("${user.saldoPunti}", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.green[800])),
                   Text("Punti", style: TextStyle(color: Colors.green[800])),
                 ],
@@ -241,22 +398,39 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  Widget _buildOptionsGrid(BuildContext context) {
-    return GridView.count(
-      crossAxisCount: 2,
-      crossAxisSpacing: 15,
-      mainAxisSpacing: 15,
-      shrinkWrap: true,
-      physics: const NeverScrollableScrollPhysics(),
+  Widget _buildOptionsGrid(BuildContext context, String userId) {
+    return Column(
       children: [
-        _buildOptionCard(Icons.group_work_outlined, "Cerca Gilda", onTap: () {
-          Navigator.push(context, MaterialPageRoute(builder: (context) => const GuildsListScreen()));
-        }),
-        _buildOptionCard(Icons.card_giftcard_outlined, "Storico Premi", onTap: () {
-          Navigator.push(context, MaterialPageRoute(builder: (context) => const RedeemedRewardsScreen()));
-        }),
-        _buildOptionCard(Icons.shield_outlined, "I Miei Badge", onTap: () {
-          Navigator.push(context, MaterialPageRoute(builder: (context) => const BadgeScreen()));
+        Row(
+          children: [
+            Expanded(child: _buildOptionCard(Icons.shield_outlined, "I Miei Badge", onTap: () {
+              Navigator.push(context, MaterialPageRoute(builder: (context) => const BadgeScreen()));
+            })),
+            const SizedBox(width: 15),
+            Expanded(child: _buildOptionCard(Icons.card_giftcard_outlined, "Storico Premi", onTap: () {
+              Navigator.push(context, MaterialPageRoute(builder: (context) => const RedeemedRewardsScreen()));
+            })),
+          ],
+        ),
+        const SizedBox(height: 15),
+        Row(
+          children: [
+            Expanded(child: _buildOptionCard(Icons.group_work_outlined, "Cerca Gilda", onTap: () {
+              Navigator.push(context, MaterialPageRoute(builder: (context) => const GuildsListScreen()));
+            })),
+            const SizedBox(width: 15),
+            // Sostituito Obiettivi con Crea Evento per renderlo visibile
+            Expanded(child: _buildOptionCard(Icons.add_circle_outline, "Segnala evento Futuro", onTap: () {
+              _showCreateEventDialog(context, userId);
+            })),
+          ],
+        ),
+        // Aggiungo Obiettivi in una nuova riga o li lascio fuori? 
+        // Per ora lo metto sotto per non perdere funzionalità, ma non ho spazio per 2. 
+        // Metto una riga intera per Obiettivi se serve, ma l'utente ha chiesto "Crea Evento".
+        const SizedBox(height: 15),
+        _buildFullWidthCard(Icons.flag_outlined, "I Miei Obiettivi", onTap: () {
+          Navigator.push(context, MaterialPageRoute(builder: (context) => const ObjectivesScreen()));
         }),
       ],
     );
@@ -267,6 +441,7 @@ class _HomeScreenState extends State<HomeScreen> {
       onTap: onTap,
       borderRadius: BorderRadius.circular(20),
       child: Container(
+        height: 130,
         decoration: BoxDecoration(
             color: Colors.white,
             borderRadius: BorderRadius.circular(20),
@@ -275,8 +450,33 @@ class _HomeScreenState extends State<HomeScreen> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(icon, size: 40, color: Colors.green[700]),
+            Icon(icon, size: 45, color: Colors.green[700]),
             const SizedBox(height: 10),
+            Text(label, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500), textAlign: TextAlign.center,),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // Helper per card a tutta larghezza
+  Widget _buildFullWidthCard(IconData icon, String label, {VoidCallback? onTap}) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(20),
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.symmetric(vertical: 20),
+        decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(color: Colors.grey[200]!)
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(icon, size: 35, color: Colors.green[700]),
+            const SizedBox(width: 15),
             Text(label, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500)),
           ],
         ),

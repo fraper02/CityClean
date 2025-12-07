@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
-import '../services/supabase_service.dart'; // Per supabase
+import 'package:supabase_flutter/supabase_flutter.dart';
 import '../services/storage_service.dart';
-import '../components/auth_gate.dart'; // Importiamo AuthGate
+import '../components/auth_gate.dart';
+import '../main.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -15,25 +16,18 @@ class _SettingsScreenState extends State<SettingsScreen> {
   String _selectedLanguage = "Italiano";
 
 
-  // Funzione Logout
   Future<void> _signOut() async {
-
-    // 1. Pulisci i dati locali
     await StorageService.clearSession();
-
-    // 2. Logout da Supabase
     await supabase.auth.signOut();
 
     if (mounted) {
-      // 3. FIX: Invece di popUntil, usiamo pushAndRemoveUntil.
-      // Questo cancella TUTTA la storia di navigazione e riavvia l'app da AuthGate (o LoginScreen).
       Navigator.of(context).pushAndRemoveUntil(
         MaterialPageRoute(builder: (context) => const AuthGate()),
-            (route) => false, // Rimuove tutte le rotte precedenti
+            (route) => false,
       );
     }
   }
-  // 2. Funzione per mostrare il selettore di lingua
+
   void _showLanguageBottomSheet(BuildContext context, Color primaryColor) {
     final List<String> languages = ["Italiano", "English"];
 
@@ -54,7 +48,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
               ),
               const SizedBox(height: 20),
-              // Genera la lista delle lingue
               ...languages.map((lang) {
                 final isSelected = lang == _selectedLanguage;
                 return ListTile(
@@ -70,7 +63,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     ),
                   ),
                   onTap: () {
-                    // Aggiorna lo stato e chiudi il pannello
                     setState(() {
                       _selectedLanguage = lang;
                     });
@@ -95,7 +87,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
       backgroundColor: Colors.grey[100],
       body: Stack(
         children: [
-          // HEADER VERDE
           Container(
             height: 180,
             width: double.infinity,
@@ -107,14 +98,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
               ),
             ),
           ),
-
           SafeArea(
             child: SingleChildScrollView(
               padding: const EdgeInsets.symmetric(horizontal: 20),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Intestazione con tasto Indietro
                   Padding(
                     padding: const EdgeInsets.symmetric(vertical: 20),
                     child: Row(
@@ -140,10 +129,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       ],
                     ),
                   ),
-
                   const SizedBox(height: 80),
-
-                  // SEZIONE PREFERENZE
                   const Text("Preferenze", style: TextStyle(color: Colors.grey, fontSize: 16, fontWeight: FontWeight.w500)),
                   const SizedBox(height: 10),
                   Material(
@@ -154,7 +140,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     shadowColor: Colors.black12,
                     child: Column(
                       children: [
-                        // Switch Notifiche
                         SwitchListTile(
                           activeColor: primaryGreen,
                           secondary: Container(
@@ -171,7 +156,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
                           },
                         ),
                         const Divider(height: 1, indent: 60, endIndent: 20),
-                        // Lingua (Placeholder)
                         ListTile(
                           leading: Container(
                             padding: const EdgeInsets.all(8),
@@ -182,24 +166,19 @@ class _SettingsScreenState extends State<SettingsScreen> {
                           trailing: Row(
                             mainAxisSize: MainAxisSize.min,
                             children: [
-                              // Mostra la lingua attualmente selezionata
                               Text(_selectedLanguage, style: const TextStyle(color: Colors.grey)),
                               const SizedBox(width: 5),
                               const Icon(Icons.chevron_right, color: Colors.grey),
                             ],
                           ),
                           onTap: () {
-                            // Apre il selettore
                             _showLanguageBottomSheet(context, primaryGreen);
                           },
                         ),
                       ],
                     ),
                   ),
-
                   const SizedBox(height: 25),
-
-                  // SEZIONE ACCOUNT
                   const Text("Account", style: TextStyle(color: Colors.grey, fontSize: 16, fontWeight: FontWeight.w500)),
                   const SizedBox(height: 10),
                   Material(
@@ -226,15 +205,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       ],
                     ),
                   ),
-
                   const SizedBox(height: 40),
-
-                  // BOTTONE ESCI
                   SizedBox(
                     width: double.infinity,
                     height: 55,
                     child: OutlinedButton.icon(
-                      onPressed: _signOut, // Chiama la funzione corretta
+                      onPressed: _signOut,
                       style: OutlinedButton.styleFrom(
                         foregroundColor: primaryGreen,
                         side: BorderSide(color: primaryGreen, width: 1.5),
@@ -244,7 +220,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       label: const Text("Esci", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
                     ),
                   ),
-
                   const SizedBox(height: 30),
                 ],
               ),
@@ -273,5 +248,4 @@ class _SettingsScreenState extends State<SettingsScreen> {
       body: Center(child: Text("Pagina $title")),
     );
   }
-
 }
