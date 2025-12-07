@@ -129,6 +129,10 @@ class _MapScreenState extends State<MapScreen> {
     File? selectedImage;
     bool isUploading = false;
     final ImagePicker picker = ImagePicker();
+    
+    // Variabile per il livello di inquinamento
+    String selectedPollutionLevel = 'Medio';
+    final List<String> pollutionOptions = ['Basso', 'Medio', 'Alto', 'Critico'];
 
     if (!context.mounted) return;
 
@@ -197,6 +201,30 @@ class _MapScreenState extends State<MapScreen> {
                       ),
                       maxLines: 2,
                     ),
+                    const SizedBox(height: 15),
+
+                    // --- MENU A TENDINA LIVELLO INQUINAMENTO ---
+                    DropdownButtonFormField<String>(
+                      value: selectedPollutionLevel,
+                      decoration: const InputDecoration(
+                        labelText: "Livello Inquinamento",
+                        border: OutlineInputBorder(),
+                        prefixIcon: Icon(Icons.bar_chart),
+                      ),
+                      items: pollutionOptions.map((String val) {
+                        return DropdownMenuItem(
+                          value: val,
+                          child: Text(val),
+                        );
+                      }).toList(),
+                      onChanged: (newVal) {
+                        if (newVal != null) {
+                          setState(() {
+                            selectedPollutionLevel = newVal;
+                          });
+                        }
+                      },
+                    ),
                     const SizedBox(height: 10),
                     
                     Row(
@@ -241,6 +269,7 @@ class _MapScreenState extends State<MapScreen> {
                       await _reportService.createReport(
                         description: reportDescController.text,
                         wasteType: "Rapida",
+                        pollutionLevel: selectedPollutionLevel, // Passiamo il valore selezionato
                         latitude: reportLocation!.latitude,
                         longitude: reportLocation!.longitude,
                         userId: userId,
