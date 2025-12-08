@@ -29,6 +29,7 @@ class _MapScreenState extends State<MapScreen> {
 
   List<EcoPoint> _ecoPoints = [];
   List<PollutedZone> _pollutedZones = [];
+  List<Map<String, dynamic>> _reports = []; // Lista per le segnalazioni
   bool _isLoading = false;
   bool _showBins = true;
 
@@ -93,11 +94,13 @@ class _MapScreenState extends State<MapScreen> {
       } catch(_) {}
 
       final realPoints = await _osmService.fetchRecyclingPoints(centerToUse, 2000);
+      final reports = await _reportService.getReports(); // Carica le segnalazioni
 
       if (mounted) {
         setState(() {
           _pollutedZones = zones;
           _ecoPoints = [...mockPoints, ...realPoints];
+          _reports = reports;
           _isLoading = false;
         });
       }
@@ -278,6 +281,8 @@ class _MapScreenState extends State<MapScreen> {
                       if (context.mounted) {
                         Navigator.pop(context);
                         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Segnalazione inviata!")));
+                        // Ricarica i punti dopo l'invio
+                        _loadPoints();
                       }
                     } catch (e) {
                       setState(() => isUploading = false);
@@ -326,6 +331,68 @@ class _MapScreenState extends State<MapScreen> {
                   borderColor: Colors.red.withOpacity(0.7),
                   borderStrokeWidth: 2,
                 )).toList(),
+              ),
+              // LAYER SEGNALAZIONI DATABASE
+              MarkerLayer(
+                markers: _reports.map((report) {
+                  final lat = report['latitudine'] as double? ?? 0.0;
+                  final lng = report['longitudine'] as double? ?? 0.0;
+                  return Marker(
+                    point: LatLng(lat, lng),
+                    width: 40,
+                    height: 40,
+                    child: GestureDetector(
+                      onTap: () {
+                         showDialog(
+                           context: context,
+                           builder: (ctx) => AlertDialog(
+                             title: const Row(
+                               children: [
+                                 Icon(Icons.report_problem, color: Colors.red),
+                                 SizedBox(width: 8),
+                                 Text("Dettagli Segnalazione", style: TextStyle(fontSize: 18)),
+                               ],
+                             ),
+                             content: Column(
+                               mainAxisSize: MainAxisSize.min,
+                               crossAxisAlignment: CrossAxisAlignment.start,
+                               children: [
+                                 _buildInfoRow(Icons.bar_chart, "Livello Inquinamento", report['livelloinquinamento'] ?? 'N/A'),
+                                 const SizedBox(height: 10),
+                                 _buildInfoRow(Icons.description, "Tipo Inquinamento", report['tipoinquinamento'] ?? 'N/A'),
+                               ],
+                             ),
+                             actions: [
+                               TextButton(
+                                 onPressed: () => Navigator.pop(ctx),
+                                 child: const Text("Chiudi"),
+                               )
+                             ],
+                           ),
+                         );
+                      },
+                      child: Container(
+                        decoration: BoxDecoration(
+                          color: Colors.red.withOpacity(0.9),
+                          shape: BoxShape.circle,
+                          border: Border.all(color: Colors.white, width: 2),
+                          boxShadow: const [
+                            BoxShadow(
+                              color: Colors.black26,
+                              blurRadius: 4,
+                              offset: Offset(0, 2),
+                            ),
+                          ],
+                        ),
+                        child: const Icon(
+                          Icons.priority_high,
+                          color: Colors.white,
+                          size: 24,
+                        ),
+                      ),
+                    ),
+                  );
+                }).toList(),
               ),
               MarkerLayer(
                 markers: pointsToShow.map((point) => Marker(
@@ -464,6 +531,25 @@ class _MapScreenState extends State<MapScreen> {
           ),
         ],
       ),
+    );
+  }
+
+  Widget _buildInfoRow(IconData icon, String label, String value) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Icon(icon, size: 20, color: Colors.grey[600]),
+        const SizedBox(width: 10),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(label, style: TextStyle(fontSize: 12, color: Colors.grey[600])),
+              Text(value, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500)),
+            ],
+          ),
+        ),
+      ],
     );
   }
 

@@ -120,4 +120,21 @@ class ReportService {
       throw Exception('Errore sconosciuto: $e');
     }
   }
+  
+  Future<List<Map<String, dynamic>>> getReports() async {
+    try {
+      final response = await supabase
+          .from('segnalazione')
+          .select();
+
+      return (response as List).map((item) => item as Map<String, dynamic>).toList();
+
+    } on PostgrestException catch (e) {
+      debugPrint('ERRORE SUPABASE [getReports]: ${e.message}');
+      throw Exception('Errore nel caricamento delle segnalazioni: ${e.message}');
+    } catch (e) {
+      debugPrint('ERRORE GENERICO [getReports]: $e');
+      throw Exception('Errore sconosciuto: $e');
+    }
+  }
 }
