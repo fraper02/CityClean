@@ -185,7 +185,7 @@ class _MapScreenState extends State<MapScreen> {
                               mainAxisAlignment: MainAxisAlignment.center,
                               children: [
                                 Icon(Icons.camera_alt, size: 40, color: Colors.grey),
-                                Text("Scatta foto (Obbligatorio)", style: TextStyle(color: Colors.grey)),
+                                Text("Scatta foto (Opzionale)", style: TextStyle(color: Colors.grey)),
                               ],
                             )
                           : null,
@@ -246,10 +246,6 @@ class _MapScreenState extends State<MapScreen> {
                       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Inserisci descrizione")));
                       return;
                     }
-                    if (selectedImage == null) {
-                      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Foto obbligatoria")));
-                      return;
-                    }
                     if (reportLocation == null) {
                        // Prova a recuperare posizione se mancante
                        try {
@@ -264,7 +260,10 @@ class _MapScreenState extends State<MapScreen> {
                     setState(() => isUploading = true);
 
                     try {
-                      final imageId = await _reportService.uploadImageAndGetId(selectedImage!);
+                      String? imageId;
+                      if (selectedImage != null) {
+                         imageId = await _reportService.uploadImageAndGetId(selectedImage!);
+                      }
                       
                       await _reportService.createReport(
                         description: reportDescController.text,
@@ -387,9 +386,26 @@ class _MapScreenState extends State<MapScreen> {
             ),
           ),
 
-          // REFRESH BUTTON
+          // SEGNALA RIFIUTI BUTTON
           Positioned(
             top: 190,
+            right: 20,
+            child: ElevatedButton.icon(
+              onPressed: () => _showQuickReportDialog(context),
+              icon: const Icon(Icons.warning_amber_rounded, size: 20, color: Colors.red),
+              label: const Text("Segnala rifiuti", style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold)),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.white,
+                foregroundColor: Colors.red,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                elevation: 4,
+              ),
+            ),
+          ),
+
+          // REFRESH BUTTON (Moved down)
+          Positioned(
+            top: 245,
             right: 20,
             child: ElevatedButton.icon(
               onPressed: _isLoading ? null : _loadPoints,
@@ -399,6 +415,7 @@ class _MapScreenState extends State<MapScreen> {
                 backgroundColor: Colors.white,
                 foregroundColor: Colors.green[700],
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                elevation: 4,
               ),
             ),
           ),
@@ -436,25 +453,13 @@ class _MapScreenState extends State<MapScreen> {
 
           // FAB GPS (Spostato in alto rispetto al nuovo FAB)
           Positioned(
-            bottom: 100, 
+            bottom: 30, 
             right: 20,
             child: FloatingActionButton(
               heroTag: "gps_fab",
               onPressed: _initializeLocation,
               backgroundColor: primaryGreen,
               child: const Icon(Icons.my_location, color: Colors.white),
-            ),
-          ),
-
-          // NUOVO FAB SEGNALAZIONE (!)
-          Positioned(
-            bottom: 30, 
-            right: 20,
-            child: FloatingActionButton(
-              heroTag: "report_fab",
-              onPressed: () => _showQuickReportDialog(context),
-              backgroundColor: Colors.red[600],
-              child: const Icon(Icons.priority_high, color: Colors.white, size: 30),
             ),
           ),
         ],

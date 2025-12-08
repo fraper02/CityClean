@@ -53,11 +53,11 @@ class ReportService {
     required double latitude,
     required double longitude,
     required String userId,
-    required String imageId, 
+    String? imageId, // Ora opzionale
   }) async {
     try {
       final reportId = _generateId(prefix: 'rep');
-      final fullDescription = "$wasteType - $description";
+      final fullDescription = description;
 
       await supabase.from('segnalazione').insert({
         'idsegnalazione': reportId,
