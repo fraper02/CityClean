@@ -1,94 +1,97 @@
+// lib/services/notifiche.dart
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
-import 'package:flutter/material.dart';
 
 class NotificheService {
-  static final FlutterLocalNotificationsPlugin _notifiche =
+  static final FlutterLocalNotificationsPlugin _notificationsPlugin =
   FlutterLocalNotificationsPlugin();
 
-  /// Inizializzazione
+  // Inizializzazione del plugin
   static Future<void> init() async {
-    const AndroidInitializationSettings androidInit =
+    const AndroidInitializationSettings androidSettings =
     AndroidInitializationSettings('@mipmap/ic_launcher');
 
-    const InitializationSettings initSettings =
-    InitializationSettings(android: androidInit);
+    const InitializationSettings settings =
+    InitializationSettings(android: androidSettings);
 
-    await _notifiche.initialize(initSettings);
+    await _notificationsPlugin.initialize(
+      settings,
+      onDidReceiveNotificationResponse: (response) {
+        // Azione al tap sulla notifica (opzionale)
+      },
+    );
   }
 
-  /// Metodo generico per inviare una notifica
-  static Future<void> _showNotification({
-    required String title,
-    required String body,
-    String? imageUrl,
+  /// 1) Notifica nuovo evento
+  static Future<void> nuovaNotificaEvento({
+    required String nomeEvento,
+    String? descrizione,
+    String? immagineLocale,
   }) async {
-    AndroidNotificationDetails androidDetails;
+    final androidDetails = AndroidNotificationDetails(
+      'event_channel',
+      'Eventi',
+      channelDescription: 'Notifiche per nuovi eventi',
+      importance: Importance.max,
+      priority: Priority.high,
+      largeIcon: immagineLocale != null ? DrawableResourceAndroidBitmap(immagineLocale) : null,
+    );
 
-    if (imageUrl != null && imageUrl.isNotEmpty) {
-      androidDetails = AndroidNotificationDetails(
-        'notifiche_canale',
-        'Notifiche App',
-        channelDescription: 'Notifiche personalizzate della tua app',
-        importance: Importance.max,
-        priority: Priority.high,
-        styleInformation: BigPictureStyleInformation(
-          FilePathAndroidBitmap(imageUrl),
-          contentTitle: title,
-          summaryText: body,
-        ),
-      );
-    } else {
-      androidDetails = const AndroidNotificationDetails(
-        'notifiche_canale',
-        'Notifiche App',
-        channelDescription: 'Notifiche personalizzate della tua app',
-        importance: Importance.max,
-        priority: Priority.high,
-      );
-    }
+    final details = NotificationDetails(android: androidDetails);
 
-    NotificationDetails details = NotificationDetails(android: androidDetails);
-
-    await _notifiche.show(
-      DateTime.now().millisecond, // ID univoco
-      title,
-      body,
+    await _notificationsPlugin.show(
+      0,
+      nomeEvento,
+      descrizione ?? 'Nuovo evento disponibile!',
       details,
     );
   }
 
-  // 1) NOTIFICA NUOVO EVENTO
-  static Future<void> nuovaNotificaEvento({
-    required String nomeEvento,
-    required String descrizione,
-    required String immagineLocale,
-  }) async {
-    await _showNotification(
-      title: "Nuovo evento disponibile!",
-      body: "$nomeEvento — $descrizione",
-      imageUrl: immagineLocale,
-    );
-  }
-
-  // 2) NOTIFICA PREMIO RISCATTATO
+  /// 2) Notifica premio riscattato
   static Future<void> premioRiscattato({
     required String nomePremio,
-    required String immagineLocale,
+    String? descrizione,
+    String? immagineLocale,
   }) async {
-    await _showNotification(
-      title: "Premio riscattato!",
-      body: "Hai riscattato: $nomePremio",
-      imageUrl: immagineLocale,
+    final androidDetails = AndroidNotificationDetails(
+      'reward_channel',
+      'Premi',
+      channelDescription: 'Notifiche per premi riscattati',
+      importance: Importance.max,
+      priority: Priority.high,
+      largeIcon: immagineLocale != null ? DrawableResourceAndroidBitmap(immagineLocale) : null,
+    );
+
+    final details = NotificationDetails(android: androidDetails);
+
+    await _notificationsPlugin.show(
+      1,
+      nomePremio,
+      descrizione ?? 'Hai riscattato un premio!',
+      details,
     );
   }
 
-  // 3) NOTIFICA CAMBIO PASSWORD (CODICE INVIATO VIA E-MAIL)
+  /// 3) Notifica codice cambio password
   static Future<void> notificaCodicePassword({
     required String codice,
+    String titolo = 'Cambio password',
+    String descrizione = '',
   }) async {
-    await _showNotification(
-      title: "Codice reset password",
-      body: "Il tuo codice è: $codice",
+    final androidDetails = AndroidNotificationDetails(
+      'password_channel',
+      'Password',
+      channelDescription: 'Notifiche per cambio password',
+      importance: Importance.max,
+      priority: Priority.high,
+    );
+
+    final details = NotificationDetails(android: androidDetails);
+
+    await _notificationsPlugin.show(
+      2,
+      titolo,
+      descrizione.isNotEmpty ? descrizione : 'Il tuo codice è: $codice',
+      details,
     );
   }
 }
