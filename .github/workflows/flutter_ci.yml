@@ -1,0 +1,35 @@
+name: CityClean CI
+
+# Decide QUANDO partire: ogni volta che fai push sul branch main
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+# Decide COSA fare
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      # 1. Prende il tuo codice
+      - uses: actions/checkout@v4
+
+      # 2. Installa Flutter sul server di GitHub
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: 'stable'
+          # Se serve una versione specifica, puoi metterla qui, es: flutter-version: '3.19.0'
+
+      # 3. Scarica le librerie (dependencies) del tuo progetto
+      - name: Install dependencies
+        run: flutter pub get
+
+      # 4. Controlla se il codice è scritto bene (Linter)
+      - name: Analyze code
+        run: flutter analyze
+
+      # 5. (Opzionale) Prova a costruire l'APK per Android per vedere se esplode
+      - name: Build APK (Dry Run)
+        run: flutter build apk --debug
