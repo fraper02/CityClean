@@ -12,6 +12,8 @@ import 'package:cityclean/components/bottom_nav_bar.dart';
 import 'package:cityclean/screens/create_event_screen.dart'; // Importa la nuova schermata
 import 'package:flutter/material.dart';
 
+import 'group_screen.dart';
+
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
 
@@ -265,6 +267,10 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
         const SizedBox(height: 15),
         _buildFullWidthCard(Icons.flag_outlined, "I Miei Obiettivi", onTap: () {
            Navigator.push(context, MaterialPageRoute(builder: (context) => const ObjectivesScreen()));
+        }),
+        const SizedBox(height: 15),
+        _buildFullWidthCard(Icons.group_outlined, "Gruppi", onTap: () {
+          Navigator.push(context, MaterialPageRoute(builder: (context) => const GroupScreen()));
         }),
       ],
     );

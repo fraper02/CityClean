@@ -7,8 +7,9 @@ import 'package:cityclean/screens/location_picker_screen.dart';
 
 class CreateEventScreen extends StatefulWidget {
   final String userId;
+  final String? groupName;
 
-  const CreateEventScreen({super.key, required this.userId});
+  const CreateEventScreen({super.key, required this.userId, this.groupName});
 
   @override
   State<CreateEventScreen> createState() => _CreateEventScreenState();
@@ -85,6 +86,7 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
     setState(() => _isSubmitting = true);
 
     try {
+      groupName: widget.groupName;
       await _reportService.createEvent(
         title: _titleController.text,
         description: _descController.text,
@@ -99,7 +101,7 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text("Evento creato con successo!")),
         );
-        Navigator.pop(context); // Torna indietro
+        Navigator.pop(context);
       }
     } catch (e) {
       if (mounted) {
