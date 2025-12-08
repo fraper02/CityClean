@@ -29,6 +29,7 @@ class _MapScreenState extends State<MapScreen> {
 
   List<EcoPoint> _ecoPoints = [];
   List<PollutedZone> _pollutedZones = [];
+  List<Map<String, dynamic>> _reports = []; // Lista per le segnalazioni
   bool _isLoading = false;
   bool _showBins = true;
 
@@ -93,11 +94,13 @@ class _MapScreenState extends State<MapScreen> {
       } catch(_) {}
 
       final realPoints = await _osmService.fetchRecyclingPoints(centerToUse, 2000);
+      final reports = await _reportService.getReports(); // Carica le segnalazioni
 
       if (mounted) {
         setState(() {
           _pollutedZones = zones;
           _ecoPoints = [...mockPoints, ...realPoints];
+          _reports = reports;
           _isLoading = false;
         });
       }
@@ -185,7 +188,7 @@ class _MapScreenState extends State<MapScreen> {
                               mainAxisAlignment: MainAxisAlignment.center,
                               children: [
                                 Icon(Icons.camera_alt, size: 40, color: Colors.grey),
-                                Text("Scatta foto (Obbligatorio)", style: TextStyle(color: Colors.grey)),
+                                Text("Scatta foto (Opzionale)", style: TextStyle(color: Colors.grey)),
                               ],
                             )
                           : null,
@@ -246,10 +249,6 @@ class _MapScreenState extends State<MapScreen> {
                       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Inserisci descrizione")));
                       return;
                     }
-                    if (selectedImage == null) {
-                      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Foto obbligatoria")));
-                      return;
-                    }
                     if (reportLocation == null) {
                        // Prova a recuperare posizione se mancante
                        try {
@@ -264,7 +263,10 @@ class _MapScreenState extends State<MapScreen> {
                     setState(() => isUploading = true);
 
                     try {
-                      final imageId = await _reportService.uploadImageAndGetId(selectedImage!);
+                      String? imageId;
+                      if (selectedImage != null) {
+                         imageId = await _reportService.uploadImageAndGetId(selectedImage!);
+                      }
                       
                       await _reportService.createReport(
                         description: reportDescController.text,
@@ -279,6 +281,8 @@ class _MapScreenState extends State<MapScreen> {
                       if (context.mounted) {
                         Navigator.pop(context);
                         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Segnalazione inviata!")));
+                        // Ricarica i punti dopo l'invio
+                        _loadPoints();
                       }
                     } catch (e) {
                       setState(() => isUploading = false);
@@ -327,6 +331,68 @@ class _MapScreenState extends State<MapScreen> {
                   borderColor: Colors.red.withOpacity(0.7),
                   borderStrokeWidth: 2,
                 )).toList(),
+              ),
+              // LAYER SEGNALAZIONI DATABASE
+              MarkerLayer(
+                markers: _reports.map((report) {
+                  final lat = report['latitudine'] as double? ?? 0.0;
+                  final lng = report['longitudine'] as double? ?? 0.0;
+                  return Marker(
+                    point: LatLng(lat, lng),
+                    width: 40,
+                    height: 40,
+                    child: GestureDetector(
+                      onTap: () {
+                         showDialog(
+                           context: context,
+                           builder: (ctx) => AlertDialog(
+                             title: const Row(
+                               children: [
+                                 Icon(Icons.report_problem, color: Colors.red),
+                                 SizedBox(width: 8),
+                                 Text("Dettagli Segnalazione", style: TextStyle(fontSize: 18)),
+                               ],
+                             ),
+                             content: Column(
+                               mainAxisSize: MainAxisSize.min,
+                               crossAxisAlignment: CrossAxisAlignment.start,
+                               children: [
+                                 _buildInfoRow(Icons.bar_chart, "Livello Inquinamento", report['livelloinquinamento'] ?? 'N/A'),
+                                 const SizedBox(height: 10),
+                                 _buildInfoRow(Icons.description, "Tipo Inquinamento", report['tipoinquinamento'] ?? 'N/A'),
+                               ],
+                             ),
+                             actions: [
+                               TextButton(
+                                 onPressed: () => Navigator.pop(ctx),
+                                 child: const Text("Chiudi"),
+                               )
+                             ],
+                           ),
+                         );
+                      },
+                      child: Container(
+                        decoration: BoxDecoration(
+                          color: Colors.red.withOpacity(0.9),
+                          shape: BoxShape.circle,
+                          border: Border.all(color: Colors.white, width: 2),
+                          boxShadow: const [
+                            BoxShadow(
+                              color: Colors.black26,
+                              blurRadius: 4,
+                              offset: Offset(0, 2),
+                            ),
+                          ],
+                        ),
+                        child: const Icon(
+                          Icons.priority_high,
+                          color: Colors.white,
+                          size: 24,
+                        ),
+                      ),
+                    ),
+                  );
+                }).toList(),
               ),
               MarkerLayer(
                 markers: pointsToShow.map((point) => Marker(
@@ -387,9 +453,26 @@ class _MapScreenState extends State<MapScreen> {
             ),
           ),
 
-          // REFRESH BUTTON
+          // SEGNALA RIFIUTI BUTTON
           Positioned(
             top: 190,
+            right: 20,
+            child: ElevatedButton.icon(
+              onPressed: () => _showQuickReportDialog(context),
+              icon: const Icon(Icons.warning_amber_rounded, size: 20, color: Colors.red),
+              label: const Text("Segnala rifiuti", style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold)),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.white,
+                foregroundColor: Colors.red,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                elevation: 4,
+              ),
+            ),
+          ),
+
+          // REFRESH BUTTON (Moved down)
+          Positioned(
+            top: 245,
             right: 20,
             child: ElevatedButton.icon(
               onPressed: _isLoading ? null : _loadPoints,
@@ -399,6 +482,7 @@ class _MapScreenState extends State<MapScreen> {
                 backgroundColor: Colors.white,
                 foregroundColor: Colors.green[700],
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                elevation: 4,
               ),
             ),
           ),
@@ -436,7 +520,7 @@ class _MapScreenState extends State<MapScreen> {
 
           // FAB GPS (Spostato in alto rispetto al nuovo FAB)
           Positioned(
-            bottom: 100, 
+            bottom: 30, 
             right: 20,
             child: FloatingActionButton(
               heroTag: "gps_fab",
@@ -445,20 +529,27 @@ class _MapScreenState extends State<MapScreen> {
               child: const Icon(Icons.my_location, color: Colors.white),
             ),
           ),
-
-          // NUOVO FAB SEGNALAZIONE (!)
-          Positioned(
-            bottom: 30, 
-            right: 20,
-            child: FloatingActionButton(
-              heroTag: "report_fab",
-              onPressed: () => _showQuickReportDialog(context),
-              backgroundColor: Colors.red[600],
-              child: const Icon(Icons.priority_high, color: Colors.white, size: 30),
-            ),
-          ),
         ],
       ),
+    );
+  }
+
+  Widget _buildInfoRow(IconData icon, String label, String value) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Icon(icon, size: 20, color: Colors.grey[600]),
+        const SizedBox(width: 10),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(label, style: TextStyle(fontSize: 12, color: Colors.grey[600])),
+              Text(value, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500)),
+            ],
+          ),
+        ),
+      ],
     );
   }
 
