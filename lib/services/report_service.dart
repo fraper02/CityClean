@@ -3,6 +3,8 @@ import 'dart:math';
 import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../services/supabase_service.dart'; // Per accedere a supabase client
+import '../services/notifiche.dart';
+
 
 class ReportService {
   
@@ -102,6 +104,14 @@ class ReportService {
         'longitudine': longitude,
         'immagine': 'https://placehold.co/600x400/orange/white?text=Evento+CityClean',
       });
+
+       //INVIO NOTIFICA LOCALE
+      await NotificheService.nuovaNotificaEvento(
+        nomeEvento: title,
+        descrizione: description,
+        immagineLocale: null, // Se hai un'immagine locale cambia questo
+      );
+
     } on PostgrestException catch (e) {
       debugPrint('ERRORE SUPABASE [createEvent]: ${e.message}');
       throw Exception('Errore nel salvataggio evento: ${e.message}');

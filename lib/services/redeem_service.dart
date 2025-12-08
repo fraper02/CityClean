@@ -3,6 +3,8 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../models/prizes.dart';
 import '../models/userProfile.dart';
 import '../main.dart';
+import '../services/notifiche.dart'; // 👈 aggiungi questo
+
 
 class RedeemService {
   Future<Map<String, dynamic>> loadRewardsScreenData() async {
@@ -48,6 +50,11 @@ class RedeemService {
       }
 
       log("Riscatto OK: ${result?['message']}");
+
+      await NotificheService.premioRiscattato(
+        nomePremio: "Buono Amazon 10€",
+        immagineLocale: 'assets/images/reward_icon.png', // opzionale
+      );
 
     } catch (e) {
       log("Errore riscatto: $e");
