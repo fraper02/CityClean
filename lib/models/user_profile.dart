@@ -1,3 +1,5 @@
+// 1. AGGIUNTO QUESTO IMPORT PER debugPrint
+import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 class UserProfile {
@@ -68,7 +70,8 @@ class UserProfile {
           .single();
       return response['saldopunti'] as int? ?? 0;
     } catch (e) {
-      print("ERRORE CARICAMENTO PUNTI: $e");
+      // 2. SOSTITUITO print CON debugPrint
+      debugPrint("ERRORE CARICAMENTO PUNTI: $e");
       return 0;
     }
   }

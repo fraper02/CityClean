@@ -1,5 +1,5 @@
 import 'package:cityclean/controllers/profile_controller.dart';
-import 'package:cityclean/models/userProfile.dart';
+import 'package:cityclean/models/user_profile.dart';
 import 'package:cityclean/screens/objectives_screen.dart';
 import 'package:cityclean/services/report_service.dart'; // Import ReportService
 import 'package:flutter/material.dart';

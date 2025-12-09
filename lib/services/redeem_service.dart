@@ -1,6 +1,6 @@
 import 'dart:developer';
 import '../models/prizes.dart';
-import '../models/userProfile.dart';
+import '../models/user_profile.dart';
 import '../main.dart';
 
 class RedeemService {

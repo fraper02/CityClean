@@ -1,4 +1,4 @@
-import 'package:cityclean/models/userProfile.dart';
+import 'package:cityclean/models/user_profile.dart';
 import 'package:cityclean/services/user_service.dart';
 import 'package:cityclean/screens/profile_screen.dart';
 import 'package:cityclean/screens/settings_screen.dart';

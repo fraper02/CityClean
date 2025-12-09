@@ -1,5 +1,5 @@
 import 'package:cityclean/models/badge.dart' as app_badge;
-import 'package:cityclean/models/userProfile.dart';
+import 'package:cityclean/models/user_profile.dart';
 import 'package:cityclean/services/user_service.dart';
 import 'package:flutter/material.dart';
 
