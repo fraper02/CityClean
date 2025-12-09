@@ -1,5 +1,8 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
+    <!-- permessi per notifiche-->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
+
     <!-- Permessi di localizzazione (DEVONO stare qui) -->
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />

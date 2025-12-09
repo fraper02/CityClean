@@ -11,11 +11,9 @@ import 'package:cityclean/screens/objectives_screen.dart';
 // CORREZIONE IMPORT: Uso il package completo per coerenza
 import 'package:cityclean/screens/location_picker_screen.dart';
 import 'package:cityclean/components/bottom_nav_bar.dart';
+import 'package:cityclean/screens/create_event_screen.dart'; // Importa la nuova schermata
 import 'package:flutter/material.dart';
-import 'package:cityclean/services/report_service.dart';
-import 'package:geolocator/geolocator.dart';
-import 'package:latlong2/latlong.dart';
-import 'package:intl/intl.dart';
+import 'group_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -26,8 +24,6 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   final UserService _userService = UserService();
-  // Definizione corretta del servizio
-  final ReportService _reportService = ReportService();
   Future<UserProfile>? _profileDataFuture;
 
   @override
@@ -54,168 +50,6 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     setState(() {
       _profileDataFuture = _userService.getCurrentUser();
     });
-  }
-
-  // --- FUNZIONE PER IL POPUP CREA EVENTO ---
-  void _showCreateEventDialog(BuildContext context, String userId) {
-    final eventTitleController = TextEditingController();
-    final eventDescController = TextEditingController();
-    final eventWasteTypeController = TextEditingController();
-    DateTime eventDate = DateTime.now();
-    LatLng? eventLocation;
-    String eventLocationStatus = "Nessuna posizione selezionata";
-
-    showDialog(
-      context: context,
-      builder: (ctx) {
-        return StatefulBuilder(
-            builder: (context, setState) {
-              return AlertDialog(
-                title: const Row(
-                  children: [
-                    Icon(Icons.event, color: Colors.green),
-                    SizedBox(width: 10),
-                    Text("Crea Nuovo Evento"),
-                  ],
-                ),
-                content: SingleChildScrollView(
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text("Organizza un evento di pulizia futuro.", style: TextStyle(fontSize: 13, color: Colors.grey)),
-                      const SizedBox(height: 15),
-
-                      TextField(
-                        controller: eventTitleController,
-                        decoration: const InputDecoration(labelText: "Titolo Evento"),
-                      ),
-                      TextField(
-                        controller: eventDescController,
-                        decoration: const InputDecoration(labelText: "Descrizione"),
-                        maxLines: 2,
-                      ),
-                      TextField(
-                        controller: eventWasteTypeController,
-                        decoration: const InputDecoration(labelText: "Tipologia Rifiuti Prevista"),
-                      ),
-                      const SizedBox(height: 10),
-
-                      // Data Picker
-                      Row(
-                        children: [
-                          const Text("Data:", style: TextStyle(fontWeight: FontWeight.bold)),
-                          const SizedBox(width: 10),
-                          Text(DateFormat('dd/MM/yyyy').format(eventDate)),
-                          const Spacer(),
-                          TextButton.icon(
-                            icon: const Icon(Icons.calendar_month),
-                            label: const Text("Cambia"),
-                            onPressed: () async {
-                              final picked = await showDatePicker(
-                                context: context,
-                                initialDate: eventDate,
-                                firstDate: DateTime.now(),
-                                lastDate: DateTime(2100),
-                              );
-                              if (picked != null) setState(() => eventDate = picked);
-                            },
-                          )
-                        ],
-                      ),
-
-                      const SizedBox(height: 10),
-                      const Text("Posizione:", style: TextStyle(fontWeight: FontWeight.bold)),
-                      Text(eventLocationStatus, style: TextStyle(fontSize: 12, color: eventLocation != null ? Colors.green : Colors.grey)),
-                      const SizedBox(height: 5),
-
-                      Row(
-                        children: [
-                          Expanded(
-                            child: OutlinedButton.icon(
-                              icon: const Icon(Icons.my_location),
-                              label: const Text("Usa GPS"),
-                              onPressed: () async {
-                                try {
-                                  Position pos = await Geolocator.getCurrentPosition();
-                                  if (!context.mounted) return;
-                                  setState(() {
-                                    eventLocation = LatLng(pos.latitude, pos.longitude);
-                                    eventLocationStatus = "GPS OK";
-                                  });
-                                } catch (e) {
-                                  if (!context.mounted) return;
-                                  setState(() => eventLocationStatus = "Errore GPS");
-                                }
-                              },
-                            ),
-                          ),
-                          const SizedBox(width: 10),
-                          Expanded(
-                            child: OutlinedButton.icon(
-                              icon: const Icon(Icons.map),
-                              label: const Text("Mappa"),
-                              onPressed: () async {
-                                final result = await Navigator.push(
-                                    context,
-                                    MaterialPageRoute(builder: (_) => const LocationPickerScreen())
-                                );
-                                if (result != null && result is LatLng) {
-                                  setState(() {
-                                    eventLocation = result;
-                                    eventLocationStatus = "Mappa OK";
-                                  });
-                                }
-                              },
-                            ),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-                ),
-                actions: [
-                  TextButton(onPressed: () => Navigator.pop(context), child: const Text("Annulla")),
-                  ElevatedButton(
-                    style: ElevatedButton.styleFrom(backgroundColor: Colors.green[700], foregroundColor: Colors.white),
-                    onPressed: () async {
-                      if (eventTitleController.text.isEmpty || eventLocation == null) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text("Titolo e Posizione obbligatori!")),
-                        );
-                        return;
-                      }
-
-                      try {
-                        await _reportService.createEvent(
-                          title: eventTitleController.text,
-                          description: eventDescController.text,
-                          wasteType: eventWasteTypeController.text,
-                          date: eventDate,
-                          latitude: eventLocation!.latitude,
-                          longitude: eventLocation!.longitude,
-                          userId: userId,
-                        );
-                        if (context.mounted) {
-                          Navigator.pop(context);
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(content: Text("Evento creato!")),
-                          );
-                        }
-                      } catch (e) {
-                        if (context.mounted) {
-                          ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Errore: $e")));
-                        }
-                      }
-                    },
-                    child: const Text("Segnala Evento"),
-                  ),
-                ],
-              );
-            }
-        );
-      },
-    );
   }
 
   @override
@@ -432,14 +266,19 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
               Navigator.push(context, MaterialPageRoute(builder: (context) => const GuildsListScreen()));
             })),
             const SizedBox(width: 15),
-            Expanded(child: _buildOptionCard(Icons.add_circle_outline, "Segnala evento Futuro", onTap: () {
-              _showCreateEventDialog(context, userId);
+            // MODIFICA: apre la nuova schermata
+            Expanded(child: _buildOptionCard(Icons.add_circle_outline, "Segnala Evento Futuro", onTap: () {
+              Navigator.push(context, MaterialPageRoute(builder: (context) => CreateEventScreen(userId: userId)));
             })),
           ],
         ),
         const SizedBox(height: 15),
         _buildFullWidthCard(Icons.flag_outlined, "I Miei Obiettivi", onTap: () {
           Navigator.push(context, MaterialPageRoute(builder: (context) => const ObjectivesScreen()));
+        }),
+        const SizedBox(height: 15),
+        _buildFullWidthCard(Icons.group_outlined, "Gruppi", onTap: () {
+          Navigator.push(context, MaterialPageRoute(builder: (context) => const GroupScreen()));
         }),
       ],
     );
@@ -461,7 +300,10 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
           children: [
             Icon(icon, size: 45, color: Colors.green[700]),
             const SizedBox(height: 10),
-            Text(label, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500), textAlign: TextAlign.center,),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 8.0),
+              child: Text(label, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500), textAlign: TextAlign.center,),
+            ),
           ],
         ),
       ),

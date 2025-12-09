@@ -1,5 +1,8 @@
+import 'dart:math';
+
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import '../services/notifiche.dart';
 import '../services/storage_service.dart';
 import '../main.dart'; // Per la variabile globale supabase
 import 'register_screen.dart';
@@ -95,6 +98,31 @@ class _LoginScreenState extends State<LoginScreen> with TickerProviderStateMixin
     }
   }
 
+  Future<void> _resetPassword() async {
+    final email = _emailController.text.trim();
+    if (email.isEmpty) return;
+
+    // 1. Genera codice casuale
+    final codiceGenerato = (100000 + (Random().nextInt(900000))).toString();
+
+    // 2. Salvalo nel server o supabase
+    await supabase.from('password_reset').insert({
+      'email': email,
+      'codice': codiceGenerato,
+      'scadenza': DateTime.now().add(const Duration(minutes: 10)).toIso8601String(),
+    });
+
+    // 3. Invia notifica
+    await NotificheService.notificaCodicePassword(
+      codice: codiceGenerato,
+    );
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text("Codice inviato alla tua email!")),
+    );
+  }
+
+
   @override
   Widget build(BuildContext context) {
     final Color primaryGreen = Colors.green[600]!;
@@ -181,7 +209,7 @@ class _LoginScreenState extends State<LoginScreen> with TickerProviderStateMixin
                 Align(
                   alignment: Alignment.centerRight,
                   child: TextButton(
-                    onPressed: () {},
+                    onPressed: _resetPassword,
                     child: const Text("Password dimenticata?", style: TextStyle(color: Colors.white)),
                   ),
                 ),
