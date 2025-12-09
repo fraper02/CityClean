@@ -70,19 +70,16 @@ class _MissionsScreenState extends State<MissionsScreen> {
     );
   }
 
-  // --- WIDGET CARD MISSIONE (MODIFICATO PER EVIDENZIARE GLI STATI) ---
   Widget _buildMissionCard(Missione missione) {
     final progress = missione.obiettivoTarget > 0 ? missione.progressoAttuale / missione.obiettivoTarget : 0.0;
     final bool isExpired = missione.stato == MissionStatus.scaduta;
     final bool isCompleted = missione.stato == MissionStatus.completata;
 
     return Opacity(
-      // Rende le missioni scadute più trasparenti
       opacity: isExpired ? 0.6 : 1.0,
       child: Card(
         margin: const EdgeInsets.symmetric(vertical: 8),
         elevation: 2,
-        // Aggiunge un bordo verde per le missioni completate
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(15),
           side: BorderSide(
@@ -100,7 +97,6 @@ class _MissionsScreenState extends State<MissionsScreen> {
                 style: TextStyle(
                   fontSize: 18, 
                   fontWeight: FontWeight.bold,
-                  // Barra il testo se la missione è scaduta
                   decoration: isExpired ? TextDecoration.lineThrough : TextDecoration.none,
                 ),
               ),
@@ -108,8 +104,7 @@ class _MissionsScreenState extends State<MissionsScreen> {
               Text(missione.descrizione, style: TextStyle(color: Colors.grey[600])),
               const SizedBox(height: 16),
 
-              // Mostra la barra di progresso solo se la missione è in corso
-              if (missione.stato == MissionStatus.in_corso)
+              if (missione.stato == MissionStatus.inCorso)
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -146,7 +141,6 @@ class _MissionsScreenState extends State<MissionsScreen> {
               ),
               const SizedBox(height: 16),
 
-              // Mostra la scadenza solo se presente e la missione non è già completata
               if (missione.dataScadenza != null && !isCompleted)
                 _buildInfoRow(Icons.watch_later_outlined, "Scade il: ${DateFormat('dd/MM/yyyy').format(missione.dataScadenza!)}", isExpired ? Colors.red : Colors.grey[700]),
 
@@ -179,10 +173,10 @@ class _MissionsScreenState extends State<MissionsScreen> {
     );
   }
 
-  // --- WIDGET STATO E PULSANTE (MODIFICATO PER EVIDENZIARE GLI STATI) ---
   Widget _buildStatusButton(Missione missione) {
     switch (missione.stato) {
-      case MissionStatus.non_iniziata:
+      // CORREZIONE: Usiamo i nomi corretti dell'enum
+      case MissionStatus.nonIniziata:
         return SizedBox(
           width: double.infinity,
           child: ElevatedButton.icon(
@@ -192,12 +186,11 @@ class _MissionsScreenState extends State<MissionsScreen> {
             style: ElevatedButton.styleFrom(backgroundColor: Colors.green[700]),
           ),
         );
-      case MissionStatus.in_corso:
+      case MissionStatus.inCorso:
         return _buildInfoRow(Icons.run_circle_outlined, "Missione in corso...", Colors.blue[700]);
       case MissionStatus.completata:
         return _buildInfoRow(Icons.check_circle, "Missione completata!", Colors.green[800]);
       case MissionStatus.scaduta:
-        // Evidenzia lo stato di missione scaduta
         return _buildInfoRow(Icons.error_outline, "Missione scaduta", Colors.red[700]);
     }
   }

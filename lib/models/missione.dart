@@ -1,6 +1,7 @@
 import 'package:cityclean/models/badge.dart';
 
-enum MissionStatus { non_iniziata, in_corso, completata, scaduta }
+// CORREZIONE: Rinominati i membri dell'enum in lowerCamelCase
+enum MissionStatus { nonIniziata, inCorso, completata, scaduta }
 
 class Missione {
   // Dati dalla tabella `missione`
@@ -32,7 +33,7 @@ class Missione {
     final partecipazione = (json['partecipazione_missione'] as List<dynamic>?)?.firstOrNull as Map<String, dynamic>?;
     final badgeData = json['id_badge_premio'];
 
-    MissionStatus currentStatus = MissionStatus.non_iniziata;
+    MissionStatus currentStatus;
     int currentProgress = 0;
 
     if (partecipazione != null) {
@@ -44,11 +45,13 @@ class Missione {
       } else if (DateTime.tryParse(json['data_scadenza'] ?? '')?.isBefore(DateTime.now()) ?? false) {
         currentStatus = MissionStatus.scaduta;
       } else {
-        currentStatus = MissionStatus.in_corso;
+        currentStatus = MissionStatus.inCorso;
       }
     } else {
        if (DateTime.tryParse(json['data_scadenza'] ?? '')?.isBefore(DateTime.now()) ?? false) {
         currentStatus = MissionStatus.scaduta;
+      } else {
+        currentStatus = MissionStatus.nonIniziata;
       }
     }
 
