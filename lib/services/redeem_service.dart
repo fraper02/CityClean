@@ -49,11 +49,12 @@ class RedeemService {
       }
 
       log("Riscatto OK: ${result?['message']}");
-
+/*
       await NotificheService.premioRiscattato(
         nomePremio: "Buono Amazon 10€",
         immagineLocale: 'assets/images/reward_icon.png', // opzionale
       );
+*/
 
     } catch (e) {
       log("Errore riscatto: $e");

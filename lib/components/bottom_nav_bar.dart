@@ -17,8 +17,11 @@ class CityCleanBottomNavBar extends StatelessWidget {
     if (index == currentIndex) {
       if (index == 2 && ModalRoute.of(context)!.settings.name != '/') {
         Navigator.of(context).pushAndRemoveUntil(
-          MaterialPageRoute(builder: (context) => const HomeScreen(), settings: const RouteSettings(name: '/')),
-          (route) => false,
+          MaterialPageRoute(
+            builder: (context) => const HomeScreen(),
+            settings: const RouteSettings(name: '/'),
+          ),
+              (route) => false,
         );
       }
       return;
@@ -48,7 +51,7 @@ class CityCleanBottomNavBar extends StatelessWidget {
     Navigator.pushReplacement(
       context,
       PageRouteBuilder(
-        pageBuilder: (context, animation1, animation2) => page,
+        pageBuilder: (context, a, b) => page,
         transitionDuration: Duration.zero,
         reverseTransitionDuration: Duration.zero,
       ),
@@ -63,30 +66,60 @@ class CityCleanBottomNavBar extends StatelessWidget {
       selectedItemColor: Colors.green[800],
       unselectedItemColor: Colors.grey[600],
       type: BottomNavigationBarType.fixed,
-      items: const [
+      items: [
         BottomNavigationBarItem(
-          icon: Icon(Icons.map_outlined),
-          activeIcon: Icon(Icons.map),
+          icon: Semantics(
+            identifier: 'nav_map',
+            child: const Icon(Icons.map_outlined),
+          ),
+          activeIcon: Semantics(
+            identifier: 'nav_map_active',
+            child: const Icon(Icons.map),
+          ),
           label: 'Mappa',
         ),
         BottomNavigationBarItem(
-          icon: Icon(Icons.card_giftcard_outlined),
-          activeIcon: Icon(Icons.card_giftcard),
+          icon: Semantics(
+            identifier: 'nav_rewards',
+            child: const Icon(Icons.card_giftcard_outlined),
+          ),
+          activeIcon: Semantics(
+            identifier: 'nav_rewards_active',
+            child: const Icon(Icons.card_giftcard),
+          ),
           label: 'Premi',
         ),
         BottomNavigationBarItem(
-          icon: Icon(Icons.person_outline),
-          activeIcon: Icon(Icons.person),
+          icon: Semantics(
+            identifier: 'nav_profile',
+            child: const Icon(Icons.person_outline),
+          ),
+          activeIcon: Semantics(
+            identifier: 'nav_profile_active',
+            child: const Icon(Icons.person),
+          ),
           label: 'Profilo',
         ),
         BottomNavigationBarItem(
-          icon: Icon(Icons.event_outlined),
-          activeIcon: Icon(Icons.event),
+          icon: Semantics(
+            identifier: 'nav_events',
+            child: const Icon(Icons.event_outlined),
+          ),
+          activeIcon: Semantics(
+            identifier: 'nav_events_active',
+            child: const Icon(Icons.event),
+          ),
           label: 'Eventi',
         ),
         BottomNavigationBarItem(
-          icon: Icon(Icons.camera_enhance_outlined),
-          activeIcon: Icon(Icons.camera_enhance),
+          icon: Semantics(
+            identifier: 'nav_ai',
+            child: const Icon(Icons.camera_enhance_outlined),
+          ),
+          activeIcon: Semantics(
+            identifier: 'nav_ai_active',
+            child: const Icon(Icons.camera_enhance),
+          ),
           label: 'IA',
         ),
       ],
