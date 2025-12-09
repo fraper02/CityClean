@@ -8,7 +8,8 @@ import 'package:cityclean/screens/subscribed_events_screen.dart';
 import 'package:cityclean/screens/qr_scanner_screen.dart';
 import 'package:cityclean/screens/badge_screen.dart';
 import 'package:cityclean/screens/objectives_screen.dart';
-import 'package:cityclean/screens/location_picker_screen.dart'; // Import corretto
+// CORREZIONE IMPORT: Uso il package completo per coerenza
+import 'package:cityclean/screens/location_picker_screen.dart';
 import 'package:cityclean/components/bottom_nav_bar.dart';
 import 'package:flutter/material.dart';
 import 'package:cityclean/services/report_service.dart';
@@ -25,6 +26,7 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   final UserService _userService = UserService();
+  // Definizione corretta del servizio
   final ReportService _reportService = ReportService();
   Future<UserProfile>? _profileDataFuture;
 
@@ -136,7 +138,6 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                               onPressed: () async {
                                 try {
                                   Position pos = await Geolocator.getCurrentPosition();
-                                  // AGGIUNTO CHECK MOUNTED
                                   if (!context.mounted) return;
                                   setState(() {
                                     eventLocation = LatLng(pos.latitude, pos.longitude);
@@ -320,7 +321,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
           borderRadius: BorderRadius.circular(20),
           boxShadow: [
             BoxShadow(
-              // CORRETTO: withOpacity deprecato, uso withValues
+              // CORREZIONE: withOpacity è deprecato, sostituito con withValues
                 color: Colors.black.withValues(alpha: 0.1),
                 blurRadius: 10
             )
@@ -369,6 +370,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
         onPressed: () {
           Navigator.push(
             context,
+            // Assicurati che QrScannerScreen sia il nome della classe nel file qr_scanner_screen.dart
             MaterialPageRoute(builder: (context) => const QrScannerScreen()),
           );
         },

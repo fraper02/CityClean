@@ -124,7 +124,6 @@ class _MapScreenState extends State<MapScreen> {
     }
 
     final reportDescController = TextEditingController();
-    // RIMOSSO: String reportLocationStatus = "Posizione attuale"; (Variabile inutilizzata)
     LatLng? reportLocation = _isLocationLoaded ? _currentCenter : null;
     File? selectedImage;
     bool isUploading = false;
@@ -223,12 +222,10 @@ class _MapScreenState extends State<MapScreen> {
                         return;
                       }
                       if (reportLocation == null) {
-                        // Prova a recuperare posizione se mancante
                         try {
                           Position p = await Geolocator.getCurrentPosition();
                           reportLocation = LatLng(p.latitude, p.longitude);
                         } catch (e) {
-                          // AGGIUNTO: Controllo mounted prima di usare context
                           if (!context.mounted) return;
                           ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Impossibile recuperare posizione")));
                           return;
@@ -243,6 +240,7 @@ class _MapScreenState extends State<MapScreen> {
                         await _reportService.createReport(
                           description: reportDescController.text,
                           wasteType: "Rapida",
+                          // RIMOSSO: pollutionLevel: "Medio", perché non esiste nel tuo service
                           latitude: reportLocation!.latitude,
                           longitude: reportLocation!.longitude,
                           userId: userId,
@@ -296,7 +294,7 @@ class _MapScreenState extends State<MapScreen> {
                   point: zone.center,
                   radius: zone.radius,
                   useRadiusInMeter: true,
-                  // MODIFICATO: withOpacity -> withValues
+                  // Deprecation fix: withOpacity -> withValues
                   color: Colors.red.withValues(alpha: 0.3),
                   borderColor: Colors.red.withValues(alpha: 0.7),
                   borderStrokeWidth: 2,
@@ -332,12 +330,12 @@ class _MapScreenState extends State<MapScreen> {
             child: Container(
               height: 200,
               decoration: BoxDecoration(
-                // MODIFICATO: withOpacity -> withValues
+                // Deprecation fix: withOpacity -> withValues
                 color: primaryGreen.withValues(alpha: 0.95),
                 borderRadius: const BorderRadius.only(bottomLeft: Radius.circular(30), bottomRight: Radius.circular(30)),
                 boxShadow: [
                   BoxShadow(
-                    // MODIFICATO: withOpacity -> withValues
+                    // Deprecation fix: withOpacity -> withValues
                       color: Colors.black.withValues(alpha: 0.2),
                       blurRadius: 10,
                       offset: const Offset(0, 5)
@@ -396,7 +394,7 @@ class _MapScreenState extends State<MapScreen> {
                 borderRadius: BorderRadius.circular(30),
                 boxShadow: [
                   BoxShadow(
-                    // MODIFICATO: withOpacity -> withValues
+                    // Deprecation fix: withOpacity -> withValues
                       color: Colors.black.withValues(alpha: 0.2),
                       blurRadius: 8,
                       offset: const Offset(0, 4)
@@ -537,7 +535,7 @@ class _UserLocationMarker extends StatelessWidget {
     return Container(
       decoration: BoxDecoration(
         shape: BoxShape.circle,
-        // MODIFICATO: withOpacity -> withValues
+        // Deprecation fix: withOpacity -> withValues
         color: Colors.blue.withValues(alpha: 0.3),
         border: Border.all(color: Colors.blue, width: 3),
       ),
