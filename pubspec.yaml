@@ -24,6 +24,7 @@ dependencies:
   image: ^4.2.0          # Per processare le immagini
   camera: ^0.11.1
 
+  http: any
 dev_dependencies:
   flutter_native_splash: ^2.3.10
   flutter_test:

@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
 import '../services/storage_service.dart';
 import '../components/auth_gate.dart';
 import '../main.dart';
@@ -141,7 +140,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     child: Column(
                       children: [
                         SwitchListTile(
-                          activeColor: primaryGreen,
+                          activeThumbColor: primaryGreen,
                           secondary: Container(
                             padding: const EdgeInsets.all(8),
                             decoration: BoxDecoration(color: Colors.green[50], shape: BoxShape.circle),

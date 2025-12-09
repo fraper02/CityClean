@@ -178,7 +178,7 @@ class _AdminUsersPageState extends State<AdminUsersPage> {
                     child: SingleChildScrollView(
                       scrollDirection: Axis.horizontal,
                       child: DataTable(
-                        headingRowColor: MaterialStateProperty.all(Colors.green[50]),
+                        headingRowColor: WidgetStateProperty.all(Colors.green[50]),
                         columns: const [
                           DataColumn(label: Text('Nome e Cognome', style: TextStyle(fontWeight: FontWeight.bold))),
                           DataColumn(label: Text('Referral', style: TextStyle(fontWeight: FontWeight.bold))),

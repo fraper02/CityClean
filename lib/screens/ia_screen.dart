@@ -1,5 +1,5 @@
 import 'dart:io';
-import 'dart:typed_data'; // Necessario per Float32List se usato, o List standard
+// Necessario per Float32List se usato, o List standard
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';

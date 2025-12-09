@@ -1,5 +1,4 @@
 import 'package:cityclean/models/obiettivo.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
 import '../main.dart'; // Per la variabile globale supabase
 
 class ObjectiveService {
@@ -19,7 +18,7 @@ class ObjectiveService {
           .select('*, conseguimento_obiettivo!left(*)')
           .eq('conseguimento_obiettivo.idutente', user.id);
 
-      if (response == null || (response as List).isEmpty) {
+      if ((response as List).isEmpty) {
         return [];
       }
 

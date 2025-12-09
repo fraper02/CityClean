@@ -1,5 +1,4 @@
 import 'dart:developer';
-import 'package:supabase_flutter/supabase_flutter.dart';
 import '../models/prizes.dart';
 import '../models/userProfile.dart';
 import '../main.dart';

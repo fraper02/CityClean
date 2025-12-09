@@ -1,6 +1,5 @@
 import 'package:cityclean/models/badge.dart';
 import 'package:cityclean/models/userProfile.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
 import '../main.dart'; // Per la variabile globale supabase
 
 class UserService {

@@ -241,7 +241,7 @@ class _AdminRewardsPageState extends State<AdminRewardsPage> {
                       scrollDirection: Axis.vertical,
                       child: DataTable(
                         columnSpacing: 20,
-                        headingRowColor: MaterialStateProperty.all(Colors.green[50]),
+                        headingRowColor: WidgetStateProperty.all(Colors.green[50]),
                         columns: const [
                           DataColumn(label: Text('Nome', style: TextStyle(fontWeight: FontWeight.bold))),
                           DataColumn(label: Text('Partner', style: TextStyle(fontWeight: FontWeight.bold))),
