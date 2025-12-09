@@ -46,7 +46,7 @@ class _IAScreenState extends State<IAScreen> {
 
       if (_labels.length != NUM_CLASSES) {
         // Nota: Questo è un warning, se hai classi diverse aggiorna NUM_CLASSES
-        print("Warning: Caricate ${_labels.length} etichette, ma NUM_CLASSES è $NUM_CLASSES.");
+        debugPrint("Warning: Caricate ${_labels.length} etichette, ma NUM_CLASSES è $NUM_CLASSES.");
       }
     } catch (e) {
       if (mounted) {

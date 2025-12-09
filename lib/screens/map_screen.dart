@@ -102,7 +102,7 @@ class _MapScreenState extends State<MapScreen> {
         });
       }
     } catch (e) {
-      print("Errore caricamento punti: $e");
+      debugPrint("Errore caricamento punti: $e");
       if (mounted) {
         setState(() {
           _pollutedZones = MockMapData.pollutedZones;

@@ -1,6 +1,7 @@
 import 'package:cityclean/models/badge.dart';
 import 'package:cityclean/models/user_profile.dart';
 import '../main.dart'; // Per la variabile globale supabase
+import 'package:flutter/foundation.dart';
 
 class UserService {
 
@@ -36,14 +37,14 @@ class UserService {
           userData['titolo_nome'] = badgeData['nome'];
         } catch (e) {
           // Se il badge non esiste più, il titolo sarà null, ma l'app non crasha
-          print("Badge del titolo non trovato (ID: $badgeTitleId): $e");
+          debugPrint("Badge del titolo non trovato (ID: $badgeTitleId): $e");
         }
       }
       
       return UserProfile.fromJson(userData);
 
     } catch (e) {
-      print("Errore nel recupero del profilo utente: $e");
+      debugPrint("Errore nel recupero del profilo utente: $e");
       throw Exception("Impossibile caricare i dati del profilo.");
     }
   }
@@ -62,7 +63,7 @@ class UserService {
       return (response as List).map((item) => Badge.fromJson(item)).toList();
 
     } catch (e) {
-      print("Errore nel recupero dei badge sbloccati: $e");
+      debugPrint("Errore nel recupero dei badge sbloccati: $e");
       throw Exception("Impossibile caricare i titoli disponibili.");
     }
   }
@@ -78,7 +79,7 @@ class UserService {
           .update({'id_badge_titolo': newBadgeId})
           .eq('idutente', user.id);
     } catch (e) {
-      print("Errore nell'aggiornamento del titolo: $e");
+      debugPrint("Errore nell'aggiornamento del titolo: $e");
       throw Exception("Impossibile aggiornare il titolo.");
     }
   }
