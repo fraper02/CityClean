@@ -134,19 +134,19 @@ class _IAScreenState extends State<IAScreen> {
                               ),
                               child: _selectedImage != null
                                   ? ClipRRect(
-                                      borderRadius: BorderRadius.circular(18.0),
-                                      child: Image.file(_selectedImage!, fit: BoxFit.cover),
-                                    )
+                                borderRadius: BorderRadius.circular(18.0),
+                                child: Image.file(_selectedImage!, fit: BoxFit.cover),
+                              )
                                   : Column(
-                                      mainAxisAlignment: MainAxisAlignment.center,
-                                      children: [
-                                        Icon(Icons.upload_file, size: 50, color: primaryGreen),
-                                        const SizedBox(height: 15),
-                                        Text("Carica un'immagine", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.green[800])),
-                                        const SizedBox(height: 5),
-                                        const Text("Clicca per selezionare dalla galleria", style: TextStyle(color: Colors.grey), textAlign: TextAlign.center),
-                                      ],
-                                    ),
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Icon(Icons.upload_file, size: 50, color: primaryGreen),
+                                  const SizedBox(height: 15),
+                                  Text("Carica un'immagine", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.green[800])),
+                                  const SizedBox(height: 5),
+                                  const Text("Clicca per selezionare dalla galleria", style: TextStyle(color: Colors.grey), textAlign: TextAlign.center),
+                                ],
+                              ),
                             ),
                           ),
                           const SizedBox(height: 30),

@@ -168,7 +168,7 @@ class _RegisterPreferencesScreenState extends State<RegisterPreferencesScreen> {
                       ),
                       Switch(
                         value: _notificationsEnabled,
-                        activeColor: Colors.white,
+                        activeThumbColor: Colors.white,
                         activeTrackColor: primaryGreen,
                         onChanged: (bool value) {
                           setState(() {

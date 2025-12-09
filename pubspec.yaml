@@ -21,7 +21,11 @@ dependencies:
   geolocator: ^14.0.2
   image_picker: ^1.2.1
   mobile_scanner: ^7.1.3
+  tflite_flutter: ^0.12.1 # Libreria per la classificazione
+  image: ^4.2.0          # Per processare le immagini
+  camera: ^0.11.1
 
+  http: any
 dev_dependencies:
   flutter_native_splash: ^2.3.10
   flutter_test:
@@ -32,6 +36,7 @@ dev_dependencies:
 flutter:
   uses-material-design: true
   assets:
+    - assets/ml/
     - assets/images/
     - .env
 

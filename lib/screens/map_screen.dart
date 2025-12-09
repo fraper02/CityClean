@@ -132,7 +132,7 @@ class _MapScreenState extends State<MapScreen> {
     File? selectedImage;
     bool isUploading = false;
     final ImagePicker picker = ImagePicker();
-    
+
     // Variabile per il livello di inquinamento
     String selectedPollutionLevel = 'Medio';
     final List<String> pollutionOptions = ['Basso', 'Medio', 'Alto', 'Critico'];
@@ -143,159 +143,159 @@ class _MapScreenState extends State<MapScreen> {
       context: context,
       builder: (ctx) {
         return StatefulBuilder(
-          builder: (context, setState) {
-            
-            Future<void> pickImage(ImageSource source) async {
-              final XFile? photo = await picker.pickImage(source: source, imageQuality: 50);
-              if (photo != null) {
-                setState(() {
-                  selectedImage = File(photo.path);
-                });
+            builder: (context, setState) {
+
+              Future<void> pickImage(ImageSource source) async {
+                final XFile? photo = await picker.pickImage(source: source, imageQuality: 50);
+                if (photo != null) {
+                  setState(() {
+                    selectedImage = File(photo.path);
+                  });
+                }
               }
-            }
 
-            return AlertDialog(
-              title: const Row(
-                children: [
-                  Icon(Icons.warning_amber_rounded, color: Colors.orange),
-                  SizedBox(width: 10),
-                  Text("Segnalazione Rapida"),
-                ],
-              ),
-              content: SingleChildScrollView(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.start,
+              return AlertDialog(
+                title: const Row(
                   children: [
-                    const Text("Scatta una foto e segnala rifiuti abbandonati qui.", style: TextStyle(fontSize: 13, color: Colors.grey)),
-                    const SizedBox(height: 15),
-                    
-                    GestureDetector(
-                      onTap: () => pickImage(ImageSource.camera),
-                      child: Container(
-                        height: 150,
-                        width: double.infinity,
-                        decoration: BoxDecoration(
-                          color: Colors.grey[200],
-                          borderRadius: BorderRadius.circular(15),
-                          border: Border.all(color: Colors.grey[400]!),
-                          image: selectedImage != null 
-                            ? DecorationImage(image: FileImage(selectedImage!), fit: BoxFit.cover)
-                            : null,
-                        ),
-                        child: selectedImage == null 
-                          ? const Column(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Icon(Icons.camera_alt, size: 40, color: Colors.grey),
-                                Text("Scatta foto (Opzionale)", style: TextStyle(color: Colors.grey)),
-                              ],
-                            )
-                          : null,
-                      ),
-                    ),
-                    const SizedBox(height: 15),
-
-                    TextField(
-                      controller: reportDescController,
-                      decoration: const InputDecoration(
-                        labelText: "Descrizione Rifiuti",
-                        border: OutlineInputBorder(),
-                      ),
-                      maxLines: 2,
-                    ),
-                    const SizedBox(height: 15),
-
-                    // --- MENU A TENDINA LIVELLO INQUINAMENTO ---
-                    DropdownButtonFormField<String>(
-                      value: selectedPollutionLevel,
-                      decoration: const InputDecoration(
-                        labelText: "Livello Inquinamento",
-                        border: OutlineInputBorder(),
-                        prefixIcon: Icon(Icons.bar_chart),
-                      ),
-                      items: pollutionOptions.map((String val) {
-                        return DropdownMenuItem(
-                          value: val,
-                          child: Text(val),
-                        );
-                      }).toList(),
-                      onChanged: (newVal) {
-                        if (newVal != null) {
-                          setState(() {
-                            selectedPollutionLevel = newVal;
-                          });
-                        }
-                      },
-                    ),
-                    const SizedBox(height: 10),
-                    
-                    Row(
-                      children: [
-                        const Icon(Icons.location_on, size: 16, color: Colors.green),
-                        const SizedBox(width: 5),
-                        Expanded(child: Text(reportLocation != null ? "GPS: ${reportLocation!.latitude.toStringAsFixed(4)}, ${reportLocation!.longitude.toStringAsFixed(4)}" : "Posizione sconosciuta", style: const TextStyle(fontSize: 12))),
-                      ],
-                    ),
+                    Icon(Icons.warning_amber_rounded, color: Colors.orange),
+                    SizedBox(width: 10),
+                    Text("Segnalazione Rapida"),
                   ],
                 ),
-              ),
-              actions: [
-                TextButton(onPressed: () => Navigator.pop(context), child: const Text("Annulla")),
-                ElevatedButton(
-                  style: ElevatedButton.styleFrom(backgroundColor: Colors.orange),
-                  onPressed: isUploading ? null : () async {
-                    if (reportDescController.text.isEmpty) {
-                      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Inserisci descrizione")));
-                      return;
-                    }
-                    if (reportLocation == null) {
-                       // Prova a recuperare posizione se mancante
-                       try {
-                         Position p = await Geolocator.getCurrentPosition();
-                         reportLocation = LatLng(p.latitude, p.longitude);
-                       } catch (e) {
-                         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Impossibile recuperare posizione")));
-                         return;
-                       }
-                    }
+                content: SingleChildScrollView(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text("Scatta una foto e segnala rifiuti abbandonati qui.", style: TextStyle(fontSize: 13, color: Colors.grey)),
+                      const SizedBox(height: 15),
 
-                    setState(() => isUploading = true);
+                      GestureDetector(
+                        onTap: () => pickImage(ImageSource.camera),
+                        child: Container(
+                          height: 150,
+                          width: double.infinity,
+                          decoration: BoxDecoration(
+                            color: Colors.grey[200],
+                            borderRadius: BorderRadius.circular(15),
+                            border: Border.all(color: Colors.grey[400]!),
+                            image: selectedImage != null
+                                ? DecorationImage(image: FileImage(selectedImage!), fit: BoxFit.cover)
+                                : null,
+                          ),
+                          child: selectedImage == null
+                              ? const Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(Icons.camera_alt, size: 40, color: Colors.grey),
+                              Text("Scatta foto (Opzionale)", style: TextStyle(color: Colors.grey)),
+                            ],
+                          )
+                              : null,
+                        ),
+                      ),
+                      const SizedBox(height: 15),
 
-                    try {
-                      String? imageId;
-                      if (selectedImage != null) {
-                         imageId = await _reportService.uploadImageAndGetId(selectedImage!);
-                      }
-                      
-                      await _reportService.createReport(
-                        description: reportDescController.text,
-                        wasteType: "Rapida",
-                        pollutionLevel: selectedPollutionLevel, // Passiamo il valore selezionato
-                        latitude: reportLocation!.latitude,
-                        longitude: reportLocation!.longitude,
-                        userId: userId,
-                        imageId: imageId,
-                      );
+                      TextField(
+                        controller: reportDescController,
+                        decoration: const InputDecoration(
+                          labelText: "Descrizione Rifiuti",
+                          border: OutlineInputBorder(),
+                        ),
+                        maxLines: 2,
+                      ),
+                      const SizedBox(height: 15),
 
-                      if (context.mounted) {
-                        Navigator.pop(context);
-                        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Segnalazione inviata!")));
-                        // Ricarica i punti dopo l'invio
-                        _loadPoints();
-                      }
-                    } catch (e) {
-                      setState(() => isUploading = false);
-                      if (context.mounted) {
-                        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Errore: $e")));
-                      }
-                    }
-                  },
-                  child: Text(isUploading ? "Invio..." : "Invia"),
+                      // --- MENU A TENDINA LIVELLO INQUINAMENTO ---
+                      DropdownButtonFormField<String>(
+                        initialValue: selectedPollutionLevel,
+                        decoration: const InputDecoration(
+                          labelText: "Livello Inquinamento",
+                          border: OutlineInputBorder(),
+                          prefixIcon: Icon(Icons.bar_chart),
+                        ),
+                        items: pollutionOptions.map((String val) {
+                          return DropdownMenuItem(
+                            value: val,
+                            child: Text(val),
+                          );
+                        }).toList(),
+                        onChanged: (newVal) {
+                          if (newVal != null) {
+                            setState(() {
+                              selectedPollutionLevel = newVal;
+                            });
+                          }
+                        },
+                      ),
+                      const SizedBox(height: 10),
+
+                      Row(
+                        children: [
+                          const Icon(Icons.location_on, size: 16, color: Colors.green),
+                          const SizedBox(width: 5),
+                          Expanded(child: Text(reportLocation != null ? "GPS: ${reportLocation!.latitude.toStringAsFixed(4)}, ${reportLocation!.longitude.toStringAsFixed(4)}" : "Posizione sconosciuta", style: const TextStyle(fontSize: 12))),
+                        ],
+                      ),
+                    ],
+                  ),
                 ),
-              ],
-            );
-          }
+                actions: [
+                  TextButton(onPressed: () => Navigator.pop(context), child: const Text("Annulla")),
+                  ElevatedButton(
+                    style: ElevatedButton.styleFrom(backgroundColor: Colors.orange),
+                    onPressed: isUploading ? null : () async {
+                      if (reportDescController.text.isEmpty) {
+                        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Inserisci descrizione")));
+                        return;
+                      }
+                      if (reportLocation == null) {
+                        // Prova a recuperare posizione se mancante
+                        try {
+                          Position p = await Geolocator.getCurrentPosition();
+                          reportLocation = LatLng(p.latitude, p.longitude);
+                        } catch (e) {
+                          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Impossibile recuperare posizione")));
+                          return;
+                        }
+                      }
+
+                      setState(() => isUploading = true);
+
+                      try {
+                        String? imageId;
+                        if (selectedImage != null) {
+                          imageId = await _reportService.uploadImageAndGetId(selectedImage!);
+                        }
+
+                        await _reportService.createReport(
+                          description: reportDescController.text,
+                          wasteType: "Rapida",
+                          pollutionLevel: selectedPollutionLevel, // Passiamo il valore selezionato
+                          latitude: reportLocation!.latitude,
+                          longitude: reportLocation!.longitude,
+                          userId: userId,
+                          imageId: imageId,
+                        );
+
+                        if (context.mounted) {
+                          Navigator.pop(context);
+                          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Segnalazione inviata!")));
+                          // Ricarica i punti dopo l'invio
+                          _loadPoints();
+                        }
+                      } catch (e) {
+                        setState(() => isUploading = false);
+                        if (context.mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Errore: $e")));
+                        }
+                      }
+                    },
+                    child: Text(isUploading ? "Invio..." : "Invia"),
+                  ),
+                ],
+              );
+            }
         );
       },
     );
@@ -343,33 +343,33 @@ class _MapScreenState extends State<MapScreen> {
                     height: 40,
                     child: GestureDetector(
                       onTap: () {
-                         showDialog(
-                           context: context,
-                           builder: (ctx) => AlertDialog(
-                             title: const Row(
-                               children: [
-                                 Icon(Icons.report_problem, color: Colors.red),
-                                 SizedBox(width: 8),
-                                 Text("Dettagli Segnalazione", style: TextStyle(fontSize: 18)),
-                               ],
-                             ),
-                             content: Column(
-                               mainAxisSize: MainAxisSize.min,
-                               crossAxisAlignment: CrossAxisAlignment.start,
-                               children: [
-                                 _buildInfoRow(Icons.bar_chart, "Livello Inquinamento", report['livelloinquinamento'] ?? 'N/A'),
-                                 const SizedBox(height: 10),
-                                 _buildInfoRow(Icons.description, "Tipo Inquinamento", report['tipoinquinamento'] ?? 'N/A'),
-                               ],
-                             ),
-                             actions: [
-                               TextButton(
-                                 onPressed: () => Navigator.pop(ctx),
-                                 child: const Text("Chiudi"),
-                               )
-                             ],
-                           ),
-                         );
+                        showDialog(
+                          context: context,
+                          builder: (ctx) => AlertDialog(
+                            title: const Row(
+                              children: [
+                                Icon(Icons.report_problem, color: Colors.red),
+                                SizedBox(width: 8),
+                                Text("Dettagli Segnalazione", style: TextStyle(fontSize: 18)),
+                              ],
+                            ),
+                            content: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                _buildInfoRow(Icons.bar_chart, "Livello Inquinamento", report['livelloinquinamento'] ?? 'N/A'),
+                                const SizedBox(height: 10),
+                                _buildInfoRow(Icons.description, "Tipo Inquinamento", report['tipoinquinamento'] ?? 'N/A'),
+                              ],
+                            ),
+                            actions: [
+                              TextButton(
+                                onPressed: () => Navigator.pop(ctx),
+                                child: const Text("Chiudi"),
+                              )
+                            ],
+                          ),
+                        );
                       },
                       child: Container(
                         decoration: BoxDecoration(
@@ -507,7 +507,7 @@ class _MapScreenState extends State<MapScreen> {
                   const SizedBox(width: 5),
                   Switch(
                     value: _showBins,
-                    activeColor: Colors.white,
+                    activeThumbColor: Colors.white,
                     activeTrackColor: Colors.orange[400],
                     inactiveThumbColor: Colors.grey[50],
                     inactiveTrackColor: Colors.grey[300],
@@ -520,7 +520,7 @@ class _MapScreenState extends State<MapScreen> {
 
           // FAB GPS (Spostato in alto rispetto al nuovo FAB)
           Positioned(
-            bottom: 30, 
+            bottom: 30,
             right: 20,
             child: FloatingActionButton(
               heroTag: "gps_fab",

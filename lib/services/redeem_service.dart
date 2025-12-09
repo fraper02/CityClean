@@ -1,7 +1,6 @@
 import 'dart:developer';
-import 'package:supabase_flutter/supabase_flutter.dart';
 import '../models/prizes.dart';
-import '../models/userProfile.dart';
+import '../models/user_profile.dart';
 import '../main.dart';
 import '../services/notifiche.dart'; // 👈 aggiungi questo
 

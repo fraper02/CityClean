@@ -1,4 +1,4 @@
-import 'package:cityclean/models/userProfile.dart';
+import 'package:cityclean/models/user_profile.dart';
 import 'package:cityclean/services/user_service.dart';
 import 'package:cityclean/screens/profile_screen.dart';
 import 'package:cityclean/screens/settings_screen.dart';
@@ -8,10 +8,10 @@ import 'package:cityclean/screens/subscribed_events_screen.dart';
 import 'package:cityclean/screens/qr_scanner_screen.dart';
 import 'package:cityclean/screens/badge_screen.dart';
 import 'package:cityclean/screens/objectives_screen.dart';
+// CORREZIONE IMPORT: Uso il package completo per coerenza
 import 'package:cityclean/components/bottom_nav_bar.dart';
 import 'package:cityclean/screens/create_event_screen.dart'; // Importa la nuova schermata
 import 'package:flutter/material.dart';
-
 import 'group_screen.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -152,7 +152,13 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(20),
-          boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.1), blurRadius: 10)],
+          boxShadow: [
+            BoxShadow(
+              // CORREZIONE: withOpacity è deprecato, sostituito con withValues
+                color: Colors.black.withValues(alpha: 0.1),
+                blurRadius: 10
+            )
+          ],
         ),
         child: Row(
           children: [
@@ -197,6 +203,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
         onPressed: () {
           Navigator.push(
             context,
+            // Assicurati che QrScannerScreen sia il nome della classe nel file qr_scanner_screen.dart
             MaterialPageRoute(builder: (context) => const QrScannerScreen()),
           );
         },
@@ -266,7 +273,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
         ),
         const SizedBox(height: 15),
         _buildFullWidthCard(Icons.flag_outlined, "I Miei Obiettivi", onTap: () {
-           Navigator.push(context, MaterialPageRoute(builder: (context) => const ObjectivesScreen()));
+          Navigator.push(context, MaterialPageRoute(builder: (context) => const ObjectivesScreen()));
         }),
         const SizedBox(height: 15),
         _buildFullWidthCard(Icons.group_outlined, "Gruppi", onTap: () {
@@ -281,11 +288,11 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
       onTap: onTap,
       borderRadius: BorderRadius.circular(20),
       child: Container(
-        height: 130, 
+        height: 130,
         decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: Colors.grey[200]!)
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(color: Colors.grey[200]!)
         ),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -311,9 +318,9 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
         width: double.infinity,
         padding: const EdgeInsets.symmetric(vertical: 20),
         decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: Colors.grey[200]!)
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(color: Colors.grey[200]!)
         ),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,

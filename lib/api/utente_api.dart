@@ -1,4 +1,5 @@
 import 'package:cityclean/services/supabase_service.dart';
+import 'package:flutter/foundation.dart';
 class UtenteApi {
   /// API per recuperare i punti dell'utente corrente.
   ///
@@ -26,7 +27,7 @@ class UtenteApi {
       return (data['saldopunti'] as int?) ?? 0;
     } catch (e) {
       // In caso di errore di rete o altro, restituisce 0 e stampa l'errore
-      print("Errore in fetchUserPoints: $e");
+      debugPrint("Errore in fetchUserPoints: $e");
       return 0;
     }
   }
