@@ -2,14 +2,13 @@ import 'dart:io';
 import 'dart:typed_data';
 import 'package:flutter/services.dart';
 import 'package:tflite_flutter/tflite_flutter.dart';
-import 'package:flutter/foundation.dart';
 import 'package:image/image.dart' as img;
 import '../models/classification_result.dart';
 
 class TFLiteService {
-  static const int INPUT_SIZE = 224;
-  // RIPORTATO A 9 PER TEST INTERFACCIA
-  static const int NUM_CLASSES = 12;
+  // Correzione: Nomi delle costanti in lowerCamelCase per seguire le convenzioni di Dart
+  static const int inputSize = 224;
+  static const int numClasses = 12;
 
   Interpreter? _interpreter;
   List<String> _labels = [];
@@ -20,8 +19,8 @@ class TFLiteService {
       final labelsData = await rootBundle.loadString('assets/ml/yolo_labels.txt');
       _labels = labelsData.split('\n').where((label) => label.trim().isNotEmpty).toList();
 
-      if (_labels.length != NUM_CLASSES) {
-        throw Exception("Il numero di etichette (${_labels.length}) non corrisponde a NUM_CLASSES ($NUM_CLASSES).");
+      if (_labels.length != numClasses) {
+        throw Exception("Il numero di etichette (${_labels.length}) non corrisponde a numClasses ($numClasses).");
       }
     } catch (e) {
       print("Errore caricamento modello: $e");
@@ -41,12 +40,12 @@ class TFLiteService {
         throw Exception("Impossibile decodificare l'immagine.");
       }
 
-      final img.Image resizedImage = img.copyResize(originalImage, width: INPUT_SIZE, height: INPUT_SIZE);
+      final img.Image resizedImage = img.copyResize(originalImage, width: inputSize, height: inputSize);
       
-      var buffer = Float32List(1 * INPUT_SIZE * INPUT_SIZE * 3);
+      var buffer = Float32List(1 * inputSize * inputSize * 3);
       var bufferIndex = 0;
-      for (var y = 0; y < INPUT_SIZE; y++) {
-        for (var x = 0; x < INPUT_SIZE; x++) {
+      for (var y = 0; y < inputSize; y++) {
+        for (var x = 0; x < inputSize; x++) {
           var pixel = resizedImage.getPixel(x, y);
           buffer[bufferIndex++] = pixel.rNormalized.toDouble();
           buffer[bufferIndex++] = pixel.gNormalized.toDouble();
@@ -54,8 +53,8 @@ class TFLiteService {
         }
       }
 
-      final input = buffer.reshape([1, INPUT_SIZE, INPUT_SIZE, 3]);
-      final output = List.generate(1, (i) => List.filled(NUM_CLASSES, 0.0));
+      final input = buffer.reshape([1, inputSize, inputSize, 3]);
+      final output = List.generate(1, (i) => List.filled(numClasses, 0.0));
 
       _interpreter!.run(input, output);
       
@@ -78,7 +77,7 @@ class TFLiteService {
         return null;
       }
     } catch (e) {
-      debugPrint("Errore classificazione: $e");
+      print("Errore classificazione: $e");
       rethrow;
     }
   }
