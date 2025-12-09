@@ -86,7 +86,6 @@ class _AdminDashboardState extends State<AdminDashboard> {
   }
 }
 
-// ... _AdminHomePage rimane invariato ...
 class _AdminHomePage extends StatelessWidget {
   const _AdminHomePage();
 
