@@ -2,6 +2,7 @@ import 'package:cityclean/models/aggiungi_punti.dart'; // Importa il nuovo model
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart'; // Per input numerici
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:flutter/foundation.dart';
 
 class AdminUsersPage extends StatefulWidget {
   const AdminUsersPage({super.key});
@@ -38,7 +39,7 @@ class _AdminUsersPageState extends State<AdminUsersPage> {
 
       return List<Map<String, dynamic>>.from(response);
     } catch (e) {
-      print("ERRORE QUERY: $e");
+      debugPrint("ERRORE QUERY: $e");
       // Rilanciamo l'errore per gestirlo nell'interfaccia se necessario
       // o ritorniamo lista vuota in caso di errore non bloccante
       rethrow;
