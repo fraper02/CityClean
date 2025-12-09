@@ -52,6 +52,8 @@ class _AdminRewardsPageState extends State<AdminRewardsPage> {
 
     final formKey = GlobalKey<FormState>();
 
+    if (!mounted) return;
+
     await showDialog(
       context: context,
       barrierDismissible: false,
@@ -142,6 +144,7 @@ class _AdminRewardsPageState extends State<AdminRewardsPage> {
                     await supabase.from('premio').insert(data);
                   }
 
+                  // 1. Check mounted prima di usare il context dopo l'await
                   if (mounted) {
                     Navigator.pop(ctx);
                     ScaffoldMessenger.of(context).showSnackBar(
@@ -150,9 +153,12 @@ class _AdminRewardsPageState extends State<AdminRewardsPage> {
                     _refreshData();
                   }
                 } catch (e) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text("Errore: $e"), backgroundColor: Colors.red),
-                  );
+                  // 2. IMPORTANTE: Check mounted anche nel catch
+                  if (context.mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text("Errore: $e"), backgroundColor: Colors.red),
+                    );
+                  }
                 }
               }
             },
@@ -179,7 +185,10 @@ class _AdminRewardsPageState extends State<AdminRewardsPage> {
 
     if (confirm == true) {
       await supabase.from('premio').delete().eq('idpremio', id);
-      _refreshData();
+      // Check mounted prima di aggiornare la UI
+      if (mounted) {
+        _refreshData();
+      }
     }
   }
 

@@ -2,7 +2,6 @@ import 'package:cityclean/models/aggiungi_punti.dart'; // Importa il nuovo model
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart'; // Per input numerici
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'package:flutter/foundation.dart';
 
 class AdminUsersPage extends StatefulWidget {
   const AdminUsersPage({super.key});

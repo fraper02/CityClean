@@ -124,7 +124,7 @@ class _MapScreenState extends State<MapScreen> {
     }
 
     final reportDescController = TextEditingController();
-    String reportLocationStatus = "Posizione attuale";
+    // RIMOSSO: String reportLocationStatus = "Posizione attuale"; (Variabile inutilizzata)
     LatLng? reportLocation = _isLocationLoaded ? _currentCenter : null;
     File? selectedImage;
     bool isUploading = false;
@@ -136,133 +136,135 @@ class _MapScreenState extends State<MapScreen> {
       context: context,
       builder: (ctx) {
         return StatefulBuilder(
-          builder: (context, setState) {
-            
-            Future<void> pickImage(ImageSource source) async {
-              final XFile? photo = await picker.pickImage(source: source, imageQuality: 50);
-              if (photo != null) {
-                setState(() {
-                  selectedImage = File(photo.path);
-                });
+            builder: (context, setState) {
+
+              Future<void> pickImage(ImageSource source) async {
+                final XFile? photo = await picker.pickImage(source: source, imageQuality: 50);
+                if (photo != null) {
+                  setState(() {
+                    selectedImage = File(photo.path);
+                  });
+                }
               }
-            }
 
-            return AlertDialog(
-              title: const Row(
-                children: [
-                  Icon(Icons.warning_amber_rounded, color: Colors.orange),
-                  SizedBox(width: 10),
-                  Text("Segnalazione Rapida"),
-                ],
-              ),
-              content: SingleChildScrollView(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.start,
+              return AlertDialog(
+                title: const Row(
                   children: [
-                    const Text("Scatta una foto e segnala rifiuti abbandonati qui.", style: TextStyle(fontSize: 13, color: Colors.grey)),
-                    const SizedBox(height: 15),
-                    
-                    GestureDetector(
-                      onTap: () => pickImage(ImageSource.camera),
-                      child: Container(
-                        height: 150,
-                        width: double.infinity,
-                        decoration: BoxDecoration(
-                          color: Colors.grey[200],
-                          borderRadius: BorderRadius.circular(15),
-                          border: Border.all(color: Colors.grey[400]!),
-                          image: selectedImage != null 
-                            ? DecorationImage(image: FileImage(selectedImage!), fit: BoxFit.cover)
-                            : null,
-                        ),
-                        child: selectedImage == null 
-                          ? const Column(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Icon(Icons.camera_alt, size: 40, color: Colors.grey),
-                                Text("Scatta foto (Obbligatorio)", style: TextStyle(color: Colors.grey)),
-                              ],
-                            )
-                          : null,
-                      ),
-                    ),
-                    const SizedBox(height: 15),
-
-                    TextField(
-                      controller: reportDescController,
-                      decoration: const InputDecoration(
-                        labelText: "Descrizione Rifiuti",
-                        border: OutlineInputBorder(),
-                      ),
-                      maxLines: 2,
-                    ),
-                    const SizedBox(height: 10),
-                    
-                    Row(
-                      children: [
-                        const Icon(Icons.location_on, size: 16, color: Colors.green),
-                        const SizedBox(width: 5),
-                        Expanded(child: Text(reportLocation != null ? "GPS: ${reportLocation!.latitude.toStringAsFixed(4)}, ${reportLocation!.longitude.toStringAsFixed(4)}" : "Posizione sconosciuta", style: const TextStyle(fontSize: 12))),
-                      ],
-                    ),
+                    Icon(Icons.warning_amber_rounded, color: Colors.orange),
+                    SizedBox(width: 10),
+                    Text("Segnalazione Rapida"),
                   ],
                 ),
-              ),
-              actions: [
-                TextButton(onPressed: () => Navigator.pop(context), child: const Text("Annulla")),
-                ElevatedButton(
-                  style: ElevatedButton.styleFrom(backgroundColor: Colors.orange),
-                  onPressed: isUploading ? null : () async {
-                    if (reportDescController.text.isEmpty) {
-                      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Inserisci descrizione")));
-                      return;
-                    }
-                    if (selectedImage == null) {
-                      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Foto obbligatoria")));
-                      return;
-                    }
-                    if (reportLocation == null) {
-                       // Prova a recuperare posizione se mancante
-                       try {
-                         Position p = await Geolocator.getCurrentPosition();
-                         reportLocation = LatLng(p.latitude, p.longitude);
-                       } catch (e) {
-                         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Impossibile recuperare posizione")));
-                         return;
-                       }
-                    }
+                content: SingleChildScrollView(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text("Scatta una foto e segnala rifiuti abbandonati qui.", style: TextStyle(fontSize: 13, color: Colors.grey)),
+                      const SizedBox(height: 15),
 
-                    setState(() => isUploading = true);
+                      GestureDetector(
+                        onTap: () => pickImage(ImageSource.camera),
+                        child: Container(
+                          height: 150,
+                          width: double.infinity,
+                          decoration: BoxDecoration(
+                            color: Colors.grey[200],
+                            borderRadius: BorderRadius.circular(15),
+                            border: Border.all(color: Colors.grey[400]!),
+                            image: selectedImage != null
+                                ? DecorationImage(image: FileImage(selectedImage!), fit: BoxFit.cover)
+                                : null,
+                          ),
+                          child: selectedImage == null
+                              ? const Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(Icons.camera_alt, size: 40, color: Colors.grey),
+                              Text("Scatta foto (Obbligatorio)", style: TextStyle(color: Colors.grey)),
+                            ],
+                          )
+                              : null,
+                        ),
+                      ),
+                      const SizedBox(height: 15),
 
-                    try {
-                      final imageId = await _reportService.uploadImageAndGetId(selectedImage!);
-                      
-                      await _reportService.createReport(
-                        description: reportDescController.text,
-                        wasteType: "Rapida",
-                        latitude: reportLocation!.latitude,
-                        longitude: reportLocation!.longitude,
-                        userId: userId,
-                        imageId: imageId,
-                      );
+                      TextField(
+                        controller: reportDescController,
+                        decoration: const InputDecoration(
+                          labelText: "Descrizione Rifiuti",
+                          border: OutlineInputBorder(),
+                        ),
+                        maxLines: 2,
+                      ),
+                      const SizedBox(height: 10),
 
-                      if (context.mounted) {
-                        Navigator.pop(context);
-                        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Segnalazione inviata!")));
-                      }
-                    } catch (e) {
-                      setState(() => isUploading = false);
-                      if (context.mounted) {
-                        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Errore: $e")));
-                      }
-                    }
-                  },
-                  child: Text(isUploading ? "Invio..." : "Invia"),
+                      Row(
+                        children: [
+                          const Icon(Icons.location_on, size: 16, color: Colors.green),
+                          const SizedBox(width: 5),
+                          Expanded(child: Text(reportLocation != null ? "GPS: ${reportLocation!.latitude.toStringAsFixed(4)}, ${reportLocation!.longitude.toStringAsFixed(4)}" : "Posizione sconosciuta", style: const TextStyle(fontSize: 12))),
+                        ],
+                      ),
+                    ],
+                  ),
                 ),
-              ],
-            );
-          }
+                actions: [
+                  TextButton(onPressed: () => Navigator.pop(context), child: const Text("Annulla")),
+                  ElevatedButton(
+                    style: ElevatedButton.styleFrom(backgroundColor: Colors.orange),
+                    onPressed: isUploading ? null : () async {
+                      if (reportDescController.text.isEmpty) {
+                        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Inserisci descrizione")));
+                        return;
+                      }
+                      if (selectedImage == null) {
+                        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Foto obbligatoria")));
+                        return;
+                      }
+                      if (reportLocation == null) {
+                        // Prova a recuperare posizione se mancante
+                        try {
+                          Position p = await Geolocator.getCurrentPosition();
+                          reportLocation = LatLng(p.latitude, p.longitude);
+                        } catch (e) {
+                          // AGGIUNTO: Controllo mounted prima di usare context
+                          if (!context.mounted) return;
+                          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Impossibile recuperare posizione")));
+                          return;
+                        }
+                      }
+
+                      setState(() => isUploading = true);
+
+                      try {
+                        final imageId = await _reportService.uploadImageAndGetId(selectedImage!);
+
+                        await _reportService.createReport(
+                          description: reportDescController.text,
+                          wasteType: "Rapida",
+                          latitude: reportLocation!.latitude,
+                          longitude: reportLocation!.longitude,
+                          userId: userId,
+                          imageId: imageId,
+                        );
+
+                        if (context.mounted) {
+                          Navigator.pop(context);
+                          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Segnalazione inviata!")));
+                        }
+                      } catch (e) {
+                        setState(() => isUploading = false);
+                        if (context.mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Errore: $e")));
+                        }
+                      }
+                    },
+                    child: Text(isUploading ? "Invio..." : "Invia"),
+                  ),
+                ],
+              );
+            }
         );
       },
     );
@@ -294,8 +296,9 @@ class _MapScreenState extends State<MapScreen> {
                   point: zone.center,
                   radius: zone.radius,
                   useRadiusInMeter: true,
-                  color: Colors.red.withOpacity(0.3),
-                  borderColor: Colors.red.withOpacity(0.7),
+                  // MODIFICATO: withOpacity -> withValues
+                  color: Colors.red.withValues(alpha: 0.3),
+                  borderColor: Colors.red.withValues(alpha: 0.7),
                   borderStrokeWidth: 2,
                 )).toList(),
               ),
@@ -329,9 +332,17 @@ class _MapScreenState extends State<MapScreen> {
             child: Container(
               height: 200,
               decoration: BoxDecoration(
-                color: primaryGreen.withOpacity(0.95),
+                // MODIFICATO: withOpacity -> withValues
+                color: primaryGreen.withValues(alpha: 0.95),
                 borderRadius: const BorderRadius.only(bottomLeft: Radius.circular(30), bottomRight: Radius.circular(30)),
-                boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.2), blurRadius: 10, offset: const Offset(0, 5))],
+                boxShadow: [
+                  BoxShadow(
+                    // MODIFICATO: withOpacity -> withValues
+                      color: Colors.black.withValues(alpha: 0.2),
+                      blurRadius: 10,
+                      offset: const Offset(0, 5)
+                  )
+                ],
               ),
               child: SafeArea(
                 child: Padding(
@@ -383,7 +394,14 @@ class _MapScreenState extends State<MapScreen> {
               decoration: BoxDecoration(
                 color: Colors.white,
                 borderRadius: BorderRadius.circular(30),
-                boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.2), blurRadius: 8, offset: const Offset(0, 4))],
+                boxShadow: [
+                  BoxShadow(
+                    // MODIFICATO: withOpacity -> withValues
+                      color: Colors.black.withValues(alpha: 0.2),
+                      blurRadius: 8,
+                      offset: const Offset(0, 4)
+                  )
+                ],
               ),
               child: Row(
                 mainAxisSize: MainAxisSize.min,
@@ -407,7 +425,7 @@ class _MapScreenState extends State<MapScreen> {
 
           // FAB GPS (Spostato in alto rispetto al nuovo FAB)
           Positioned(
-            bottom: 100, 
+            bottom: 100,
             right: 20,
             child: FloatingActionButton(
               heroTag: "gps_fab",
@@ -419,7 +437,7 @@ class _MapScreenState extends State<MapScreen> {
 
           // NUOVO FAB SEGNALAZIONE (!)
           Positioned(
-            bottom: 30, 
+            bottom: 30,
             right: 20,
             child: FloatingActionButton(
               heroTag: "report_fab",
@@ -519,7 +537,8 @@ class _UserLocationMarker extends StatelessWidget {
     return Container(
       decoration: BoxDecoration(
         shape: BoxShape.circle,
-        color: Colors.blue.withOpacity(0.3),
+        // MODIFICATO: withOpacity -> withValues
+        color: Colors.blue.withValues(alpha: 0.3),
         border: Border.all(color: Colors.blue, width: 3),
       ),
     );
