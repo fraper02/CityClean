@@ -9,7 +9,6 @@ import 'package:cityclean/screens/qr_scanner_screen.dart';
 import 'package:cityclean/screens/badge_screen.dart';
 import 'package:cityclean/screens/objectives_screen.dart';
 // CORREZIONE IMPORT: Uso il package completo per coerenza
-import 'package:cityclean/screens/location_picker_screen.dart';
 import 'package:cityclean/components/bottom_nav_bar.dart';
 import 'package:cityclean/screens/create_event_screen.dart'; // Importa la nuova schermata
 import 'package:flutter/material.dart';

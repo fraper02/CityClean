@@ -208,7 +208,7 @@ class _MapScreenState extends State<MapScreen> {
 
                       // --- MENU A TENDINA LIVELLO INQUINAMENTO ---
                       DropdownButtonFormField<String>(
-                        value: selectedPollutionLevel,
+                        initialValue: selectedPollutionLevel,
                         decoration: const InputDecoration(
                           labelText: "Livello Inquinamento",
                           border: OutlineInputBorder(),
@@ -507,7 +507,7 @@ class _MapScreenState extends State<MapScreen> {
                   const SizedBox(width: 5),
                   Switch(
                     value: _showBins,
-                    activeColor: Colors.white,
+                    activeThumbColor: Colors.white,
                     activeTrackColor: Colors.orange[400],
                     inactiveThumbColor: Colors.grey[50],
                     inactiveTrackColor: Colors.grey[300],
