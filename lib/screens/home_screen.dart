@@ -10,6 +10,7 @@ import 'package:cityclean/screens/badge_screen.dart';
 import 'package:cityclean/screens/objectives_screen.dart';
 import 'package:cityclean/screens/location_picker_screen.dart'; // Import corretto
 import 'package:cityclean/components/bottom_nav_bar.dart';
+import 'package:cityclean/screens/create_event_screen.dart'; // Importa la nuova schermata
 import 'package:flutter/material.dart';
 import 'package:cityclean/services/report_service.dart';
 import 'package:geolocator/geolocator.dart';
@@ -25,7 +26,6 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   final UserService _userService = UserService();
-  final ReportService _reportService = ReportService();
   Future<UserProfile>? _profileDataFuture;
 
   @override
@@ -439,6 +439,10 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
         _buildFullWidthCard(Icons.flag_outlined, "I Miei Obiettivi", onTap: () {
           Navigator.push(context, MaterialPageRoute(builder: (context) => const ObjectivesScreen()));
         }),
+        const SizedBox(height: 15),
+        _buildFullWidthCard(Icons.group_outlined, "Gruppi", onTap: () {
+          Navigator.push(context, MaterialPageRoute(builder: (context) => const GroupScreen()));
+        }),
       ],
     );
   }
@@ -459,7 +463,10 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
           children: [
             Icon(icon, size: 45, color: Colors.green[700]),
             const SizedBox(height: 10),
-            Text(label, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500), textAlign: TextAlign.center,),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 8.0),
+              child: Text(label, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500), textAlign: TextAlign.center,),
+            ),
           ],
         ),
       ),

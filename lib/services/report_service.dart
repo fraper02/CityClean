@@ -3,6 +3,8 @@ import 'dart:math';
 import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../services/supabase_service.dart'; // Per accedere a supabase client
+import '../services/notifiche.dart';
+
 
 class ReportService {
   
@@ -14,27 +16,19 @@ class ReportService {
   }
 
   /// Carica un'immagine su Supabase Storage e crea il record nella tabella 'immagine'.
-  /// Restituisce l'ID dell'immagine da usare nella segnalazione.
   Future<String> uploadImageAndGetId(File imageFile) async {
     try {
-      // 1. Upload su Storage (Bucket 'immagini' ipotizzato)
       final fileName = '${DateTime.now().millisecondsSinceEpoch}.jpg';
       final storagePath = 'segnalazioni/$fileName';
       
-      // Nota: Assicurati che esista un bucket chiamato 'immagini' su Supabase
-      // Se fallisce l'upload, controlla i permessi e il nome bucket.
       await supabase.storage.from('immagini').upload(storagePath, imageFile);
-      
       final imageUrl = supabase.storage.from('immagini').getPublicUrl(storagePath);
 
-      // 2. Inserimento nella tabella 'immagine' per ottenere l'ID valido (FK)
-      // Ipotizzo che la tabella si chiami 'immagine' e abbia 'idimmagine' e 'url'.
       final newImageId = _generateId(prefix: 'img');
       
       await supabase.from('immagine').insert({
         'idimmagine': newImageId,
         'url': imageUrl,
-        // Aggiungi altri campi se richiesti (es. data, tipo, ecc.)
       });
 
       return newImageId;
@@ -55,22 +49,23 @@ class ReportService {
   Future<void> createReport({
     required String description, 
     required String wasteType, 
+    required String pollutionLevel, // NUOVO PARAMETRO
     required double latitude,
     required double longitude,
     required String userId,
-    required String imageId, // Ora richiesto e passato dalla UI dopo l'upload
+    String? imageId, // Ora opzionale
   }) async {
     try {
       final reportId = _generateId(prefix: 'rep');
-      final fullDescription = "$wasteType - $description";
+      final fullDescription = description;
 
       await supabase.from('segnalazione').insert({
         'idsegnalazione': reportId,
         'idutente': userId,
-        'idimmagine': imageId, // Qui usiamo l'ID valido appena creato
+        'idimmagine': imageId, 
         'latitudine': latitude,
         'longitudine': longitude,
-        'livelloinquinamento': 'Alto', 
+        'livelloinquinamento': pollutionLevel, // Usa il valore passato
         'tipoinquinamento': fullDescription.length > 255 
             ? fullDescription.substring(0, 255) 
             : fullDescription,
@@ -109,11 +104,36 @@ class ReportService {
         'longitudine': longitude,
         'immagine': 'https://placehold.co/600x400/orange/white?text=Evento+CityClean',
       });
+
+       //INVIO NOTIFICA LOCALE
+      await NotificheService.nuovaNotificaEvento(
+        nomeEvento: title,
+        descrizione: description,
+        immagineLocale: null, // Se hai un'immagine locale cambia questo
+      );
+
     } on PostgrestException catch (e) {
       debugPrint('ERRORE SUPABASE [createEvent]: ${e.message}');
       throw Exception('Errore nel salvataggio evento: ${e.message}');
     } catch (e) {
       debugPrint('ERRORE GENERICO [createEvent]: $e');
+      throw Exception('Errore sconosciuto: $e');
+    }
+  }
+  
+  Future<List<Map<String, dynamic>>> getReports() async {
+    try {
+      final response = await supabase
+          .from('segnalazione')
+          .select();
+
+      return (response as List).map((item) => item as Map<String, dynamic>).toList();
+
+    } on PostgrestException catch (e) {
+      debugPrint('ERRORE SUPABASE [getReports]: ${e.message}');
+      throw Exception('Errore nel caricamento delle segnalazioni: ${e.message}');
+    } catch (e) {
+      debugPrint('ERRORE GENERICO [getReports]: $e');
       throw Exception('Errore sconosciuto: $e');
     }
   }
