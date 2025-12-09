@@ -8,9 +8,9 @@ import 'package:cityclean/screens/subscribed_events_screen.dart';
 import 'package:cityclean/screens/qr_scanner_screen.dart';
 import 'package:cityclean/screens/badge_screen.dart';
 import 'package:cityclean/screens/objectives_screen.dart';
-// CORREZIONE IMPORT: Uso il package completo per coerenza
+import 'package:cityclean/screens/missions_screen.dart'; // Importa la nuova schermata
 import 'package:cityclean/components/bottom_nav_bar.dart';
-import 'package:cityclean/screens/create_event_screen.dart'; // Importa la nuova schermata
+import 'package:cityclean/screens/create_event_screen.dart';
 import 'package:flutter/material.dart';
 import 'group_screen.dart';
 
@@ -94,7 +94,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
               ),
               Expanded(
                 child: SingleChildScrollView(
-                  padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 20.0),
+                  padding: const EdgeInsets.fromLTRB(20, 20, 20, 0),
                   child: Column(
                     children: [
                       _buildMainAction(context),
@@ -154,9 +154,8 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
           borderRadius: BorderRadius.circular(20),
           boxShadow: [
             BoxShadow(
-              // CORREZIONE: withOpacity è deprecato, sostituito con withValues
-                color: Colors.black.withValues(alpha: 0.1),
-                blurRadius: 10
+              color: Colors.black.withOpacity(0.1),
+              blurRadius: 10
             )
           ],
         ),
@@ -203,7 +202,6 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
         onPressed: () {
           Navigator.push(
             context,
-            // Assicurati che QrScannerScreen sia il nome della classe nel file qr_scanner_screen.dart
             MaterialPageRoute(builder: (context) => const QrScannerScreen()),
           );
         },
@@ -265,7 +263,6 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
               Navigator.push(context, MaterialPageRoute(builder: (context) => const GuildsListScreen()));
             })),
             const SizedBox(width: 15),
-            // MODIFICA: apre la nuova schermata
             Expanded(child: _buildOptionCard(Icons.add_circle_outline, "Segnala Evento Futuro", onTap: () {
               Navigator.push(context, MaterialPageRoute(builder: (context) => CreateEventScreen(userId: userId)));
             })),
@@ -274,6 +271,10 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
         const SizedBox(height: 15),
         _buildFullWidthCard(Icons.flag_outlined, "I Miei Obiettivi", onTap: () {
           Navigator.push(context, MaterialPageRoute(builder: (context) => const ObjectivesScreen()));
+        }),
+        const SizedBox(height: 15),
+        _buildFullWidthCard(Icons.assignment_turned_in_outlined, "Missioni", onTap: () {
+          Navigator.push(context, MaterialPageRoute(builder: (context) => const MissionsScreen()));
         }),
         const SizedBox(height: 15),
         _buildFullWidthCard(Icons.group_outlined, "Gruppi", onTap: () {
@@ -309,7 +310,6 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     );
   }
 
-  // Helper per card a tutta larghezza
   Widget _buildFullWidthCard(IconData icon, String label, {VoidCallback? onTap}) {
     return InkWell(
       onTap: onTap,

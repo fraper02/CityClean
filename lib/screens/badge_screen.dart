@@ -29,6 +29,7 @@ class _BadgeScreenState extends State<BadgeScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Colors.grey[100],
       appBar: AppBar(
         title: const Text('I Tuoi Badge'),
         backgroundColor: Colors.green[700],
@@ -37,109 +38,87 @@ class _BadgeScreenState extends State<BadgeScreen> {
       body: ValueListenableBuilder<BadgeScreenState>(
         valueListenable: _controller.state,
         builder: (context, state, child) {
-          switch (state) {
-            case BadgeScreenState.loading:
-              return const Center(child: CircularProgressIndicator());
-            case BadgeScreenState.error:
-              return Center(
-                child: Padding(
-                  padding: const EdgeInsets.all(16.0),
-                  child: Text(
-                    'Errore nel caricamento dei badge: ${_controller.errorMessage.value}',
-                    textAlign: TextAlign.center,
-                  ),
-                ),
-              );
-            case BadgeScreenState.success:
-              return _buildBadgeGrid();
-            default:
-              return const SizedBox.shrink();
+          if (state == BadgeScreenState.loading || state == BadgeScreenState.initial) {
+            return const Center(child: CircularProgressIndicator());
           }
+          if (state == BadgeScreenState.error) {
+            return Center(child: Text(_controller.errorMessage.value));
+          }
+          return _buildUI();
         },
       ),
     );
   }
 
-  Widget _buildBadgeGrid() {
+  Widget _buildUI() {
     return ValueListenableBuilder<List<app_badge.Badge>>(
       valueListenable: _controller.badges,
       builder: (context, badges, _) {
         if (badges.isEmpty) {
-          return const Center(child: Text("Non ci sono badge da mostrare."));
+          return const Center(child: Text("Nessun badge disponibile."));
         }
-        return GridView.builder(
-          padding: const EdgeInsets.all(12.0),
-          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-            crossAxisCount: 3,
-            crossAxisSpacing: 12.0,
-            mainAxisSpacing: 12.0,
-            childAspectRatio: 0.8,
-          ),
+        return ListView.builder(
+          padding: const EdgeInsets.symmetric(vertical: 8.0),
           itemCount: badges.length,
-          itemBuilder: (context, index) {
-            return _buildBadgeCard(badges[index]);
-          },
+          itemBuilder: (context, index) => _buildBadgeCard(badges[index]),
         );
       },
     );
   }
 
   Widget _buildBadgeCard(app_badge.Badge badge) {
-    final cardColor = badge.isUnlocked ? Colors.white : Colors.grey[200];
+    final bool isUnlocked = badge.isUnlocked;
 
-    final Widget iconWidget = SizedBox(
-      width: 50,
-      height: 50,
-      child: NetworkImageWithFallback(
-        imageUrl: badge.urlIcona,
-        fallbackWidget: Icon(Icons.shield_outlined, color: Colors.grey[600], size: 40),
-      ),
-    );
-
-    final Widget cardContent = Column(
-      mainAxisAlignment: MainAxisAlignment.center,
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        Expanded(flex: 3, child: Center(child: iconWidget)),
-        const SizedBox(height: 8),
-        Expanded(
-          flex: 2,
-          child: Center(
-            child: Text(
-              badge.nome,
-              textAlign: TextAlign.center,
-              style: const TextStyle(
-                fontWeight: FontWeight.bold,
-                fontSize: 13,
-                color: Colors.black87,
-              ),
-              overflow: TextOverflow.ellipsis,
-              maxLines: 2,
-            ),
-          ),
-        ),
-      ],
-    );
-
+    // Usiamo un Card come contenitore principale per sfruttare le sue proprietà di clipping.
     return Card(
-      elevation: 2.0,
-      color: cardColor,
-      clipBehavior: Clip.antiAlias,
+      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      elevation: isUnlocked ? 2 : 0.5,
+      clipBehavior: Clip.antiAlias, // Questa è la chiave per risolvere il bug del ripple
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+      color: isUnlocked ? Colors.white : Colors.grey[300],
       child: InkWell(
         onTap: () => _controller.showBadgeDetails(context, badge),
-        child: Stack(
-          alignment: Alignment.center,
-          children: [
-            cardContent,
-            if (!badge.isUnlocked) ...[
-              Positioned.fill(
-                child: Container(
-                  color: Colors.black.withOpacity(0.4),
+        child: Opacity(
+          opacity: isUnlocked ? 1.0 : 0.6, // Leggera opacità per i badge bloccati
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Row(
+              children: [
+                SizedBox(
+                  width: 60,
+                  height: 60,
+                  child: NetworkImageWithFallback(
+                    imageUrl: badge.urlIcona,
+                    fallbackWidget: Icon(Icons.shield, color: Colors.grey[500], size: 40),
+                  ),
                 ),
-              ),
-              const Icon(Icons.lock, color: Colors.white, size: 32),
-            ],
-          ],
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        badge.nome,
+                        style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        badge.descrizione,
+                        style: TextStyle(color: Colors.grey[600]),
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ],
+                  ),
+                ),
+                if (!isUnlocked)
+                  const Padding(
+                    padding: EdgeInsets.only(left: 16.0),
+                    child: Icon(Icons.lock, color: Colors.black54, size: 28),
+                  ),
+              ],
+            ),
+          ),
         ),
       ),
     );
