@@ -1,5 +1,8 @@
+import 'dart:math';
+
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import '../services/notifiche.dart';
 import '../services/storage_service.dart';
 import '../main.dart'; // Per la variabile globale supabase
 import 'register_screen.dart';
@@ -95,6 +98,31 @@ class _LoginScreenState extends State<LoginScreen> with TickerProviderStateMixin
     }
   }
 
+  Future<void> _resetPassword() async {
+    final email = _emailController.text.trim();
+    if (email.isEmpty) return;
+
+    // 1. Genera codice casuale
+    final codiceGenerato = (100000 + (Random().nextInt(900000))).toString();
+
+    // 2. Salvalo nel server o supabase
+    await supabase.from('password_reset').insert({
+      'email': email,
+      'codice': codiceGenerato,
+      'scadenza': DateTime.now().add(const Duration(minutes: 10)).toIso8601String(),
+    });
+
+    // 3. Invia notifica
+    await NotificheService.notificaCodicePassword(
+      codice: codiceGenerato,
+    );
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text("Codice inviato alla tua email!")),
+    );
+  }
+
+
   @override
   Widget build(BuildContext context) {
     final Color primaryGreen = Colors.green[600]!;
@@ -138,42 +166,52 @@ class _LoginScreenState extends State<LoginScreen> with TickerProviderStateMixin
 
                 const Align(alignment: Alignment.centerLeft, child: Text("Email", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold))),
                 const SizedBox(height: 8),
-                TextField(
-                  controller: _emailController,
-                  decoration: InputDecoration(
-                    prefixIcon: const Icon(Icons.email_outlined, color: Colors.grey),
-                    hintText: "tuo@email.com",
-                    filled: true,
-                    fillColor: Colors.white,
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(15), borderSide: BorderSide.none),
+
+                // --- MODIFICA MAESTRO: ID EMAIL ---
+                Semantics(
+                  identifier: 'email_input',
+                  child: TextField(
+                    controller: _emailController,
+                    decoration: InputDecoration(
+                      prefixIcon: const Icon(Icons.email_outlined, color: Colors.grey),
+                      hintText: "tuo@email.com",
+                      filled: true,
+                      fillColor: Colors.white,
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(15), borderSide: BorderSide.none),
+                    ),
                   ),
                 ),
                 const SizedBox(height: 20),
 
                 const Align(alignment: Alignment.centerLeft, child: Text("Password", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold))),
                 const SizedBox(height: 8),
-                TextField(
-                  controller: _passwordController,
-                  obscureText: !_passwordVisible,
-                  decoration: InputDecoration(
-                    prefixIcon: const Icon(Icons.lock_outline, color: Colors.grey),
-                    suffixIcon: IconButton(
-                      icon: Icon(
-                        _passwordVisible ? Icons.visibility : Icons.visibility_off,
-                        color: Colors.grey,
+
+                // --- MODIFICA MAESTRO: ID PASSWORD ---
+                Semantics(
+                  identifier: 'password_input',
+                  child: TextField(
+                    controller: _passwordController,
+                    obscureText: !_passwordVisible,
+                    decoration: InputDecoration(
+                      prefixIcon: const Icon(Icons.lock_outline, color: Colors.grey),
+                      suffixIcon: IconButton(
+                        icon: Icon(
+                          _passwordVisible ? Icons.visibility : Icons.visibility_off,
+                          color: Colors.grey,
+                        ),
+                        onPressed: () {
+                          setState(() {
+                            _passwordVisible = !_passwordVisible;
+                          });
+                        },
                       ),
-                      onPressed: () {
-                        setState(() {
-                          _passwordVisible = !_passwordVisible;
-                        });
-                      },
-                    ),
-                    hintText: "........",
-                    filled: true,
-                    fillColor: Colors.white,
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(15),
-                      borderSide: BorderSide.none,
+                      hintText: "........",
+                      filled: true,
+                      fillColor: Colors.white,
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(15),
+                        borderSide: BorderSide.none,
+                      ),
                     ),
                   ),
                 ),
@@ -181,7 +219,7 @@ class _LoginScreenState extends State<LoginScreen> with TickerProviderStateMixin
                 Align(
                   alignment: Alignment.centerRight,
                   child: TextButton(
-                    onPressed: () {},
+                    onPressed: _resetPassword,
                     child: const Text("Password dimenticata?", style: TextStyle(color: Colors.white)),
                   ),
                 ),
@@ -209,15 +247,20 @@ class _LoginScreenState extends State<LoginScreen> with TickerProviderStateMixin
                           ),
                         ),
                       )
-                          : ElevatedButton(
-                        onPressed: _signIn,
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.white,
-                          foregroundColor: primaryGreen,
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
-                          elevation: 5,
+                      // --- MODIFICA MAESTRO: ID BOTTONE ACCEDI ---
+                          : Semantics(
+                        identifier: 'login_button',
+                        button: true, // Indica che è un pulsante
+                        child: ElevatedButton(
+                          onPressed: _signIn,
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.white,
+                            foregroundColor: primaryGreen,
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+                            elevation: 5,
+                          ),
+                          child: const Text("Accedi", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
                         ),
-                        child: const Text("Accedi", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
                       ),
                     );
                   },
@@ -228,20 +271,26 @@ class _LoginScreenState extends State<LoginScreen> with TickerProviderStateMixin
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     const Text("Non hai un account? ", style: TextStyle(color: Colors.white)),
-                    GestureDetector(
-                      onTap: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(builder: (context) => const RegisterScreen()),
-                        );
-                      },
-                      child: const Text(
-                        "Registrati",
-                        style: TextStyle(
-                            color: Colors.white,
-                            fontWeight: FontWeight.bold,
-                            decoration: TextDecoration.underline,
-                            decorationColor: Colors.white
+
+                    // --- MODIFICA MAESTRO: ID REGISTRATI ---
+                    Semantics(
+                      identifier: 'register_text',
+                      link: true, // Indica che funziona come un link
+                      child: GestureDetector(
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(builder: (context) => const RegisterScreen()),
+                          );
+                        },
+                        child: const Text(
+                          "Registrati",
+                          style: TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.bold,
+                              decoration: TextDecoration.underline,
+                              decorationColor: Colors.white
+                          ),
                         ),
                       ),
                     ),

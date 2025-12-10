@@ -102,8 +102,8 @@ class _LocationPickerScreenState extends State<LocationPickerScreen> {
         ],
       ),
       floatingActionButton: FloatingActionButton(
-        child: const Icon(Icons.my_location),
         onPressed: _initializeLocation,
+        child: const Icon(Icons.my_location),
       ),
     );
   }

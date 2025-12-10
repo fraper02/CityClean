@@ -152,7 +152,7 @@ class _AdminAddEcopointPageState extends State<AdminAddEcopointPage> {
                           const SizedBox(width: 16),
                           Expanded(
                             child: DropdownButtonFormField<String>(
-                              value: _selectedTipologia,
+                              initialValue: _selectedTipologia,
                               decoration: _inputDecoration("Tipologia Rifiuti", Icons.category),
                               items: _tipologie.map((type) {
                                 return DropdownMenuItem(value: type, child: Text(type));

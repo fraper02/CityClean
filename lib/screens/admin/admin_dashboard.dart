@@ -1,3 +1,4 @@
+import 'package:cityclean/screens/admin/admin_waste_values_page.dart';
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'admin_users_page.dart';
@@ -22,7 +23,8 @@ class _AdminDashboardState extends State<AdminDashboard> {
       const _AdminHomePage(),         // 0. Home
       const AdminUsersPage(),         // 1. Utenti
       const AdminAddEcopointPage(),   // 2. Ecopoints
-      const AdminRewardsPage(),       // 3. Premi (NUOVA)
+      const AdminRewardsPage(),       // 3. Premi
+      const AdminWasteValuesPage()    // 4. Valori Rifiuti
     ];
 
     return Scaffold(
@@ -65,6 +67,10 @@ class _AdminDashboardState extends State<AdminDashboard> {
                 icon: Icon(Icons.card_giftcard),
                 label: Text('Premi'),
               ),
+              NavigationRailDestination(
+                icon: Icon(Icons.settings),
+                label: Text('Valori Rifiuti'),
+              ),
             ],
           ),
           const VerticalDivider(thickness: 1, width: 1),
@@ -80,7 +86,6 @@ class _AdminDashboardState extends State<AdminDashboard> {
   }
 }
 
-// ... _AdminHomePage rimane invariato ...
 class _AdminHomePage extends StatelessWidget {
   const _AdminHomePage();
 

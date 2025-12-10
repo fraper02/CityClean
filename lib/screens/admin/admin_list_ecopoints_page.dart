@@ -59,7 +59,7 @@ class AdminListEcopointsPage extends StatelessWidget {
                       child: SingleChildScrollView(
                         scrollDirection: Axis.horizontal,
                         child: DataTable(
-                          headingRowColor: MaterialStateProperty.all(Colors.green[50]),
+                          headingRowColor: WidgetStateProperty.all(Colors.green[50]),
                           columns: const [
                             DataColumn(label: Text('ID', style: TextStyle(fontWeight: FontWeight.bold))),
                             DataColumn(label: Text('Nome', style: TextStyle(fontWeight: FontWeight.bold))),

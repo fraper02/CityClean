@@ -1,4 +1,6 @@
 import 'dart:convert';
+// 1. AGGIUNTO IMPORT NECESSARIO PER debugPrint
+import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:latlong2/latlong.dart';
 import '../models/map_models.dart';
@@ -37,15 +39,15 @@ class OsmService {
             id: e['id'].toString(),
             name: e['tags']?['name'] ?? 'Punto di Raccolta',
             type: type,
-            // MODIFICA FONDAMENTALE:
-            location: LatLng(e['lat'], e['lon']), // Usa LatLng, non x/y
+            location: LatLng(e['lat'], e['lon']),
           );
         }).toList();
       } else {
         return [];
       }
     } catch (e) {
-      print('Eccezione OSM: $e');
+      // 2. SOSTITUITO print CON debugPrint
+      debugPrint('Eccezione OSM: $e');
       return [];
     }
   }

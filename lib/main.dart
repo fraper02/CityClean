@@ -1,19 +1,37 @@
-import 'package:cityclean/screens/splash_screen.dart';
 import 'package:cityclean/services/supabase_service.dart';
 import 'package:flutter/material.dart';
-import 'package:intl/date_symbol_data_local.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'components/auth_gate.dart';
+import 'package:intl/date_symbol_data_local.dart'; // <-- 1. IMPORTA PER LE DATE
+import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'components/auth_gate.dart'; // Assumendo che questo sia il punto di ingresso
+import 'package:cityclean/services/notifiche.dart';
 
 
-late final SupabaseClient supabase;
+// Variabile globale per accedere al client Supabase in modo semplice
+final supabase = Supabase.instance.client;
 
-
-void main() {
+Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  await NotificheService.init();   // ← inizializza notifiche
+
+  // Carica le variabili d'ambiente dal file .env
+  await dotenv.load(fileName: ".env");
+
+  // Inizializza Supabase con le credenziali dal file .env
+  await Supabase.initialize(
+    url: dotenv.env['PROJECT_URL'] ?? '',
+    anonKey: dotenv.env['API_KEY'] ?? '',
+    // Specifica lo schema se necessario, come da configurazioni precedenti
+    postgrestOptions: const PostgrestClientOptions(schema: 'cityclean'),
+  );
+
+  // --- 2. INIZIALIZZA LA LOCALIZZAZIONE (LA CORREZIONE CRITICA) ---
+  // Questa riga è fondamentale per evitare il crash nella schermata eventi.
+  await initializeDateFormatting('it_IT', null);
+
   runApp(const MyApp());
 }
-
 
 class MyApp extends StatefulWidget {
   const MyApp({super.key});
@@ -28,13 +46,17 @@ class _MyAppState extends State<MyApp> {
   @override
   void initState() {
     super.initState();
+    // 2. Avvia entrambe le inizializzazioni
     _initializationFuture = _initializeApp();
   }
 
+  // 3. Crea un metodo per raggruppare le inizializzazioni
   Future<void> _initializeApp() async {
-    await SupabaseService.initialize();
-    supabase = Supabase.instance.client;
-    await initializeDateFormatting('it_IT', null);
+    // Eseguiamo le inizializzazioni in parallelo per massima efficienza
+    await Future.wait([
+      SupabaseService.initialize(),
+      initializeDateFormatting('it_IT', null),
+    ]);
   }
 
   @override
@@ -45,36 +67,10 @@ class _MyAppState extends State<MyApp> {
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.green),
         useMaterial3: true,
-        fontFamily: 'Poppins',
+        fontFamily: 'Poppins', // Assicurati che il font sia definito in pubspec.yaml
       ),
-      // Il FutureBuilder gestisce gli stati di caricamento ed errore
-      home: FutureBuilder(
-        future: _initializationFuture,
-        builder: (context, snapshot) {
-          // Mentre l'app si sta inizializzando, mostra la SplashScreen
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return SplashScreen();
-          }
-
-          // Se si verifica un errore, mostra una schermata di errore sicura
-          if (snapshot.hasError) {
-            return Scaffold(
-              body: Center(
-                child: Padding(
-                  padding: const EdgeInsets.all(16.0),
-                  child: Text(
-                    "Errore di inizializzazione. Controlla la tua connessione e riavvia l'app.\nDettagli: ${snapshot.error}",
-                    textAlign: TextAlign.center,
-                  ),
-                ),
-              ),
-            );
-          }
-
-          // Se tutto è andato a buon fine, mostra l'AuthGate
-          return const AuthGate();
-        },
-      ),
+      // Usa AuthGate come schermata principale come da configurazione precedente
+      home: const AuthGate(),
     );
   }
 }

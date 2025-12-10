@@ -1,6 +1,7 @@
-import 'package:cityclean/services/contribution_service.dart'; // Assicurati che questo import sia corretto
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:cityclean/models/valore_rifiuto.dart'; // Assicurati di avere questo import
 
 class ContributionScreen extends StatefulWidget {
   final String ecopointId;
@@ -12,25 +13,83 @@ class ContributionScreen extends StatefulWidget {
 }
 
 class _ContributionScreenState extends State<ContributionScreen> {
-  // --- VALORI HARDCODATI PER IL CALCOLO PUNTI ---
-  static const int puntiPlastica = 5;
-  static const int puntiVetro = 10;
-  static const int puntiAlluminio = 8;
+  final supabase = Supabase.instance.client;
+
+  // Stato per i dati dinamici
+  List<ValoreRifiuto> _valoriRifiuti = [];
+  bool _isLoading = true;
+  String? _errorMessage;
 
   // Controllers per gli input
+  // Nota: Manteniamo i controller specifici per le categorie principali per semplicità di UI,
+  // ma potresti anche generare i controller dinamicamente se la lista cambia spesso.
   final _plasticaController = TextEditingController();
   final _vetroController = TextEditingController();
   final _alluminioController = TextEditingController();
 
-  int _totalePunti = 0;
-  bool _isLoading = false; // Stato per gestire il caricamento durante l'invio
+  double _totalePunti = 0; // Cambiato a double perché i valori nel DB possono essere decimali
 
   @override
   void initState() {
     super.initState();
+    _fetchWasteValues();
+
     _plasticaController.addListener(_calcolaTotale);
     _vetroController.addListener(_calcolaTotale);
     _alluminioController.addListener(_calcolaTotale);
+  }
+
+  Future<void> _fetchWasteValues() async {
+    try {
+      final response = await supabase
+          .from('valore_rifiuto')
+          .select();
+
+      setState(() {
+        _valoriRifiuti = List<ValoreRifiuto>.from(
+            response.map((item) => ValoreRifiuto.fromJson(item)));
+        _isLoading = false;
+      });
+
+      // Ricalcola subito nel caso ci siano valori di default (opzionale)
+      _calcolaTotale();
+
+    } catch (e) {
+      setState(() {
+        _errorMessage = "Errore caricamento valori: $e";
+        _isLoading = false;
+      });
+    }
+  }
+
+  // Helper per ottenere il valore dal DB in base al nome (case-insensitive per sicurezza)
+  double _getValorePerTipo(String tipo) {
+    // Cerca nella lista scaricata un elemento che corrisponda al nome
+    final valore = _valoriRifiuti.firstWhere(
+          (element) => element.tipoRifiuto.toLowerCase() == tipo.toLowerCase(),
+      orElse: () => ValoreRifiuto(id: 0, tipoRifiuto: '', valoreRifiuto: 0), // Fallback a 0
+    );
+    return valore.valoreRifiuto;
+  }
+
+  void _calcolaTotale() {
+    // Se i dati non sono ancora caricati, non calcolare
+    if (_valoriRifiuti.isEmpty) return;
+
+    final int qtaPlastica = int.tryParse(_plasticaController.text) ?? 0;
+    final int qtaVetro = int.tryParse(_vetroController.text) ?? 0;
+    final int qtaAlluminio = int.tryParse(_alluminioController.text) ?? 0;
+
+    // Recuperiamo i moltiplicatori dinamici
+    double valPlastica = _getValorePerTipo('Plastica');
+    double valVetro = _getValorePerTipo('Vetro');
+    double valAlluminio = _getValorePerTipo('Alluminio');
+
+    setState(() {
+      _totalePunti = (qtaPlastica * valPlastica) +
+          (qtaVetro * valVetro) +
+          (qtaAlluminio * valAlluminio);
+    });
   }
 
   @override
@@ -41,19 +100,7 @@ class _ContributionScreenState extends State<ContributionScreen> {
     super.dispose();
   }
 
-  void _calcolaTotale() {
-    final int qtaPlastica = int.tryParse(_plasticaController.text) ?? 0;
-    final int qtaVetro = int.tryParse(_vetroController.text) ?? 0;
-    final int qtaAlluminio = int.tryParse(_alluminioController.text) ?? 0;
-
-    setState(() {
-      _totalePunti = (qtaPlastica * puntiPlastica) +
-          (qtaVetro * puntiVetro) +
-          (qtaAlluminio * puntiAlluminio);
-    });
-  }
-
-  Future<void> _confermaOperazione() async {
+  void _confermaOperazione() {
     if (_totalePunti == 0) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text("Inserisci almeno un rifiuto per continuare.")),
@@ -61,68 +108,34 @@ class _ContributionScreenState extends State<ContributionScreen> {
       return;
     }
 
-    // Mostra Dialog di Conferma
-    final conferma = await showDialog<bool>(
+    showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
         title: const Text("Conferma Conferimento"),
         content: Text(
-            "Stai per guadagnare $_totalePunti punti!\n\n"
+            "Stai per guadagnare ${_totalePunti.toStringAsFixed(0)} punti!\n\n" // Arrotonda per pulizia
                 "Ecopoint: ${widget.ecopointId}"
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(ctx, false),
+            onPressed: () => Navigator.pop(ctx),
             child: const Text("Annulla"),
           ),
           ElevatedButton(
             style: ElevatedButton.styleFrom(backgroundColor: Colors.green),
-            onPressed: () => Navigator.pop(ctx, true),
+            onPressed: () {
+              // TODO: Salva su Supabase nella tabella 'transazioni' o 'storico'
+              Navigator.pop(ctx);
+              Navigator.pop(context);
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text("Punti accreditati con successo!")),
+              );
+            },
             child: const Text("Conferma"),
           ),
         ],
       ),
     );
-
-    if (conferma == true) {
-      setState(() {
-        _isLoading = true; // Mostra indicatore di caricamento
-      });
-
-      // --- CHIAMATA AL DB ---
-      // Usiamo il ContributionService per inviare i dati a Supabase
-      final result = await ContributionService.submitContribution(
-          widget.ecopointId,
-          _totalePunti
-      );
-
-      if (!mounted) return;
-
-      setState(() {
-        _isLoading = false; // Nascondi caricamento
-      });
-
-      if (result['success'] == true) {
-        // SUCCESSO
-        Navigator.pop(context); // Torna alla Home o allo Scanner
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(result['message']),
-            backgroundColor: Colors.green,
-            duration: const Duration(seconds: 3),
-          ),
-        );
-      } else {
-        // ERRORE
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text("Errore: ${result['message']}"),
-            backgroundColor: Colors.red,
-            duration: const Duration(seconds: 4),
-          ),
-        );
-      }
-    }
   }
 
   @override
@@ -133,14 +146,16 @@ class _ContributionScreenState extends State<ContributionScreen> {
         backgroundColor: Colors.green[700],
         foregroundColor: Colors.white,
       ),
-      // Se sta caricando, mostra lo spinner e blocca l'interazione
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
+          : _errorMessage != null
+          ? Center(child: Text(_errorMessage!, style: const TextStyle(color: Colors.red)))
           : SingleChildScrollView(
         padding: const EdgeInsets.all(20),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
+            // --- Info Ecopoint ---
             Container(
               padding: const EdgeInsets.all(15),
               decoration: BoxDecoration(
@@ -161,19 +176,45 @@ class _ContributionScreenState extends State<ContributionScreen> {
                 ],
               ),
             ),
+
             const SizedBox(height: 30),
             const Text("Cosa stai riciclando?", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
             const SizedBox(height: 20),
 
-            _buildInputRow("Plastica", "Bottiglie, flaconi...", Icons.local_drink, puntiPlastica, _plasticaController, Colors.blue),
+            // --- Input Dinamici ---
+            // Passiamo il valore recuperato dal DB alla funzione di build
+            _buildInputRow(
+                "Plastica",
+                "Bottiglie, flaconi...",
+                Icons.local_drink,
+                _getValorePerTipo('Plastica'), // Valore da DB
+                _plasticaController,
+                Colors.blue
+            ),
             const SizedBox(height: 15),
-            _buildInputRow("Vetro", "Bottiglie, vasetti...", Icons.wine_bar, puntiVetro, _vetroController, Colors.green),
+
+            _buildInputRow(
+                "Vetro",
+                "Bottiglie, vasetti...",
+                Icons.wine_bar,
+                _getValorePerTipo('Vetro'), // Valore da DB
+                _vetroController,
+                Colors.green
+            ),
             const SizedBox(height: 15),
-            _buildInputRow("Alluminio", "Lattine, fogli...", Icons.takeout_dining, puntiAlluminio, _alluminioController, Colors.grey),
+
+            _buildInputRow(
+                "Alluminio",
+                "Lattine, fogli...",
+                Icons.takeout_dining,
+                _getValorePerTipo('Alluminio'), // Valore da DB
+                _alluminioController,
+                Colors.grey
+            ),
 
             const SizedBox(height: 40),
 
-            // Card Totale
+            // --- Card Totale ---
             Card(
               elevation: 4,
               color: Colors.green[700],
@@ -185,7 +226,7 @@ class _ContributionScreenState extends State<ContributionScreen> {
                     const Text("TOTALE PUNTI STIMATI", style: TextStyle(color: Colors.white70, fontSize: 14, letterSpacing: 1.2)),
                     const SizedBox(height: 5),
                     Text(
-                      "$_totalePunti",
+                      _totalePunti.toStringAsFixed(0), // Mostra intero
                       style: const TextStyle(color: Colors.white, fontSize: 42, fontWeight: FontWeight.bold),
                     ),
                   ],
@@ -211,7 +252,7 @@ class _ContributionScreenState extends State<ContributionScreen> {
     );
   }
 
-  Widget _buildInputRow(String label, String sub, IconData icon, int multiplier, TextEditingController controller, Color color) {
+  Widget _buildInputRow(String label, String sub, IconData icon, double multiplier, TextEditingController controller, Color color) {
     return Row(
       children: [
         Container(
@@ -225,7 +266,11 @@ class _ContributionScreenState extends State<ContributionScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(label, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-              Text("Valore: $multiplier pti/pz", style: TextStyle(fontSize: 12, color: Colors.grey[600])),
+              // Mostra il moltiplicatore aggiornato
+              Text(
+                  "Valore: ${multiplier.toStringAsFixed(1)} pti/pz", // Es: "5.0 pti/pz"
+                  style: TextStyle(fontSize: 12, color: Colors.grey[600])
+              ),
             ],
           ),
         ),

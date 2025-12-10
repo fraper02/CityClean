@@ -2,6 +2,9 @@ import 'package:flutter/material.dart';
 import '../components/auth_gate.dart';
 
 class SplashScreen extends StatefulWidget {
+  // CORREZIONE: Aggiunto il parametro key al costruttore
+  const SplashScreen({super.key});
+
   @override
   _SplashScreenState createState() => _SplashScreenState();
 }
@@ -32,9 +35,8 @@ class _SplashScreenState extends State<SplashScreen>
 
     _controller.forward();
 
-    // CORREZIONE: Aggiunto controllo `if (mounted)` per evitare il crash
     Future.delayed(const Duration(seconds: 3), () {
-      if (mounted) { // Controlla se il widget è ancora nell'albero dei widget
+      if (mounted) {
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(builder: (_) => const AuthGate()),

@@ -1,13 +1,13 @@
 import 'package:cityclean/controllers/profile_controller.dart';
-import 'package:cityclean/models/userProfile.dart';
+import 'package:cityclean/models/user_profile.dart';
 import 'package:cityclean/screens/objectives_screen.dart';
 import 'package:cityclean/services/report_service.dart'; // Import ReportService
 import 'package:flutter/material.dart';
-import 'package:geolocator/geolocator.dart'; // Import Geolocator
-import 'package:latlong2/latlong.dart'; // Import LatLong
-import 'package:intl/intl.dart'; // Import DateFormat
+// Import Geolocator
+// Import LatLong
+// Import DateFormat
 import '../components/bottom_nav_bar.dart';
-import 'location_picker_screen.dart'; // Import Location Picker
+// Import Location Picker
 import 'redeemed_rewards_screen.dart';
 import 'guilds_list_screen.dart';
 import 'badge_screen.dart';

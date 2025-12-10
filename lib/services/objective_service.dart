@@ -1,9 +1,10 @@
+// 1. AGGIUNTO QUESTO IMPORT PER debugPrint
+import 'package:flutter/foundation.dart';
 import 'package:cityclean/models/obiettivo.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
 import '../main.dart'; // Per la variabile globale supabase
 
 class ObjectiveService {
-  
+
   /// Recupera tutti gli obiettivi e il loro stato di conseguimento per l'utente corrente.
   Future<List<Obiettivo>> getAllObjectivesWithStatus() async {
     final user = supabase.auth.currentUser;
@@ -12,22 +13,26 @@ class ObjectiveService {
     }
 
     try {
-      // Eseguiamo una LEFT JOIN per ottenere tutti gli obiettivi, arricchiti con i dati
-      // di conseguimento se esistono per l'utente corrente.
+      // Eseguiamo una LEFT JOIN per ottenere tutti gli obiettivi
       final response = await supabase
           .from('obiettivo')
           .select('*, conseguimento_obiettivo!left(*)')
           .eq('conseguimento_obiettivo.idutente', user.id);
 
-      if (response == null || (response as List).isEmpty) {
+      // In Supabase v2, response è direttamente una List<dynamic>.
+      // Non serve controllare se è null.
+      final List<dynamic> data = response;
+
+      if (data.isEmpty) {
         return [];
       }
 
-      final objectives = (response as List).map((data) => Obiettivo.fromJson(data)).toList();
+      final objectives = data.map((json) => Obiettivo.fromJson(json)).toList();
       return objectives;
 
     } catch (e) {
-      print("Errore nel recupero degli obiettivi: $e");
+      // 2. SOSTITUITO print CON debugPrint
+      debugPrint("Errore nel recupero degli obiettivi: $e");
       throw Exception("Impossibile caricare gli obiettivi.");
     }
   }

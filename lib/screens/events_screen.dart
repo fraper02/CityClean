@@ -3,7 +3,6 @@ import '../components/bottom_nav_bar.dart';
 import '../components/event_card.dart';
 import '../controllers/events_controller.dart';
 import '../models/event.dart';
-import '../main.dart';
 
 class EventsScreen extends StatefulWidget {
   const EventsScreen({super.key});

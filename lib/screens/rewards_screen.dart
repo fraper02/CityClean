@@ -32,6 +32,7 @@ class _RewardsScreenState extends State<RewardsScreen> {
     final int currentPoints = _controller.userPoints.value;
 
     if (prize.quantitaDisponibile <= 0) {
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text("Questo premio non è più disponibile.")),
       );
@@ -39,6 +40,7 @@ class _RewardsScreenState extends State<RewardsScreen> {
     }
 
     if (currentPoints < prize.costoPunti) {
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text("Punti insufficienti. Ti servono ${prize.costoPunti} punti.")),
       );
@@ -95,7 +97,10 @@ class _RewardsScreenState extends State<RewardsScreen> {
       context: context,
       builder: (context) => AlertDialog(
         title: Text(prize.nome),
-        content: Text(prize.descrizione ?? "Nessuna descrizione disponibile."),
+        // CORREZIONE: prize.descrizione non è nullable, quindi usiamo .isEmpty per il controllo
+        content: Text(prize.descrizione.isEmpty
+            ? "Nessuna descrizione disponibile."
+            : prize.descrizione),
         actions: [
           // MAESTRO ID: Chiudi descrizione
           Semantics(
@@ -218,7 +223,8 @@ class _RewardsScreenState extends State<RewardsScreen> {
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            // CORREZIONE: withOpacity è deprecato, sostituito con withValues
+            color: Colors.black.withValues(alpha: 0.05),
             blurRadius: 10,
             offset: const Offset(0, 5),
           )
