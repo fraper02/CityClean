@@ -15,7 +15,7 @@ class TFLiteService {
 
   Future<void> loadModel() async {
     try {
-      _interpreter = await Interpreter.fromAsset('assets/ml/yolo_model_best.tflite');
+      _interpreter = await Interpreter.fromAsset('assets/ml/yolo_model_v3.tflite');
       final labelsData = await rootBundle.loadString('assets/ml/yolo_labels.txt');
       _labels = labelsData.split('\n').where((label) => label.trim().isNotEmpty).toList();
 
