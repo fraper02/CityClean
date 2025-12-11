@@ -1,3 +1,5 @@
+import 'package:latlong2/latlong.dart';
+
 class Ecopoint {
   final String id;
   final String name;
@@ -8,7 +10,7 @@ class Ecopoint {
   // Campi aggiuntivi per le statistiche mensili
   final int monthlyConferimentiCount;
   final int monthlyUniqueUsers;
-  final int monthlyTotalPunti; // Usato come proxy per i "rifiuti"
+  final int monthlyTotalPunti;
 
   Ecopoint({
     required this.id,
@@ -22,15 +24,29 @@ class Ecopoint {
     this.monthlyTotalPunti = 0,
   });
 
+  // GETTER AGGIUNTO PER LA MAPPA
+  // Questo permette alla UI della mappa di usare "point.location" senza cambiare il resto della classe
+  LatLng get location => LatLng(latitude, longitude);
+
   factory Ecopoint.fromJson(Map<String, dynamic> json) {
+    // Helper per coordinate sicure (gestisce sia numeri che stringhe con virgola)
+    double parseCoord(dynamic value) {
+      if (value == null) return 0.0;
+      if (value is num) return value.toDouble();
+      if (value is String) return double.tryParse(value.replaceAll(',', '.')) ?? 0.0;
+      return 0.0;
+    }
+
     return Ecopoint(
-      id: json['idpuntoraccolta'] as String,
+      // toString() protegge nel caso l'ID arrivi come int dal DB
+      id: json['idpuntoraccolta']?.toString() ?? '',
       name: json['nome'] as String? ?? 'N/A',
       address: json['indirizzo'] as String? ?? 'N/A',
-      latitude: (json['latitudine'] as num?)?.toDouble() ?? 0.0,
-      longitude: (json['longitudine'] as num?)?.toDouble() ?? 0.0,
+      latitude: parseCoord(json['latitudine']),
+      longitude: parseCoord(json['longitudine']),
       type: json['tipologia'] as String? ?? 'N/A',
-      // Leggiamo i dati aggregati dalla nuova RPC
+
+      // Dati statistici (opzionali)
       monthlyConferimentiCount: (json['monthly_conferimenti_count'] as num?)?.toInt() ?? 0,
       monthlyUniqueUsers: (json['monthly_unique_users'] as num?)?.toInt() ?? 0,
       monthlyTotalPunti: (json['monthly_total_punti'] as num?)?.toInt() ?? 0,
@@ -45,6 +61,9 @@ class Ecopoint {
       'latitudine': latitude,
       'longitudine': longitude,
       'tipologia': type,
+      'monthly_conferimenti_count': monthlyConferimentiCount,
+      'monthly_unique_users': monthlyUniqueUsers,
+      'monthly_total_punti': monthlyTotalPunti,
     };
   }
 }

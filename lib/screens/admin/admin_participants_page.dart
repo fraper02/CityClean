@@ -39,13 +39,20 @@ class _AdminParticipantsPageState extends State<AdminParticipantsPage> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
     return Scaffold(
-      appBar: AppBar(title: Text('Partecipanti: ${widget.eventTitle}')),
+      appBar: AppBar(
+        title: Text('Partecipanti: ${widget.eventTitle}'),
+        backgroundColor: theme.colorScheme.surface,
+        elevation: 1,
+      ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: _showAddParticipantDialog,
         label: const Text('Aggiungi'),
-        icon: const Icon(Icons.add),
+        icon: const Icon(Icons.add, color: Colors.white),
         backgroundColor: adminPrimaryColor,
+        foregroundColor: Colors.white,
       ),
       body: ValueListenableBuilder<ParticipantsState>(
         valueListenable: _controller.state,
@@ -63,18 +70,28 @@ class _AdminParticipantsPageState extends State<AdminParticipantsPage> {
                 return const Center(child: Text('Nessun partecipante iscritto a questo evento.'));
               }
               return ListView.builder(
+                padding: const EdgeInsets.all(16),
                 itemCount: participants.length,
                 itemBuilder: (context, index) {
                   final participant = participants[index];
                   final user = participant['utente'] ?? {};
 
-                  return ListTile(
-                    leading: CircleAvatar(child: Text(user['nome']?[0] ?? '?')),
-                    title: Text('${user['nome'] ?? 'N/D'} ${user['cognome'] ?? ''}'),
-                    subtitle: Text(user['email'] ?? 'Email non disponibile'),
-                    trailing: IconButton(
-                      icon: const Icon(Icons.person_remove_outlined, color: Colors.red),
-                      onPressed: () => _controller.removeParticipant(participant['idutente']),
+                  return Card(
+                    margin: const EdgeInsets.symmetric(vertical: 8),
+                    elevation: 2,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    child: ListTile(
+                      leading: CircleAvatar(
+                        backgroundColor: adminPrimaryColor.withOpacity(0.1),
+                        child: Text(user['nome']?[0] ?? '?', style: const TextStyle(color: adminPrimaryColor, fontWeight: FontWeight.bold)),
+                      ),
+                      title: Text('${user['nome'] ?? 'N/D'} ${user['cognome'] ?? ''}', style: const TextStyle(fontWeight: FontWeight.bold)),
+                      subtitle: Text(user['email'] ?? 'Email non disponibile'),
+                      trailing: IconButton(
+                        icon: const Icon(Icons.person_remove_outlined, color: Colors.redAccent),
+                        tooltip: 'Rimuovi Partecipante',
+                        onPressed: () => _controller.removeParticipant(participant['idutente']),
+                      ),
                     ),
                   );
                 },
@@ -87,7 +104,6 @@ class _AdminParticipantsPageState extends State<AdminParticipantsPage> {
   }
 }
 
-// Dialog per la ricerca e l'aggiunta di un utente
 class _AddParticipantDialog extends StatefulWidget {
   final AdminParticipantsController controller;
 
@@ -104,33 +120,41 @@ class _AddParticipantDialogState extends State<_AddParticipantDialog> {
 
   void _search(String query) async {
     if (query.length < 3) {
-      setState(() => _searchResults = []);
+      if (mounted) {
+        setState(() => _searchResults = []);
+      }
       return;
     }
-    setState(() => _isLoading = true);
+    if (mounted) {
+      setState(() => _isLoading = true);
+    }
     try {
-      // Sfruttiamo il servizio esistente che filtra gli utenti
       final allUsers = await _usersService.getUsersWithStats();
       final results = allUsers.where((user) => 
         user.nome.toLowerCase().contains(query.toLowerCase()) || 
-        user.cognome!.toLowerCase().contains(query.toLowerCase()) || 
+        (user.cognome?.toLowerCase().contains(query.toLowerCase()) ?? false) || 
         user.email.toLowerCase().contains(query.toLowerCase())
-      ).map((u) => u.toJson()).toList(); // Converti a mappa per coerenza
+      ).map((u) => u.toJson()).toList();
 
-      setState(() {
-        _searchResults = results;
-        _isLoading = false;
-      });
+      if (mounted) {
+        setState(() {
+          _searchResults = results;
+          _isLoading = false;
+        });
+      }
     } catch (e) {
-      setState(() => _isLoading = false);
-      // Gestisci errore
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
     }
   }
 
   void _add(String userId) async {
      try {
       await widget.controller.addParticipant(userId);
-      if (mounted) Navigator.pop(context);
+      if (mounted) {
+        Navigator.pop(context);
+      }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.toString()), backgroundColor: Colors.red));
@@ -150,24 +174,31 @@ class _AddParticipantDialogState extends State<_AddParticipantDialog> {
             TextField(
               onChanged: _search,
               autofocus: true,
-              decoration: const InputDecoration(hintText: 'Cerca per nome, cognome o email...', border: OutlineInputBorder()),
+              decoration: InputDecoration(
+                hintText: 'Cerca per nome, cognome o email...',
+                prefixIcon: const Icon(Icons.search),
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: adminPrimaryColor)),
+              ),
             ),
             const SizedBox(height: 16),
             _isLoading
-                ? const Center(child: CircularProgressIndicator())
+                ? const Center(child: CircularProgressIndicator(color: adminPrimaryColor))
                 : Expanded(
-                    child: ListView.builder(
-                      shrinkWrap: true,
-                      itemCount: _searchResults.length,
-                      itemBuilder: (context, index) {
-                        final user = _searchResults[index];
-                        return ListTile(
-                          title: Text('${user['nome']} ${user['cognome'] ?? ''}'),
-                          subtitle: Text(user['email']),
-                          onTap: () => _add(user['id']),
-                        );
-                      },
-                    ),
+                    child: _searchResults.isEmpty
+                        ? const Center(child: Text('Nessun risultato.'))
+                        : ListView.builder(
+                            shrinkWrap: true,
+                            itemCount: _searchResults.length,
+                            itemBuilder: (context, index) {
+                              final user = _searchResults[index];
+                              return ListTile(
+                                title: Text('${user['nome']} ${user['cognome'] ?? ''}'),
+                                subtitle: Text(user['email']),
+                                onTap: () => _add(user['id']),
+                              );
+                            },
+                          ),
                   ),
           ],
         ),

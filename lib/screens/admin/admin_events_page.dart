@@ -11,10 +11,10 @@ class AdminEventsPage extends StatefulWidget {
   const AdminEventsPage({super.key});
 
   @override
-  State<AdminEventsPage> createState() => _AdminEventsPageState();
+  AdminEventsPageState createState() => AdminEventsPageState();
 }
 
-class _AdminEventsPageState extends State<AdminEventsPage> {
+class AdminEventsPageState extends State<AdminEventsPage> {
   late final AdminEventsController _controller;
 
   @override
@@ -40,6 +40,14 @@ class _AdminEventsPageState extends State<AdminEventsPage> {
     }
   }
 
+  void createNewEvent() {
+    _navigateToEditPage();
+  }
+
+  void refreshEvents() {
+    _controller.loadEvents();
+  }
+
   void _navigateToParticipantsPage(Event event) {
     Navigator.push(
       context,
@@ -52,7 +60,7 @@ class _AdminEventsPageState extends State<AdminEventsPage> {
       context: context,
       builder: (ctx) => AlertDialog(
         title: const Text('Conferma Eliminazione'),
-        content: Text('''Sei sicuro di voler eliminare l'evento "${event.titolo}"? L'azione è irreversibile.'''),
+        content: Text("Sei sicuro di voler eliminare l'evento \"${event.titolo}\"? L'azione è irreversibile."),
         actions: [
           TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Annulla')),
           ElevatedButton(
@@ -70,38 +78,29 @@ class _AdminEventsPageState extends State<AdminEventsPage> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Gestione Eventi'),
-        actions: [
-          IconButton(icon: const Icon(Icons.add, color: adminPrimaryColor), onPressed: () => _navigateToEditPage(), tooltip: 'Crea Evento'),
-          IconButton(icon: const Icon(Icons.refresh, color: adminPrimaryColor), onPressed: _controller.loadEvents, tooltip: 'Aggiorna Eventi'),
-        ],
-      ),
-      body: ValueListenableBuilder<AdminEventsState>(
-        valueListenable: _controller.state,
-        builder: (context, state, _) {
-          if (state == AdminEventsState.loading) {
-            return const Center(child: CircularProgressIndicator(color: adminPrimaryColor));
-          }
-          if (state == AdminEventsState.error) {
-            return Center(child: Text('Errore: ${_controller.errorMessage.value}'));
-          }
-          return ValueListenableBuilder<List<Event>>(
-            valueListenable: _controller.events,
-            builder: (context, events, _) {
-              if (events.isEmpty) {
-                return const Center(child: Text('Nessun evento trovato.'));
-              }
-              return ListView.builder(
-                padding: const EdgeInsets.all(16),
-                itemCount: events.length,
-                itemBuilder: (context, index) => _buildEventCard(events[index]),
-              );
-            },
-          );
-        },
-      ),
+    return ValueListenableBuilder<AdminEventsState>(
+      valueListenable: _controller.state,
+      builder: (context, state, _) {
+        if (state == AdminEventsState.loading) {
+          return const Center(child: CircularProgressIndicator(color: adminPrimaryColor));
+        }
+        if (state == AdminEventsState.error) {
+          return Center(child: Text('Errore: ${_controller.errorMessage.value}'));
+        }
+        return ValueListenableBuilder<List<Event>>(
+          valueListenable: _controller.events,
+          builder: (context, events, _) {
+            if (events.isEmpty) {
+              return const Center(child: Text('Nessun evento trovato.'));
+            }
+            return ListView.builder(
+              padding: const EdgeInsets.all(16),
+              itemCount: events.length,
+              itemBuilder: (context, index) => _buildEventCard(events[index]),
+            );
+          },
+        );
+      },
     );
   }
 
@@ -136,13 +135,12 @@ class _AdminEventsPageState extends State<AdminEventsPage> {
               ],
             ),
           ),
-          // CORREZIONE DEFINITIVA: Sostituzione di Row con Wrap
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 4.0),
             child: Wrap(
-              alignment: WrapAlignment.end, // Allinea i pulsanti a destra
-              spacing: 4.0, // Spazio orizzontale tra i pulsanti
-              runSpacing: 0, // Spazio verticale se vanno a capo
+              alignment: WrapAlignment.end, 
+              spacing: 4.0, 
+              runSpacing: 0, 
               children: [
                 TextButton(onPressed: () => _navigateToParticipantsPage(event), child: const Text('Modifica Partecipanti')),
                 TextButton(onPressed: () => _navigateToEditPage(event), child: const Text('Modifica Evento')),

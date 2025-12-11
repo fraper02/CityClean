@@ -23,22 +23,56 @@ class AdminDashboard extends StatefulWidget {
 
 class _AdminDashboardState extends State<AdminDashboard> {
   int _selectedIndex = 0;
-
   late final List<Widget> _adminPages;
+  late final DashboardController _dashboardController;
+
+  final _dashboardKey = GlobalKey<AdminDashboardViewState>();
+  final _reportsKey = GlobalKey<AdminReportsPageState>();
+  final _segnalazioniKey = GlobalKey<AdminSegnalazioniPageState>();
+  final _eventsKey = GlobalKey<AdminEventsPageState>();
+  final _ecopointsKey = GlobalKey<AdminListEcopointsPageState>();
+  final _usersKey = GlobalKey<AdminUsersPageState>();
+  final _rewardsKey = GlobalKey<AdminRewardsPageState>();
+  final _wasteValuesKey = GlobalKey<AdminWasteValuesPageState>();
+
+  late final List<GlobalKey> _pageKeys;
+
+  static const List<String> _pageTitles = [
+    'Panoramica Generale',
+    'Report',
+    'Segnalazioni',
+    'Eventi',
+    'Ecopunti',
+    'Utenti',
+    'Premi',
+    'Valori Rifiuto',
+  ];
 
   @override
   void initState() {
     super.initState();
+    _dashboardController = DashboardController();
+    _pageKeys = [_dashboardKey, _reportsKey, _segnalazioniKey, _eventsKey, _ecopointsKey, _usersKey, _rewardsKey, _wasteValuesKey];
     _adminPages = <Widget>[
-      AdminDashboardView(onNavigate: _onItemTapped),
-      const AdminReportsPage(),
-      const AdminSegnalazioniPage(),
-      const AdminEventsPage(), // <-- PAGINA INSERITA
-      const AdminListEcopointsPage(),
-      const AdminUsersPage(),
-      const AdminRewardsPage(),
-      const AdminWasteValuesPage(),
+      AdminDashboardView(
+        key: _dashboardKey,
+        controller: _dashboardController,
+        onNavigate: _onItemTapped,
+      ),
+      AdminReportsPage(key: _reportsKey),
+      AdminSegnalazioniPage(key: _segnalazioniKey),
+      AdminEventsPage(key: _eventsKey),
+      AdminListEcopointsPage(key: _ecopointsKey),
+      AdminUsersPage(key: _usersKey),
+      AdminRewardsPage(key: _rewardsKey),
+      AdminWasteValuesPage(key: _wasteValuesKey),
     ];
+  }
+
+  @override
+  void dispose() {
+    _dashboardController.dispose();
+    super.dispose();
   }
 
   void _onItemTapped(int index) {
@@ -49,231 +83,261 @@ class _AdminDashboardState extends State<AdminDashboard> {
     }
   }
 
+  List<Widget> _buildAppBarActions() {
+    switch (_selectedIndex) {
+      case 0: // Dashboard
+        return [IconButton(icon: const Icon(Icons.refresh, color: adminPrimaryColor), onPressed: () => _dashboardController.loadData(), tooltip: 'Aggiorna Statistiche')];
+      case 1: // Reports
+        return [
+          IconButton(icon: const Icon(Icons.ios_share, color: adminPrimaryColor), onPressed: () => _reportsKey.currentState?.exportReport(), tooltip: 'Esporta Report'),
+          IconButton(icon: const Icon(Icons.refresh, color: adminPrimaryColor), onPressed: () => _reportsKey.currentState?.refreshData(), tooltip: 'Aggiorna Dati'),
+        ];
+      case 2: // Segnalazioni
+        return [IconButton(icon: const Icon(Icons.refresh, color: adminPrimaryColor), onPressed: () => _segnalazioniKey.currentState?.refreshSegnalazioni(), tooltip: 'Aggiorna Segnalazioni')];
+      case 3: // Eventi
+        return [
+          IconButton(icon: const Icon(Icons.add, color: adminPrimaryColor), onPressed: () => _eventsKey.currentState?.createNewEvent(), tooltip: 'Crea Evento'),
+          IconButton(icon: const Icon(Icons.refresh, color: adminPrimaryColor), onPressed: () => _eventsKey.currentState?.refreshEvents(), tooltip: 'Aggiorna Eventi'),
+        ];
+       case 4: // Ecopunti
+        return [IconButton(icon: const Icon(Icons.refresh, color: adminPrimaryColor), onPressed: () => _ecopointsKey.currentState?.refreshEcopoints(), tooltip: 'Aggiorna Ecopunti')];
+      case 5: // Utenti
+         return [IconButton(icon: const Icon(Icons.refresh, color: adminPrimaryColor), onPressed: () => _usersKey.currentState?.refreshUsers(), tooltip: 'Aggiorna Utenti')];
+      case 6: // Premi
+        return [IconButton(icon: const Icon(Icons.refresh, color: adminPrimaryColor), onPressed: () => _rewardsKey.currentState?.refreshRewards(), tooltip: 'Aggiorna Premi')];
+      case 7: // Valori Rifiuto
+        return [IconButton(icon: const Icon(Icons.refresh, color: adminPrimaryColor), onPressed: () => _wasteValuesKey.currentState?.refreshWasteValues(), tooltip: 'Aggiorna Valori')];
+      default:
+        return [];
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
+    final bool isWideScreen = MediaQuery.of(context).size.width > 800;
+
+    final adminMenu = AdminMenu(
+      selectedIndex: _selectedIndex,
+      onDestinationSelected: (index) {
+        _onItemTapped(index);
+        if (!isWideScreen) {
+          Navigator.pop(context);
+        }
+      },
+    );
+
     return Scaffold(
-      body: LayoutBuilder(
-        builder: (context, constraints) {
-          return Row(
-            children: [
-              SingleChildScrollView(
-                child: ConstrainedBox(
-                  constraints: BoxConstraints(minHeight: constraints.maxHeight),
-                  child: IntrinsicHeight(
-                    child: NavigationRail(
-                      selectedIndex: _selectedIndex,
-                      onDestinationSelected: _onItemTapped,
-                      labelType: NavigationRailLabelType.all,
-                      backgroundColor: Theme.of(context).colorScheme.surface,
-                      indicatorColor: adminAccentColor.withOpacity(0.2),
-                      unselectedIconTheme: IconThemeData(color: Colors.grey[600]),
-                      selectedIconTheme: const IconThemeData(color: adminPrimaryColor),
-                      destinations: const <NavigationRailDestination>[
-                        NavigationRailDestination(icon: Icon(Icons.dashboard_outlined), selectedIcon: Icon(Icons.dashboard), label: Text('Dashboard')),
-                        NavigationRailDestination(icon: Icon(Icons.bar_chart_outlined), selectedIcon: Icon(Icons.bar_chart), label: Text('Report')),
-                        NavigationRailDestination(icon: Icon(Icons.report_problem_outlined), selectedIcon: Icon(Icons.report_problem), label: Text('Segnalazioni')),
-                        NavigationRailDestination(icon: Icon(Icons.event_outlined), selectedIcon: Icon(Icons.event), label: Text('Eventi')),
-                        NavigationRailDestination(icon: Icon(Icons.location_on_outlined), selectedIcon: Icon(Icons.location_on), label: Text('Ecopunti')),
-                        NavigationRailDestination(icon: Icon(Icons.people_outline), selectedIcon: Icon(Icons.people), label: Text('Utenti')),
-                        NavigationRailDestination(icon: Icon(Icons.card_giftcard_outlined), selectedIcon: Icon(Icons.card_giftcard), label: Text('Premi')),
-                        NavigationRailDestination(icon: Icon(Icons.settings_outlined), selectedIcon: Icon(Icons.settings), label: Text('Valori Rifiuto')),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
-              const VerticalDivider(thickness: 1, width: 1),
-              Expanded(child: _adminPages[_selectedIndex]),
-            ],
-          );
-        },
+      appBar: AppBar(
+        title: Text(_pageTitles[_selectedIndex]),
+        backgroundColor: Theme.of(context).colorScheme.surface,
+        elevation: 1,
+        actions: _buildAppBarActions(),
+      ),
+      drawer: isWideScreen ? null : Drawer(child: adminMenu),
+      body: Row(
+        children: [
+          if (isWideScreen) adminMenu,
+          Expanded(child: _adminPages[_selectedIndex]),
+        ],
       ),
     );
   }
 }
 
-// Le altre classi della dashboard non vengono modificate...
+class AdminMenu extends StatelessWidget {
+  final int selectedIndex;
+  final ValueChanged<int> onDestinationSelected;
 
-class AdminDashboardView extends StatefulWidget {
-  final Function(int) onNavigate;
+  const AdminMenu({
+    super.key,
+    required this.selectedIndex,
+    required this.onDestinationSelected,
+  });
 
-  const AdminDashboardView({super.key, required this.onNavigate});
+  static const _destinations = [
+    {'icon': Icons.dashboard_outlined, 'selectedIcon': Icons.dashboard, 'label': 'Dashboard'},
+    {'icon': Icons.bar_chart_outlined, 'selectedIcon': Icons.bar_chart, 'label': 'Report'},
+    {'icon': Icons.report_problem_outlined, 'selectedIcon': Icons.report_problem, 'label': 'Segnalazioni'},
+    {'icon': Icons.event_outlined, 'selectedIcon': Icons.event, 'label': 'Eventi'},
+    {'icon': Icons.location_on_outlined, 'selectedIcon': Icons.location_on, 'label': 'Ecopunti'},
+    {'icon': Icons.people_outline, 'selectedIcon': Icons.people, 'label': 'Utenti'},
+    {'icon': Icons.card_giftcard_outlined, 'selectedIcon': Icons.card_giftcard, 'label': 'Premi'},
+    {'icon': Icons.settings_outlined, 'selectedIcon': Icons.settings, 'label': 'Valori Rifiuto'},
+  ];
 
   @override
-  State<AdminDashboardView> createState() => _AdminDashboardViewState();
+  Widget build(BuildContext context) {
+    final isWideScreen = MediaQuery.of(context).size.width > 800;
+    final theme = Theme.of(context);
+
+    final menuItems = ListView(
+      padding: EdgeInsets.zero,
+      children: [
+        if (isWideScreen)
+           SizedBox(
+            height: 80,
+            child: Center(
+              child: Text(
+                'CityClean Admin',
+                style: theme.textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold),
+              ),
+            ),
+          )
+        else
+          DrawerHeader(
+            decoration: const BoxDecoration(color: adminPrimaryColor),
+            child: Text(
+              'CityClean Admin',
+              style: theme.textTheme.headlineSmall?.copyWith(color: Colors.white),
+            ),
+          ),
+        for (int i = 0; i < _destinations.length; i++)
+          ListTile(
+            leading: Icon(selectedIndex == i ? _destinations[i]['selectedIcon'] as IconData : _destinations[i]['icon'] as IconData),
+            title: Text(_destinations[i]['label'] as String),
+            selected: selectedIndex == i,
+            onTap: () => onDestinationSelected(i),
+            selectedTileColor: adminPrimaryColor.withOpacity(0.1),
+            selectedColor: adminPrimaryColor,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+            contentPadding: const EdgeInsets.symmetric(horizontal: 24),
+          ),
+      ],
+    );
+
+    if (isWideScreen) {
+      return Material(
+        elevation: 2,
+        color: theme.colorScheme.surface,
+        child: SizedBox(
+          width: 250,
+          child: menuItems,
+        ),
+      );
+    }
+    return menuItems;
+  }
 }
 
-class _AdminDashboardViewState extends State<AdminDashboardView> {
-  late final DashboardController _controller;
 
+class AdminDashboardView extends StatefulWidget {
+  final DashboardController controller;
+  final Function(int) onNavigate;
+
+  const AdminDashboardView({
+    super.key,
+    required this.controller,
+    required this.onNavigate,
+  });
+
+  @override
+  State<AdminDashboardView> createState() => AdminDashboardViewState();
+}
+
+class AdminDashboardViewState extends State<AdminDashboardView> {
   @override
   void initState() {
     super.initState();
-    _controller = DashboardController();
-    _controller.loadData();
-  }
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
+    if (widget.controller.state.value == DashboardState.initial) {
+      widget.controller.loadData();
+    }
   }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Panoramica Generale'),
-        backgroundColor: Theme.of(context).colorScheme.surface,
-        elevation: 1,
-        actions: [IconButton(icon: const Icon(Icons.refresh, color: adminPrimaryColor), onPressed: _controller.loadData, tooltip: 'Aggiorna Statistiche')],
-      ),
-      body: ValueListenableBuilder<DashboardState>(
-        valueListenable: _controller.state,
-        builder: (context, state, _) {
-          if (state == DashboardState.loading) {
-            return const Center(child: CircularProgressIndicator(color: adminPrimaryColor));
-          }
-          if (state == DashboardState.error) {
-            return Center(child: Padding(padding: const EdgeInsets.all(16.0), child: Text('Errore: ${_controller.errorMessage.value}', style: const TextStyle(color: Colors.red))));
-          }
-          return SingleChildScrollView(
-            padding: const EdgeInsets.all(16.0),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                _buildTimeFilter(),
-                const SizedBox(height: 24),
-                ValueListenableBuilder(
-                  valueListenable: _controller.stats,
-                  builder: (context, stats, _) {
-                    return LayoutBuilder(builder: (context, constraints) {
-                      final crossAxisCount = _calculateCrossAxisCount(constraints.maxWidth);
-                      final aspectRatio = _calculateAspectRatio(crossAxisCount, constraints.maxWidth);
-
-                      return GridView.count(
-                        crossAxisCount: crossAxisCount,
-                        crossAxisSpacing: 16,
-                        mainAxisSpacing: 16,
-                        shrinkWrap: true,
-                        childAspectRatio: aspectRatio,
-                        physics: const NeverScrollableScrollPhysics(),
-                        children: [
-                          _buildStatCard('Utenti Totali', stats.totalUsers, Icons.people, Colors.blue, crossAxisCount, onTap: () => widget.onNavigate(5)), // Indice aggiornato
-                          _buildStatCard('Conferimenti', stats.totalConferimenti, Icons.recycling, adminPrimaryColor, crossAxisCount, onTap: () => widget.onNavigate(1)),
-                          _buildStatCard('CO₂ Risparmiata (kg)', stats.totalCo2.toInt(), Icons.eco, Colors.teal, crossAxisCount, onTap: () => widget.onNavigate(1)),
-                          _buildStatCard('Segnalazioni', stats.totalSegnalazioni, Icons.report, Colors.orange, crossAxisCount, onTap: () => widget.onNavigate(2)),
-                          _buildStatCard('Eventi', stats.totalMissioniCompletate, Icons.event, Colors.purple, crossAxisCount, onTap: () => widget.onNavigate(3)), // Indice aggiornato
-                          _buildStatCard('Premi', stats.puntiSpesi, Icons.shopping_cart, Colors.red, crossAxisCount, onTap: () => widget.onNavigate(6)), // Indice aggiornato
-                        ],
-                      );
-                    });
-                  },
-                ),
-                const SizedBox(height: 32),
-                ValueListenableBuilder<Map<String, dynamic>>(
-                  valueListenable: _controller.chartData,
-                  builder: (context, data, child) {
-                    return _buildChartCard(
-                        title: 'Conferimenti Ultimi 7 Giorni',
-                        chart: _buildBarChart((data['conferimenti'] as List? ?? []), adminAccentColor));
-                  },
-                ),
-              ],
+    return ValueListenableBuilder<DashboardState>(
+      valueListenable: widget.controller.state,
+      builder: (context, state, _) {
+        if (state == DashboardState.loading) {
+          return const Center(child: CircularProgressIndicator(color: adminPrimaryColor));
+        }
+        if (state == DashboardState.error) {
+          return Center(
+            child: Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Text(
+                'Errore: ${widget.controller.errorMessage.value}',
+                style: const TextStyle(color: Colors.red),
+              ),
             ),
           );
-        },
-      ),
-    );
-  }
-
-  int _calculateCrossAxisCount(double width) {
-    if (width > 1200) return 3;
-    if (width > 700) return 2;
-    return 1;
-  }
-
-  double _calculateAspectRatio(int crossAxisCount, double width) {
-    if (crossAxisCount == 1) {
-      return width / 80;
-    }
-    return 1.4;
-  }
-
-  Widget _buildTimeFilter() {
-    return ValueListenableBuilder<StatsTimeRange>(
-      valueListenable: _controller.timeRange,
-      builder: (context, currentRange, _) {
-        return SegmentedButton<StatsTimeRange>(
-          style: SegmentedButton.styleFrom(backgroundColor: Colors.grey[200], foregroundColor: adminPrimaryColor, selectedForegroundColor: Colors.white, selectedBackgroundColor: adminPrimaryColor),
-          segments: const [ButtonSegment(value: StatsTimeRange.month, label: Text('Mese')), ButtonSegment(value: StatsTimeRange.year, label: Text('Anno')), ButtonSegment(value: StatsTimeRange.allTime, label: Text('Sempre'))],
-          selected: {currentRange},
-          onSelectionChanged: (newSelection) => _controller.setTimeRange(newSelection.first),
+        }
+        return SingleChildScrollView(
+          padding: const EdgeInsets.all(24.0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              _buildTimeFilter(),
+              const SizedBox(height: 24),
+              ValueListenableBuilder(
+                valueListenable: widget.controller.stats,
+                builder: (context, stats, _) {
+                  return LayoutBuilder(builder: (context, constraints) {
+                    final crossAxisCount = (constraints.maxWidth > 1200) ? 3 : 2;
+                    return GridView.count(
+                      crossAxisCount: crossAxisCount,
+                      crossAxisSpacing: 16,
+                      mainAxisSpacing: 16,
+                      shrinkWrap: true,
+                      childAspectRatio: (constraints.maxWidth > 600) ? 1.2 : 0.9,
+                      physics: const NeverScrollableScrollPhysics(),
+                      children: [
+                        StatCard(title: 'Utenti Totali', value: stats.totalUsers, icon: Icons.people, color: Colors.blue, onTap: () => widget.onNavigate(5)),
+                        StatCard(title: 'Conferimenti', value: stats.totalConferimenti, icon: Icons.recycling, color: adminPrimaryColor, onTap: () => widget.onNavigate(1)),
+                        StatCard(title: 'CO₂ Risparmiata (kg)', value: stats.totalCo2.toInt(), icon: Icons.eco, color: Colors.teal, onTap: () => widget.onNavigate(1)),
+                        StatCard(title: 'Segnalazioni', value: stats.totalSegnalazioni, icon: Icons.report, color: Colors.orange, onTap: () => widget.onNavigate(2)),
+                        StatCard(title: 'Eventi', value: stats.totalMissioniCompletate, icon: Icons.event, color: Colors.purple, onTap: () => widget.onNavigate(3)),
+                        StatCard(title: 'Premi Riscattati', value: stats.puntiSpesi, icon: Icons.shopping_cart, color: Colors.red, onTap: () => widget.onNavigate(6)),
+                      ],
+                    );
+                  });
+                },
+              ),
+              const SizedBox(height: 32),
+              ValueListenableBuilder<Map<String, dynamic>>(
+                valueListenable: widget.controller.chartData,
+                builder: (context, data, child) {
+                  return _buildChartCard(
+                    title: 'Conferimenti Ultimi 7 Giorni',
+                    chart: _buildBarChart((data['conferimenti'] as List? ?? []), adminAccentColor),
+                  );
+                },
+              ),
+            ],
+          ),
         );
       },
     );
   }
 
-  Widget _buildStatCard(String title, int value, IconData icon, Color color, int crossAxisCount, {VoidCallback? onTap}) {
-    final formattedValue = NumberFormat.compact().format(value);
-
-    if (crossAxisCount == 1) {
-      return Card(
-        clipBehavior: Clip.antiAlias,
-        elevation: 2,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
-        child: InkWell(
-          onTap: onTap,
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 12.0),
-            child: Row(
-              children: [
-                Icon(icon, size: 28, color: color),
-                const SizedBox(width: 16),
-                Expanded(child: Text(title, style: TextStyle(color: Colors.grey[800], fontSize: 16, fontWeight: FontWeight.w500))),
-                Text(formattedValue, style: const TextStyle(fontSize: 26, fontWeight: FontWeight.bold)),
-              ],
-            ),
+  Widget _buildTimeFilter() {
+    return ValueListenableBuilder<StatsTimeRange>(
+      valueListenable: widget.controller.timeRange,
+      builder: (context, currentRange, _) {
+        return SegmentedButton<StatsTimeRange>(
+          style: SegmentedButton.styleFrom(
+            backgroundColor: Colors.grey[200],
+            foregroundColor: adminPrimaryColor,
+            selectedForegroundColor: Colors.white,
+            selectedBackgroundColor: adminPrimaryColor,
           ),
-        ),
-      );
-    }
-
-    return Card(
-      clipBehavior: Clip.antiAlias,
-      elevation: 2,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
-      child: InkWell(
-        onTap: onTap,
-        child: Padding(
-          padding: const EdgeInsets.all(12.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Flexible(child: Text(title, style: TextStyle(color: Colors.grey[800], fontSize: 15, fontWeight: FontWeight.w500))),
-                  Icon(icon, size: 24, color: color),
-                ],
-              ),
-              const Spacer(),
-              FittedBox(
-                fit: BoxFit.scaleDown,
-                alignment: Alignment.centerLeft,
-                child: Text(formattedValue, style: const TextStyle(fontSize: 38, fontWeight: FontWeight.bold)),
-              ),
-            ],
-          ),
-        ),
-      ),
+          segments: const [
+            ButtonSegment(value: StatsTimeRange.month, label: Text('Mese')),
+            ButtonSegment(value: StatsTimeRange.year, label: Text('Anno')),
+            ButtonSegment(value: StatsTimeRange.allTime, label: Text('Sempre')),
+          ],
+          selected: {currentRange},
+          onSelectionChanged: (newSelection) => widget.controller.setTimeRange(newSelection.first),
+        );
+      },
     );
   }
 
   Widget _buildChartCard({required String title, required Widget chart}) {
     return Card(
-      elevation: 4, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+      elevation: 2,
+      clipBehavior: Clip.antiAlias,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       child: Padding(
         padding: const EdgeInsets.all(20.0),
         child: Column(
@@ -287,11 +351,13 @@ class _AdminDashboardViewState extends State<AdminDashboardView> {
       ),
     );
   }
-  
-  Widget _buildBarChart(List conferimenti, Color color) {
-    if (conferimenti.isEmpty) return const Center(child: Text("Nessun conferimento recente."));
 
-    final Map<int, double> dailyTotals = { for (var i = 0; i < 7; i++) i: 0.0 };
+  Widget _buildBarChart(List conferimenti, Color color) {
+    if (conferimenti.isEmpty) {
+      return const Center(child: Text("Nessun conferimento recente."));
+    }
+
+    final Map<int, double> dailyTotals = {for (var i = 0; i < 7; i++) i: 0.0};
     final now = DateTime.now();
     final today = DateTime(now.year, now.month, now.day);
 
@@ -318,16 +384,96 @@ class _AdminDashboardViewState extends State<AdminDashboardView> {
       BarChartData(
         barGroups: barGroups,
         titlesData: FlTitlesData(
-          bottomTitles: AxisTitles(sideTitles: SideTitles(showTitles: true, getTitlesWidget: (value, meta) {
-            final day = today.subtract(Duration(days: 6 - value.toInt()));
-            return SideTitleWidget(axisSide: meta.axisSide, child: Text(DateFormat('E').format(day), style: const TextStyle(fontSize: 10)));
-          }, reservedSize: 20)),
+          bottomTitles: AxisTitles(
+            sideTitles: SideTitles(
+              showTitles: true,
+              getTitlesWidget: (value, meta) {
+                final day = today.subtract(Duration(days: 6 - value.toInt()));
+                return SideTitleWidget(axisSide: meta.axisSide, child: Text(DateFormat('E').format(day), style: const TextStyle(fontSize: 10)));
+              },
+              reservedSize: 20,
+            ),
+          ),
           leftTitles: const AxisTitles(sideTitles: SideTitles(showTitles: true, reservedSize: 30)),
           topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
           rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
         ),
         borderData: FlBorderData(show: false),
         gridData: const FlGridData(show: false),
+        barTouchData: BarTouchData(
+          touchTooltipData: BarTouchTooltipData(
+            getTooltipColor: (group) => Colors.blueGrey,
+            getTooltipItem: (group, groupIndex, rod, rodIndex) {
+              return BarTooltipItem(
+                '${rod.toY.toInt()}',
+                const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+              );
+            },
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class StatCard extends StatelessWidget {
+  final String title;
+  final int value;
+  final IconData icon;
+  final Color color;
+  final VoidCallback? onTap;
+
+  const StatCard({
+    super.key,
+    required this.title,
+    required this.value,
+    required this.icon,
+    required this.color,
+    this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final formattedValue = NumberFormat.compact().format(value);
+    final textTheme = Theme.of(context).textTheme;
+
+    return Card(
+      clipBehavior: Clip.antiAlias,
+      elevation: 2,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+      ),
+      color: Theme.of(context).colorScheme.surface,
+      child: InkWell(
+        onTap: onTap,
+        child: Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Flexible(
+                    child: Text(
+                      title,
+                      style: textTheme.titleMedium?.copyWith(color: Colors.grey[700]),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                  Icon(icon, size: 28, color: color),
+                ],
+              ),
+              const SizedBox(height: 8),
+              Text(
+                formattedValue,
+                style: textTheme.displaySmall?.copyWith(fontWeight: FontWeight.bold, height: 1.0),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }

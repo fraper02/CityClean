@@ -1,4 +1,5 @@
 import 'package:cityclean/controllers/admin/dashboard_controller.dart';
+import 'package:cityclean/screens/admin/admin_detailed_report_page.dart';
 import 'package:cityclean/services/admin/dashboard_service.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
@@ -11,10 +12,10 @@ class AdminReportsPage extends StatefulWidget {
   const AdminReportsPage({super.key});
 
   @override
-  State<AdminReportsPage> createState() => _AdminReportsPageState();
+  AdminReportsPageState createState() => AdminReportsPageState();
 }
 
-class _AdminReportsPageState extends State<AdminReportsPage> {
+class AdminReportsPageState extends State<AdminReportsPage> {
   late final DashboardController _controller;
 
   @override
@@ -30,9 +31,9 @@ class _AdminReportsPageState extends State<AdminReportsPage> {
     super.dispose();
   }
 
-  void _handleExport() async {
+  Future<void> exportReport() async {
     final scaffoldMessenger = ScaffoldMessenger.of(context);
-    scaffoldMessenger.showSnackBar(const SnackBar(content: Text('Preparazione del report in corso...')));
+    scaffoldMessenger.showSnackBar(const SnackBar(content: Text('Preparazione del report...')));
     final success = await _controller.exportReport();
     scaffoldMessenger.removeCurrentSnackBar();
     if (!success) {
@@ -40,62 +41,75 @@ class _AdminReportsPageState extends State<AdminReportsPage> {
     }
   }
 
+  void refreshData() {
+    _controller.loadData();
+  }
+
+  void _navigateToDetail(String title, List<dynamic> data) {
+    Navigator.push(context, MaterialPageRoute(builder: (context) => AdminDetailedReportPage(title: title, data: data)));
+  }
+
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Report e Grafici'),
-        backgroundColor: Theme.of(context).colorScheme.surface,
-        elevation: 1,
-        actions: [
-          IconButton(icon: const Icon(Icons.ios_share, color: adminPrimaryColor), onPressed: _handleExport, tooltip: 'Esporta Report'),
-          IconButton(icon: const Icon(Icons.refresh, color: adminPrimaryColor), onPressed: _controller.loadData, tooltip: 'Aggiorna Dati'),
-        ],
-      ),
-      body: ValueListenableBuilder<DashboardState>(
-        valueListenable: _controller.state,
-        builder: (context, state, _) {
-          if (state == DashboardState.loading) {
-            return const Center(child: CircularProgressIndicator(color: adminPrimaryColor));
-          }
-          if (state == DashboardState.error) {
-            return Center(child: Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: Text('Errore durante il caricamento dei dati:\n${_controller.errorMessage.value}', textAlign: TextAlign.center, style: const TextStyle(color: Colors.red)),
-            ));
-          }
-          return SingleChildScrollView(
-            padding: const EdgeInsets.all(24.0),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                _buildTimeFilter(),
-                const SizedBox(height: 32),
-                ValueListenableBuilder<Map<String, dynamic>>(
-                  valueListenable: _controller.chartData,
-                  builder: (context, data, _) {
-                    final conferimenti = data['conferimenti'] as List? ?? [];
-                    final segnalazioni = data['segnalazioni'] as List? ?? [];
-                    if (conferimenti.isEmpty && segnalazioni.isEmpty) {
-                      return const Center(heightFactor: 10, child: Text("Nessun dato da visualizzare."));
-                    }
-                    return Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        _buildChartCard(title: 'Segnalazioni Approvate per Livello', chart: _buildSegnalazioniBarChart(segnalazioni)),
-                        const SizedBox(height: 24),
-                        _buildChartCard(title: 'CO₂ Risparmiata (kg) per Giorno', chart: _buildCo2BarChart(conferimenti)),
-                        const SizedBox(height: 24),
-                        _buildChartCard(title: 'Andamento Punti Conferimenti', chart: _buildPuntiLineChart(conferimenti, adminAccentColor)),
-                      ],
-                    );
-                  },
-                ),
-              ],
-            ),
-          );
-        },
-      ),
+    return ValueListenableBuilder<DashboardState>(
+      valueListenable: _controller.state,
+      builder: (context, state, _) {
+        if (state == DashboardState.loading) {
+          return const Center(child: CircularProgressIndicator(color: adminPrimaryColor));
+        }
+        if (state == DashboardState.error) {
+          return Center(child: Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: Text('Errore:\n${_controller.errorMessage.value}', textAlign: TextAlign.center, style: const TextStyle(color: Colors.red)),
+          ));
+        }
+        return SingleChildScrollView(
+          padding: const EdgeInsets.all(16.0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              _buildTimeFilter(),
+              const SizedBox(height: 24),
+              ValueListenableBuilder<Map<String, dynamic>>(
+                valueListenable: _controller.chartData,
+                builder: (context, data, _) {
+                  final conferimenti = data['conferimenti'] as List? ?? [];
+                  final segnalazioni = data['segnalazioni'] as List? ?? [];
+                  if (conferimenti.isEmpty && segnalazioni.isEmpty) {
+                    return const Center(heightFactor: 10, child: Text("Nessun dato da visualizzare."));
+                  }
+                  return LayoutBuilder(
+                    builder: (context, constraints) {
+                      final isWideScreen = constraints.maxWidth > 700;
+                      final children = [
+                        _buildChartCard(title: 'Segnalazioni Approvate per Livello', chart: _buildSegnalazioniBarChart(segnalazioni), onTap: () => _navigateToDetail('Dettaglio Segnalazioni', segnalazioni)),
+                        _buildChartCard(title: 'CO₂ Risparmiata (kg) per Giorno', chart: _buildCo2BarChart(conferimenti), onTap: () => _navigateToDetail('Dettaglio Conferimenti', conferimenti)),
+                        _buildChartCard(title: 'Andamento Punti Conferimenti', chart: _buildPuntiLineChart(conferimenti, adminAccentColor), onTap: () => _navigateToDetail('Dettaglio Conferimenti', conferimenti)),
+                      ];
+
+                      if (isWideScreen) {
+                        return GridView.count(
+                          crossAxisCount: 2,
+                          crossAxisSpacing: 16,
+                          mainAxisSpacing: 16,
+                          shrinkWrap: true,
+                          childAspectRatio: 1.2, 
+                          physics: const NeverScrollableScrollPhysics(),
+                          children: children,
+                        );
+                      } else {
+                        return Column(
+                          children: children.map((card) => Padding(padding: const EdgeInsets.only(bottom: 16.0), child: card)).toList(),
+                        );
+                      }
+                    },
+                  );
+                },
+              ),
+            ],
+          ),
+        );
+      },
     );
   }
 
@@ -112,14 +126,34 @@ class _AdminReportsPageState extends State<AdminReportsPage> {
         });
   }
 
-  Widget _buildChartCard({required String title, required Widget chart}) {
-    return Card(
-      elevation: 2, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(16, 20, 20, 20),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [Text(title, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)), const SizedBox(height: 24), SizedBox(height: 220, child: chart)],
+  Widget _buildChartCard({required String title, required Widget chart, required VoidCallback onTap}) {
+    return SizedBox(
+      height: 300, 
+      child: Card(
+        clipBehavior: Clip.antiAlias,
+        elevation: 2,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+        child: InkWell(
+          onTap: onTap,
+          child: Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Expanded(
+                      child: Text(title, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                    ),
+                    const Icon(Icons.arrow_forward_ios, size: 16, color: Colors.grey),
+                  ],
+                ),
+                const SizedBox(height: 20),
+                Expanded(child: chart),
+              ],
+            ),
+          ),
         ),
       ),
     );
@@ -133,12 +167,18 @@ class _AdminReportsPageState extends State<AdminReportsPage> {
         aggregatedData.update(level, (value) => value + 1, ifAbsent: () => 1);
       }
     }
+
     if (aggregatedData.values.every((v) => v == 0)) return const Center(child: Text('Nessuna segnalazione approvata.'));
+
     final barGroups = aggregatedData.entries.map((entry) {
       final index = aggregatedData.keys.toList().indexOf(entry.key);
-      return BarChartGroupData(x: index, barRods: [BarChartRodData(toY: entry.value.toDouble(), color: _getColorForLevel(entry.key), width: 35, borderRadius: BorderRadius.circular(4))]);
+      return BarChartGroupData(
+        x: index,
+        barRods: [BarChartRodData(toY: entry.value.toDouble(), color: _getColorForLevel(entry.key), width: 25, borderRadius: BorderRadius.circular(4))],
+      );
     }).toList();
-    return BarChart(BarChartData(barGroups: barGroups, titlesData: FlTitlesData(bottomTitles: AxisTitles(sideTitles: SideTitles(showTitles: true, getTitlesWidget: (value, meta) => SideTitleWidget(axisSide: meta.axisSide, child: Text(aggregatedData.keys.toList()[value.toInt()], style: const TextStyle(fontSize: 12))), reservedSize: 20)), leftTitles: const AxisTitles(sideTitles: SideTitles(showTitles: true, reservedSize: 28)), topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)), rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false))), borderData: FlBorderData(show: false), gridData: const FlGridData(show: false)));
+
+    return BarChart(BarChartData(barGroups: barGroups, titlesData: FlTitlesData(bottomTitles: AxisTitles(sideTitles: SideTitles(showTitles: true, getTitlesWidget: (value, meta) => SideTitleWidget(axisSide: meta.axisSide, child: Text(aggregatedData.keys.toList()[value.toInt()], style: const TextStyle(fontSize: 11))), reservedSize: 20)), leftTitles: const AxisTitles(sideTitles: SideTitles(showTitles: true, reservedSize: 28)), topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)), rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false))), borderData: FlBorderData(show: false), gridData: const FlGridData(show: false)));
   }
 
   Widget _buildCo2BarChart(List data) {

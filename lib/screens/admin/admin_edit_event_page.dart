@@ -46,6 +46,14 @@ class _AdminEditEventPageState extends State<AdminEditEventPage> {
       initialDate: (isStartDate ? _dataInizio : _dataFine) ?? DateTime.now(),
       firstDate: DateTime(2020), 
       lastDate: DateTime(2030),
+      builder: (context, child) {
+        return Theme(
+          data: Theme.of(context).copyWith(
+            colorScheme: const ColorScheme.light(primary: adminPrimaryColor),
+          ),
+          child: child!,
+        );
+      },
     );
     if (picked != null) {
       final TimeOfDay? pickedTime = await showTimePicker(
@@ -81,13 +89,11 @@ class _AdminEditEventPageState extends State<AdminEditEventPage> {
         if (isEditing) {
           await _service.updateEvent(widget.event!.id, eventData);
         } else {
-          // Per creare un nuovo evento, dobbiamo fornire un id univoco.
-          // Usiamo una combinazione di testo e timestamp per semplicità.
           eventData['idevento'] = 'evt_${DateTime.now().millisecondsSinceEpoch}';
           await _service.createEvent(eventData);
         }
         if (mounted) {
-          Navigator.pop(context, true); // Ritorna true per indicare che la lista va aggiornata
+          Navigator.pop(context, true);
         }
       } catch (e) {
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Errore: $e'), backgroundColor: Colors.red));
@@ -100,27 +106,38 @@ class _AdminEditEventPageState extends State<AdminEditEventPage> {
     return Scaffold(
       appBar: AppBar(
         title: Text(isEditing ? 'Modifica Evento' : 'Crea Evento'),
+        backgroundColor: Theme.of(context).colorScheme.surface,
+        elevation: 1,
       ),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16.0),
+        padding: const EdgeInsets.all(24.0),
         child: Form(
           key: _formKey,
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              _buildTextField(_titoloController, 'Titolo'),
-              _buildTextField(_descrizioneController, 'Descrizione', maxLines: 3),
-              _buildTextField(_localitaController, 'Località'),
-              _buildTextField(_categoriaController, 'Categoria'),
-              _buildTextField(_immagineController, 'URL Immagine'),
-              const SizedBox(height: 20),
+              _buildTextField(_titoloController, 'Titolo', icon: Icons.title),
+              _buildTextField(_descrizioneController, 'Descrizione', maxLines: 4, icon: Icons.description),
+              const SizedBox(height: 16),
+              _buildTextField(_localitaController, 'Località', icon: Icons.location_on),
+              _buildTextField(_categoriaController, 'Categoria', icon: Icons.category),
+              _buildTextField(_immagineController, 'URL Immagine', icon: Icons.image),
+              const SizedBox(height: 24),
               _buildDatePicker('Data Inizio', _dataInizio, () => _selectDate(context, true)),
+              const SizedBox(height: 16),
               _buildDatePicker('Data Fine', _dataFine, () => _selectDate(context, false)),
               const SizedBox(height: 32),
-              ElevatedButton(
+              ElevatedButton.icon(
+                icon: Icon(isEditing ? Icons.save : Icons.add, color: Colors.white),
+                label: Text(isEditing ? 'Salva Modifiche' : 'Crea Evento'),
                 onPressed: _submit,
-                style: ElevatedButton.styleFrom(backgroundColor: adminPrimaryColor, foregroundColor: Colors.white, padding: const EdgeInsets.symmetric(vertical: 16)),
-                child: Text(isEditing ? 'Salva Modifiche' : 'Crea Evento'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: adminPrimaryColor,
+                  foregroundColor: Colors.white, 
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                ),
               ),
             ],
           ),
@@ -129,26 +146,55 @@ class _AdminEditEventPageState extends State<AdminEditEventPage> {
     );
   }
 
-  Widget _buildTextField(TextEditingController controller, String label, {int maxLines = 1}) {
+  Widget _buildTextField(TextEditingController controller, String label, {int maxLines = 1, IconData? icon}) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 8.0),
       child: TextFormField(
         controller: controller,
         maxLines: maxLines,
-        decoration: InputDecoration(labelText: label, border: const OutlineInputBorder()),
+        decoration: InputDecoration(
+          labelText: label,
+          prefixIcon: icon != null ? Icon(icon, color: Colors.grey[600]) : null,
+          border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+          focusedBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+            borderSide: const BorderSide(color: adminPrimaryColor, width: 2),
+          ),
+        ),
         validator: (value) => (value == null || value.isEmpty) ? 'Questo campo è obbligatorio' : null,
       ),
     );
   }
 
   Widget _buildDatePicker(String label, DateTime? date, VoidCallback onPressed) {
-    return Card(
-      margin: const EdgeInsets.symmetric(vertical: 8.0),
-      child: ListTile(
-        title: Text(label),
-        subtitle: Text(date != null ? DateFormat('dd/MM/yyyy HH:mm').format(date) : 'Non impostata'),
-        trailing: const Icon(Icons.calendar_today, color: adminPrimaryColor),
+    return Material(
+      color: Colors.grey[100],
+      borderRadius: BorderRadius.circular(12),
+      child: InkWell(
         onTap: onPressed,
+        borderRadius: BorderRadius.circular(12),
+        child: Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: Row(
+            children: [
+              const Icon(Icons.calendar_today, color: adminPrimaryColor),
+              const SizedBox(width: 16),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(label, style: TextStyle(color: Colors.grey[700])),
+                  const SizedBox(height: 4),
+                  Text(
+                    date != null ? DateFormat('dd/MM/yyyy HH:mm').format(date) : 'Non impostata',
+                    style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
+                  ),
+                ],
+              ),
+              const Spacer(),
+              const Icon(Icons.arrow_drop_down, color: Colors.grey),
+            ],
+          ),
+        ),
       ),
     );
   }

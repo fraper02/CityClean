@@ -1,4 +1,4 @@
-import 'package:cityclean/models/ecopoint.dart';
+import 'package:cityclean/models/eco_point_model.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 class EcopointsService {
