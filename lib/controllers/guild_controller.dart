@@ -9,19 +9,28 @@ class GuildController with ChangeNotifier {
 
   List<Guild> _allGuilds = [];
   List<Guild> _filteredGuilds = [];
-  String? _userGuildId; // NUOVO: ID della gilda dell'utente
+  String? _userGuildId;
   bool _isLoading = false;
   String? _error;
   bool _isJoining = false;
+
+  // NUOVO: ID della gilda a cui ci si è appena uniti per gestire la navigazione.
+  String? _justJoinedGuildId;
 
   List<Guild> get filteredGuilds => _filteredGuilds;
   String? get userGuildId => _userGuildId;
   bool get isLoading => _isLoading;
   String? get error => _error;
   bool get isJoining => _isJoining;
+  String? get justJoinedGuildId => _justJoinedGuildId;
 
   GuildController() {
     fetchGuilds();
+  }
+
+  // NUOVO: Metodo per resettare lo stato dopo la navigazione.
+  void clearJustJoinedState() {
+    _justJoinedGuildId = null;
   }
 
   Future<void> fetchGuilds() async {
@@ -30,7 +39,6 @@ class GuildController with ChangeNotifier {
     notifyListeners();
 
     try {
-      // Carica sia la lista di gilde che la gilda dell'utente
       _allGuilds = await _guildService.getGuilds();
       _userGuildId = await _guildService.getUserGuild();
       _filteredGuilds = _allGuilds;
@@ -61,7 +69,8 @@ class GuildController with ChangeNotifier {
 
     try {
       await _guildService.joinGuild(guildId);
-      await fetchGuilds();
+      // MODIFICA: Invece di ricaricare, imposta l'ID per la navigazione.
+      _justJoinedGuildId = guildId;
     } catch (e) {
       _error = e.toString();
     } finally {
