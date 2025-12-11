@@ -9,6 +9,7 @@ import 'package:cityclean/screens/qr_scanner_screen.dart';
 import 'package:cityclean/screens/badge_screen.dart';
 import 'package:cityclean/screens/objectives_screen.dart';
 import 'package:cityclean/screens/missions_screen.dart'; // Importa la nuova schermata
+import 'package:cityclean/screens/collection_history_screen.dart'; // Importa la nuova schermata
 import 'package:cityclean/components/bottom_nav_bar.dart';
 import 'package:cityclean/screens/create_event_screen.dart';
 import 'package:flutter/material.dart';
@@ -279,6 +280,10 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
         const SizedBox(height: 15),
         _buildFullWidthCard(Icons.group_outlined, "Gruppi", onTap: () {
           Navigator.push(context, MaterialPageRoute(builder: (context) => const GroupScreen()));
+        }),
+        const SizedBox(height: 15),
+        _buildFullWidthCard(Icons.history, "Storico Raccolte", onTap: () {
+          Navigator.push(context, MaterialPageRoute(builder: (context) => const CollectionHistoryScreen()));
         }),
       ],
     );
