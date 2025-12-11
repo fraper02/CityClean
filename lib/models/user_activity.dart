@@ -1,4 +1,4 @@
-enum ActivityType { conferimento, missione, obiettivo, badge, premio }
+enum ActivityType { conferimento, missione, obiettivo, badge, premio, admin_adjustment }
 
 class UserActivity {
   final String id;
