@@ -4,22 +4,35 @@ import '../models/event.dart';
 import '../main.dart';
 
 class EventService {
+  // Recupera tutti gli eventi e il numero di partecipanti per ciascuno
   Future<List<Event>> getEvents() async {
     try {
-      final response = await supabase.from('evento').select();
+      // La query ora include una sub-query per contare le partecipazioni
+      final response = await supabase.from('evento').select('*, partecipazione(count)');
+      
       final List<Event> events = (response as List)
           .map((data) => Event.fromJson(data as Map<String, dynamic>))
           .toList();
-      events.sort((a, b) => b.startDateTime.compareTo(a.startDateTime));
+      
+      // CORREZIONE: Ordina usando il campo corretto 'dataOraInizio'
+      events.sort((a, b) {
+        if (a.dataOraInizio == null && b.dataOraInizio == null) return 0;
+        if (a.dataOraInizio == null) return 1;
+        if (b.dataOraInizio == null) return -1;
+        return b.dataOraInizio!.compareTo(a.dataOraInizio!);
+      });
+
       return events;
     } on PostgrestException catch (e) {
       debugPrint('ERRORE SUPABASE [getEvents]: ${e.message}');
       throw Exception('Errore dal database: ${e.message}');
     } catch (e) {
+      debugPrint('ERRORE GENERICO [getEvents]: $e');
       throw Exception('Errore durante il recupero degli eventi: $e');
     }
   }
 
+  // Recupera solo gli ID degli eventi a cui l'utente è iscritto
   Future<Set<String>> getSubscribedEventIds(String userId) async {
     try {
       final response = await supabase
@@ -43,18 +56,26 @@ class EventService {
     }
   }
 
+  // Recupera i dettagli completi degli eventi a cui l'utente è iscritto
   Future<List<Event>> getSubscribedEvents(String userId) async {
     try {
+      // La query fa una join con la tabella partecipazione e poi recupera i dettagli dell'evento
       final response = await supabase
           .from('evento')
-          .select('*, partecipazione!inner(*)')
+          .select('*, partecipazione!inner(count)') // Conta anche qui i partecipanti totali
           .eq('partecipazione.idutente', userId);
 
       final List<Event> events = (response as List)
           .map((data) => Event.fromJson(data as Map<String, dynamic>))
           .toList();
 
-      events.sort((a, b) => b.startDateTime.compareTo(a.startDateTime));
+      // CORREZIONE: Ordina usando il campo corretto 'dataOraInizio'
+      events.sort((a, b) {
+        if (a.dataOraInizio == null && b.dataOraInizio == null) return 0;
+        if (a.dataOraInizio == null) return 1;
+        if (b.dataOraInizio == null) return -1;
+        return b.dataOraInizio!.compareTo(a.dataOraInizio!);
+      });
       return events;
 
     } on PostgrestException catch (e) {
@@ -66,7 +87,7 @@ class EventService {
     }
   }
 
-
+  // Iscrive un utente a un evento
   Future<void> subscribeToEvent(String eventId, String userId) async {
     try {
       await supabase.from('partecipazione').insert({
@@ -82,6 +103,7 @@ class EventService {
     }
   }
 
+  // Annulla l'iscrizione di un utente da un evento
   Future<void> unsubscribeFromEvent(String eventId, String userId) async {
     try {
       await supabase

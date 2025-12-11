@@ -12,9 +12,8 @@ class UserProfile with ChangeNotifier {
   bool isAdmin;
   DateTime? dataDiNascita;
   String? idBadgeTitolo;
-  String? titolo; // Questo è il nome del badge/titolo
+  String? titolo;
 
-  // Campi per le statistiche
   final int conferimentiCount;
   final int eventsCount;
 
@@ -34,14 +33,9 @@ class UserProfile with ChangeNotifier {
     this.eventsCount = 0,
   });
 
-  // Metodo statico per compatibilità
   static Future<int> getPoints(String userId) async {
     try {
-      final data = await supabase
-          .from('utente')
-          .select('saldopunti')
-          .eq('idutente', userId)
-          .single();
+      final data = await supabase.from('utente').select('saldopunti').eq('idutente', userId).single();
       return (data['saldopunti'] as num?)?.toInt() ?? 0;
     } catch (e) {
       return 0;
@@ -60,11 +54,30 @@ class UserProfile with ChangeNotifier {
       isAdmin: json['isadmin'] as bool? ?? false,
       dataDiNascita: json['datadinascita'] != null ? DateTime.tryParse(json['datadinascita']) : null,
       idBadgeTitolo: json['id_badge_titolo'] as String?,
-      // CORREZIONE: Legge il nome del titolo dalla chiave corretta usata nel service
       titolo: json['titolo_nome'] as String?,
       conferimentiCount: (json['conferimenti_count'] as num?)?.toInt() ?? 0,
       eventsCount: (json['events_count'] as num?)?.toInt() ?? 0,
     );
+  }
+
+  // NUOVO METODO: Converte l'oggetto in una mappa JSON
+  Map<String, dynamic> toJson() {
+    return {
+      'idutente': id, // Usa la chiave corretta per coerenza con fromJson
+      'id': id, // Aggiungo anche 'id' per coerenza con il codice che lo usa
+      'nome': nome,
+      'cognome': cognome,
+      'email': email,
+      'saldopunti': saldoPunti,
+      'codicereferral': codiceReferral,
+      'fotoprofilo': fotoProfilo,
+      'isadmin': isAdmin,
+      'datadinascita': dataDiNascita?.toIso8601String(),
+      'id_badge_titolo': idBadgeTitolo,
+      'titolo_nome': titolo,
+      'conferimenti_count': conferimentiCount,
+      'events_count': eventsCount,
+    };
   }
 
   UserProfile withStats({required int conferimenti, required int events}) {

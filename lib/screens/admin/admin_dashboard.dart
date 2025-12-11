@@ -1,4 +1,5 @@
 import 'package:cityclean/controllers/admin/dashboard_controller.dart';
+import 'package:cityclean/screens/admin/admin_events_page.dart';
 import 'package:cityclean/screens/admin/admin_list_ecopoints_page.dart';
 import 'package:cityclean/screens/admin/admin_reports_page.dart';
 import 'package:cityclean/screens/admin/admin_rewards_page.dart';
@@ -32,6 +33,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
       AdminDashboardView(onNavigate: _onItemTapped),
       const AdminReportsPage(),
       const AdminSegnalazioniPage(),
+      const AdminEventsPage(), // <-- PAGINA INSERITA
       const AdminListEcopointsPage(),
       const AdminUsersPage(),
       const AdminRewardsPage(),
@@ -70,6 +72,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
                         NavigationRailDestination(icon: Icon(Icons.dashboard_outlined), selectedIcon: Icon(Icons.dashboard), label: Text('Dashboard')),
                         NavigationRailDestination(icon: Icon(Icons.bar_chart_outlined), selectedIcon: Icon(Icons.bar_chart), label: Text('Report')),
                         NavigationRailDestination(icon: Icon(Icons.report_problem_outlined), selectedIcon: Icon(Icons.report_problem), label: Text('Segnalazioni')),
+                        NavigationRailDestination(icon: Icon(Icons.event_outlined), selectedIcon: Icon(Icons.event), label: Text('Eventi')),
                         NavigationRailDestination(icon: Icon(Icons.location_on_outlined), selectedIcon: Icon(Icons.location_on), label: Text('Ecopunti')),
                         NavigationRailDestination(icon: Icon(Icons.people_outline), selectedIcon: Icon(Icons.people), label: Text('Utenti')),
                         NavigationRailDestination(icon: Icon(Icons.card_giftcard_outlined), selectedIcon: Icon(Icons.card_giftcard), label: Text('Premi')),
@@ -88,6 +91,8 @@ class _AdminDashboardState extends State<AdminDashboard> {
     );
   }
 }
+
+// Le altre classi della dashboard non vengono modificate...
 
 class AdminDashboardView extends StatefulWidget {
   final Function(int) onNavigate;
@@ -144,7 +149,7 @@ class _AdminDashboardViewState extends State<AdminDashboardView> {
                   builder: (context, stats, _) {
                     return LayoutBuilder(builder: (context, constraints) {
                       final crossAxisCount = _calculateCrossAxisCount(constraints.maxWidth);
-                      final aspectRatio = _calculateAspectRatio(crossAxisCount);
+                      final aspectRatio = _calculateAspectRatio(crossAxisCount, constraints.maxWidth);
 
                       return GridView.count(
                         crossAxisCount: crossAxisCount,
@@ -154,12 +159,12 @@ class _AdminDashboardViewState extends State<AdminDashboardView> {
                         childAspectRatio: aspectRatio,
                         physics: const NeverScrollableScrollPhysics(),
                         children: [
-                          _buildStatCard('Utenti Totali', stats.totalUsers, Icons.people, Colors.blue, crossAxisCount, onTap: () => widget.onNavigate(4)),
+                          _buildStatCard('Utenti Totali', stats.totalUsers, Icons.people, Colors.blue, crossAxisCount, onTap: () => widget.onNavigate(5)), // Indice aggiornato
                           _buildStatCard('Conferimenti', stats.totalConferimenti, Icons.recycling, adminPrimaryColor, crossAxisCount, onTap: () => widget.onNavigate(1)),
                           _buildStatCard('CO₂ Risparmiata (kg)', stats.totalCo2.toInt(), Icons.eco, Colors.teal, crossAxisCount, onTap: () => widget.onNavigate(1)),
                           _buildStatCard('Segnalazioni', stats.totalSegnalazioni, Icons.report, Colors.orange, crossAxisCount, onTap: () => widget.onNavigate(2)),
-                          _buildStatCard('Missioni Completate', stats.totalMissioniCompletate, Icons.flag, Colors.purple, crossAxisCount),
-                          _buildStatCard('Premi', stats.puntiSpesi, Icons.shopping_cart, Colors.red, crossAxisCount, onTap: () => widget.onNavigate(5)),
+                          _buildStatCard('Eventi', stats.totalMissioniCompletate, Icons.event, Colors.purple, crossAxisCount, onTap: () => widget.onNavigate(3)), // Indice aggiornato
+                          _buildStatCard('Premi', stats.puntiSpesi, Icons.shopping_cart, Colors.red, crossAxisCount, onTap: () => widget.onNavigate(6)), // Indice aggiornato
                         ],
                       );
                     });
@@ -188,9 +193,9 @@ class _AdminDashboardViewState extends State<AdminDashboardView> {
     return 1;
   }
 
-  double _calculateAspectRatio(int crossAxisCount) {
+  double _calculateAspectRatio(int crossAxisCount, double width) {
     if (crossAxisCount == 1) {
-      return 3.0;
+      return width / 80;
     }
     return 1.4;
   }
@@ -225,13 +230,7 @@ class _AdminDashboardViewState extends State<AdminDashboardView> {
               children: [
                 Icon(icon, size: 28, color: color),
                 const SizedBox(width: 16),
-                Expanded(
-                  child: Text(
-                    title,
-                    style: TextStyle(color: Colors.grey[800], fontSize: 16, fontWeight: FontWeight.w500),
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ),
+                Expanded(child: Text(title, style: TextStyle(color: Colors.grey[800], fontSize: 16, fontWeight: FontWeight.w500))),
                 Text(formattedValue, style: const TextStyle(fontSize: 26, fontWeight: FontWeight.bold)),
               ],
             ),
@@ -289,7 +288,6 @@ class _AdminDashboardViewState extends State<AdminDashboardView> {
     );
   }
   
-  // CORREZIONE: Funzione _buildBarChart ripristinata
   Widget _buildBarChart(List conferimenti, Color color) {
     if (conferimenti.isEmpty) return const Center(child: Text("Nessun conferimento recente."));
 
