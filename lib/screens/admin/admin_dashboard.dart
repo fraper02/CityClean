@@ -137,8 +137,6 @@ class _DashboardViewState extends State<DashboardView> {
             SizedBox(
               height: 200,
               child: BarChart(
-                // CORREZIONE DEFINITIVA: Rimosso il parametro `data:` che non esiste.
-                // Il costruttore di BarChart accetta BarChartData come argomento posizionale.
                 BarChartData(
                   alignment: BarChartAlignment.spaceAround,
                   barGroups: _getChartData(),
