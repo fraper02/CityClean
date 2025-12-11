@@ -48,14 +48,12 @@ class AdminDetailedReportPage extends StatelessWidget {
                           ),
                         ),
                         const Divider(),
-                        // CORREZIONE: Rimosso .toList() non necessario
                         ...item.entries.map((entry) {
                           String value = entry.value?.toString() ?? 'N/D';
-                          // Formattazione speciale per le date
                           if ((entry.key.toString().contains('_data') || entry.key.toString().contains('creazione')) && entry.value != null) {
                             try {
                               value = DateFormat('dd/MM/yyyy HH:mm').format(DateTime.parse(entry.value));
-                            } catch (e) { /* ignora se il formato non è valido */ }
+                            } catch (e) { /* ignora */ }
                           }
                           return Padding(
                             padding: const EdgeInsets.symmetric(vertical: 3.0),

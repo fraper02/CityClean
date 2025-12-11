@@ -35,7 +35,7 @@ class SubscribedEventsController {
     }
   }
 
-  // --- NUOVO METODO PER ANNULLARE L'ISCRIZIONE ---
+  // Metodo per annullare l'iscrizione
   Future<void> unsubscribeFromEvent(String eventId) async {
     final userId = supabase.auth.currentUser?.id;
     if (userId == null) {
@@ -43,14 +43,13 @@ class SubscribedEventsController {
     }
 
     try {
-      // 1. Chiama il service per cancellare l'iscrizione dal DB
       await _service.unsubscribeFromEvent(eventId, userId);
-      // 2. Rimuove l'evento dalla lista locale per un aggiornamento istantaneo della UI
+      // Rimuove l'evento dalla lista locale per un aggiornamento istantaneo
       final currentEvents = List<Event>.from(subscribedEvents.value);
       currentEvents.removeWhere((event) => event.id == eventId);
       subscribedEvents.value = currentEvents;
     } catch (e) {
-      // Rigetta l'errore in modo che la UI possa mostrarlo
+      // Rigetta l'errore per mostrarlo nella UI
       throw Exception('Errore durante l\'annullamento dell\'iscrizione.');
     }
   }

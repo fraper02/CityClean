@@ -85,14 +85,15 @@ class EventsController {
     }
   }
 
+  // CORREZIONE: Usa i campi 'titolo' e 'localita' del nuovo modello
   void filterEvents(String keyword) {
     if (keyword.isEmpty) {
       filteredEvents.value = _allEvents.value;
     } else {
       final lowerCaseKeyword = keyword.toLowerCase();
       filteredEvents.value = _allEvents.value.where((event) {
-        return event.title.toLowerCase().contains(lowerCaseKeyword) ||
-               event.location.toLowerCase().contains(lowerCaseKeyword);
+        return event.titolo.toLowerCase().contains(lowerCaseKeyword) ||
+               event.localita.toLowerCase().contains(lowerCaseKeyword);
       }).toList();
     }
   }
