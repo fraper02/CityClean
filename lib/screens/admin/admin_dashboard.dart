@@ -2,13 +2,7 @@ import 'package:cityclean/controllers/admin/dashboard_controller.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'admin_list_ecopoints_page.dart';
-
-// Placeholder per le sezioni non ancora implementate
-class ManageUsersScreen extends StatelessWidget {
-  const ManageUsersScreen({super.key});
-  @override
-  Widget build(BuildContext context) => Scaffold(appBar: AppBar(title: const Text('Gestione Utenti')), body: const Center(child: Text('Pagina Gestione Utenti')));
-}
+import 'admin_users_page.dart';
 
 class ManagePrizesScreen extends StatelessWidget {
   const ManagePrizesScreen({super.key});
@@ -64,7 +58,7 @@ class _DashboardViewState extends State<DashboardView> {
                 children: [
                   _buildStatCard("Utenti Totali", _controller.totalUsers.value.toString(), Icons.people, Colors.blue),
                   _buildStatCard("Segnalazioni Aperte", _controller.openReports.value.toString(), Icons.report_problem, Colors.orange),
-                  _buildStatCard("Premi Riscattati Oggi", "12", Icons.card_giftcard, Colors.green), // Esempio statico
+                  _buildStatCard("Premi Riscattati Oggi", "12", Icons.card_giftcard, Colors.green),
                 ],
               ),
               const SizedBox(height: 24),
@@ -147,7 +141,6 @@ class _DashboardViewState extends State<DashboardView> {
             SizedBox(
               height: 200,
               child: BarChart(
-                // CORREZIONE DEFINITIVA
                 BarChartData(
                   alignment: BarChartAlignment.spaceAround,
                   barGroups: _getChartData(),
@@ -203,7 +196,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
   static final List<Widget> _adminPages = <Widget>[
     const DashboardView(),
     const AdminListEcopointsPage(),
-    const ManageUsersScreen(),
+    const AdminUsersPage(), 
     const ManagePrizesScreen(),
   ];
 
