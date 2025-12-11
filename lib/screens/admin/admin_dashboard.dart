@@ -243,6 +243,17 @@ class AdminDashboardViewState extends State<AdminDashboardView> {
     }
   }
 
+  String get _chartTitle {
+    switch (widget.controller.timeRange.value) {
+      case StatsTimeRange.month:
+        return 'Conferimenti Ultimo Mese';
+      case StatsTimeRange.year:
+        return 'Conferimenti Ultimo Anno';
+      case StatsTimeRange.allTime:
+        return 'Conferimenti Totali';
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return ValueListenableBuilder<DashboardState>(
@@ -298,8 +309,12 @@ class AdminDashboardViewState extends State<AdminDashboardView> {
                 valueListenable: widget.controller.chartData,
                 builder: (context, data, child) {
                   return _buildChartCard(
-                    title: 'Conferimenti Ultimi 7 Giorni',
-                    chart: _buildBarChart((data['conferimenti'] as List? ?? []), adminAccentColor),
+                    title: _chartTitle,
+                    chart: _buildBarChart(
+                      (data['conferimenti'] as List? ?? []),
+                      adminAccentColor,
+                      widget.controller.timeRange.value,
+                    ),
                   );
                 },
               ),
@@ -352,54 +367,122 @@ class AdminDashboardViewState extends State<AdminDashboardView> {
     );
   }
 
-  Widget _buildBarChart(List conferimenti, Color color) {
+  Widget _buildBarChart(List conferimenti, Color color, StatsTimeRange timeRange) {
     if (conferimenti.isEmpty) {
-      return const Center(child: Text("Nessun conferimento recente."));
+      return const Center(child: Text("Nessun conferimento nel periodo selezionato."));
     }
 
-    final Map<int, double> dailyTotals = {for (var i = 0; i < 7; i++) i: 0.0};
     final now = DateTime.now();
-    final today = DateTime(now.year, now.month, now.day);
+    Map<double, double> totals = {};
+    String Function(double) getTitle;
 
-    for (var item in conferimenti) {
-      if (item['data_conferimento'] != null) {
-        final date = DateTime.parse(item['data_conferimento']);
-        final day = DateTime(date.year, date.month, date.day);
-        final diff = today.difference(day).inDays;
-
-        if (diff >= 0 && diff < 7) {
-          dailyTotals.update(6 - diff, (value) => value + 1, ifAbsent: () => 1);
+    switch (timeRange) {
+      case StatsTimeRange.month:
+        totals = {for (var i = 0; i < 30; i++) i.toDouble(): 0.0};
+        for (var item in conferimenti) {
+          if (item['data_conferimento'] != null) {
+            final date = DateTime.parse(item['data_conferimento']);
+            final diff = now.difference(date).inDays;
+            if (diff >= 0 && diff < 30) {
+              totals.update((29 - diff).toDouble(), (value) => value + 1);
+            }
+          }
         }
-      }
+        getTitle = (value) {
+          final day = now.subtract(Duration(days: 29 - value.toInt()));
+          return DateFormat('d').format(day);
+        };
+        break;
+      case StatsTimeRange.year:
+        totals = {for (var i = 0; i < 12; i++) i.toDouble(): 0.0};
+        for (var item in conferimenti) {
+          if (item['data_conferimento'] != null) {
+            final date = DateTime.parse(item['data_conferimento']);
+            if (date.year == now.year) {
+              totals.update((date.month - 1).toDouble(), (value) => value + 1);
+            }
+          }
+        }
+        getTitle = (value) => DateFormat.MMM('it').format(DateTime(now.year, value.toInt() + 1));
+        break;
+      case StatsTimeRange.allTime:
+        Map<int, double> yearlyTotals = {};
+        for (var item in conferimenti) {
+          if (item['data_conferimento'] != null) {
+            final date = DateTime.parse(item['data_conferimento']);
+            yearlyTotals.update(date.year, (value) => value + 1, ifAbsent: () => 1.0);
+          }
+        }
+        var years = yearlyTotals.keys.toList()..sort();
+        totals = {for (var i = 0; i < years.length; i++) i.toDouble(): yearlyTotals[years[i]]!};
+        getTitle = (value) => years[value.toInt()].toString();
+        break;
     }
 
-    final barGroups = dailyTotals.entries.map((entry) {
+    final barGroups = totals.entries.map((entry) {
       return BarChartGroupData(
-        x: entry.key,
+        x: entry.key.toInt(),
         barRods: [BarChartRodData(toY: entry.value, color: color, width: 22, borderRadius: BorderRadius.circular(4))],
       );
     }).toList();
 
+    final double maxY = totals.values.isEmpty ? 0 : totals.values.reduce((a, b) => a > b ? a : b);
+    final double leftInterval = (maxY > 5) ? (maxY / 5).ceil().toDouble() : 1;
+    final double chartMaxY = (leftInterval > 1) ? leftInterval * 5 : 5;
+
     return BarChart(
       BarChartData(
+        maxY: chartMaxY,
         barGroups: barGroups,
         titlesData: FlTitlesData(
+          show: true,
           bottomTitles: AxisTitles(
             sideTitles: SideTitles(
               showTitles: true,
+              reservedSize: 30,
               getTitlesWidget: (value, meta) {
-                final day = today.subtract(Duration(days: 6 - value.toInt()));
-                return SideTitleWidget(axisSide: meta.axisSide, child: Text(DateFormat('E').format(day), style: const TextStyle(fontSize: 10)));
+                final int index = value.toInt();
+                String text = '';
+                switch (timeRange) {
+                  case StatsTimeRange.month:
+                    if (index % 5 == 0 || index == 29) text = getTitle(value);
+                    break;
+                  case StatsTimeRange.year:
+                    if (index % 2 == 0) text = getTitle(value);
+                    break;
+                  case StatsTimeRange.allTime:
+                    final count = totals.length;
+                    if (count <= 8 || index == 0 || index == count - 1 || index % ((count / 4).round()) == 0) {
+                      text = getTitle(value);
+                    }
+                    break;
+                }
+                return SideTitleWidget(axisSide: meta.axisSide, child: Text(text, style: const TextStyle(fontSize: 10)));
               },
-              reservedSize: 20,
             ),
           ),
-          leftTitles: const AxisTitles(sideTitles: SideTitles(showTitles: true, reservedSize: 30)),
+          leftTitles: AxisTitles(
+            sideTitles: SideTitles(
+              showTitles: true,
+              reservedSize: 40,
+              interval: leftInterval,
+              getTitlesWidget: (value, meta) {
+                if (value == meta.max) return Container();
+                final compactNumber = NumberFormat.compact().format(value);
+                return SideTitleWidget(axisSide: meta.axisSide, space: 8, child: Text(compactNumber, style: const TextStyle(fontSize: 10)));
+              },
+            ),
+          ),
           topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
           rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
         ),
-        borderData: FlBorderData(show: false),
-        gridData: const FlGridData(show: false),
+        borderData: FlBorderData(show: true, border: Border(bottom: BorderSide(color: Colors.grey.shade300))),
+        gridData: FlGridData(
+          show: true,
+          drawVerticalLine: false,
+          horizontalInterval: leftInterval,
+          getDrawingHorizontalLine: (value) => FlLine(color: Colors.grey.shade200, strokeWidth: 1),
+        ),
         barTouchData: BarTouchData(
           touchTooltipData: BarTouchTooltipData(
             getTooltipColor: (group) => Colors.blueGrey,

@@ -87,7 +87,7 @@ class AdminSegnalazioniPageState extends State<AdminSegnalazioniPage> {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Flexible(child: Text('ID: ${segnalazione.id.substring(0, 8)}...', style: const TextStyle(fontSize: 12, color: Colors.grey))),
+                Flexible(child: Text('ID: ${segnalazione.id.substring(0, 12)}...', style: const TextStyle(fontSize: 12, color: Colors.grey))),
                 _buildStatusChip(segnalazione.accettata),
               ],
             ),
