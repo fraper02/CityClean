@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import '../services/storage_service.dart';
 import '../components/auth_gate.dart';
 import '../main.dart';
+import 'privacy_security_page.dart';
+import 'help_support_page.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -13,7 +15,6 @@ class SettingsScreen extends StatefulWidget {
 class _SettingsScreenState extends State<SettingsScreen> {
   bool _notificationsEnabled = true;
   String _selectedLanguage = "Italiano";
-
 
   Future<void> _signOut() async {
     await StorageService.clearSession();
@@ -126,8 +127,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                           ],
                         ),
                       ],
-                    ),
-                  ),
+                    ),                  ),
                   const SizedBox(height: 80),
                   const Text("Preferenze", style: TextStyle(color: Colors.grey, fontSize: 16, fontWeight: FontWeight.w500)),
                   const SizedBox(height: 10),
@@ -192,14 +192,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
                             Icons.lock_outline,
                             "Privacy e Sicurezza",
                             primaryGreen,
-                                () => Navigator.push(context, MaterialPageRoute(builder: (context) => _buildPlaceholderPage("Privacy e Sicurezza")))
+                                () => Navigator.push(context, MaterialPageRoute(builder: (context) => const PrivacyESicurezzaPage()))
                         ),
                         const Divider(height: 1, indent: 60, endIndent: 20),
                         _buildListTile(
                             Icons.help_outline,
                             "Aiuto e Supporto",
                             primaryGreen,
-                                () => Navigator.push(context, MaterialPageRoute(builder: (context) => _buildPlaceholderPage("Aiuto e Supporto")))
+                                () => Navigator.push(context, MaterialPageRoute(builder: (context) => const AiutoESupportoPage()))
                         ),
                       ],
                     ),
@@ -239,12 +239,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
       title: Text(title, style: const TextStyle(fontWeight: FontWeight.w500)),
       trailing: const Icon(Icons.chevron_right, color: Colors.grey),
       onTap: onTap,
-    );
-  }
-  Widget _buildPlaceholderPage(String title) {
-    return Scaffold(
-      appBar: AppBar(title: Text(title), backgroundColor: Colors.green[700], foregroundColor: Colors.white),
-      body: Center(child: Text("Pagina $title")),
     );
   }
 }
