@@ -72,11 +72,21 @@ class AdminUsersPageState extends State<AdminUsersPage> {
                   if (users.isEmpty) {
                     return const Center(child: Text("Nessun utente trovato."));
                   }
+
+                  // Ordina la lista: prima gli admin (in ordine alfabetico), poi gli altri (in ordine alfabetico)
+                  final sortedUsers = List<UserProfile>.from(users);
+                  sortedUsers.sort((a, b) {
+                    if (a.isAdmin && !b.isAdmin) return -1;
+                    if (!a.isAdmin && b.isAdmin) return 1;
+                    // Se entrambi sono admin o entrambi non lo sono, ordina alfabeticamente per nome
+                    return a.nome.toLowerCase().compareTo(b.nome.toLowerCase());
+                  });
+
                   return ListView.builder(
                     padding: const EdgeInsets.symmetric(horizontal: 16),
-                    itemCount: users.length,
+                    itemCount: sortedUsers.length,
                     itemBuilder: (context, index) {
-                      return _buildUserCard(users[index]);
+                      return _buildUserCard(sortedUsers[index]);
                     },
                   );
                 },
