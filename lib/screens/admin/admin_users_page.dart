@@ -343,7 +343,7 @@ class _UserActivityPageState extends State<_UserActivityPage> {
       case ActivityType.obiettivo: return Icons.star;
       case ActivityType.badge: return Icons.shield;
       case ActivityType.premio: return Icons.card_giftcard;
-      case ActivityType.admin_adjustment: return Icons.admin_panel_settings;
+      case ActivityType.adminAdjustment: return Icons.admin_panel_settings;
     }
   }
 
@@ -354,7 +354,7 @@ class _UserActivityPageState extends State<_UserActivityPage> {
       case ActivityType.obiettivo: return Colors.orange;
       case ActivityType.badge: return Colors.purple;
       case ActivityType.premio: return Colors.red;
-      case ActivityType.admin_adjustment: return Colors.grey;
+      case ActivityType.adminAdjustment: return Colors.grey;
     }
   }
 }

@@ -35,7 +35,7 @@ class UserActivityService {
         if (item['data_operazione'] != null) {
           activities.add(UserActivity(
             id: item['id'].toString(),
-            type: ActivityType.admin_adjustment,
+            type: ActivityType.adminAdjustment,
             date: DateTime.parse(item['data_operazione']),
             description: 'Admin: ${item['descrizione'] ?? 'Aggiustamento manuale'}',
             points: item['punti_assegnati'],
