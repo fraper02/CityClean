@@ -9,6 +9,7 @@ import '../models/map_models.dart';
 import '../services/osm_service.dart';
 import '../services/report_service.dart';
 import '../services/storage_service.dart';
+import '../services/ecopoint_service.dart';
 import 'dart:async';
 import '../data/map_data.dart';
 
@@ -209,7 +210,7 @@ class _MapScreenState extends State<MapScreen> {
 
     try {
       final zones = MockMapData.pollutedZones;
-      final mockPoints = MockMapData.ecoPoints;
+      //final mockPoints = MockMapData.ecoPoints;
 
       LatLng centerToUse = _currentCenter;
       try {
@@ -218,11 +219,24 @@ class _MapScreenState extends State<MapScreen> {
 
       final realPoints = await _osmService.fetchRecyclingPoints(centerToUse, 2000);
       final reports = await _reportService.getReports(); // Carica le segnalazioni
+      final dbEcopoints = await EcopointService.fetchAllEcopoints();
+
+      final List<EcoPoint> mappedDbPoints = dbEcopoints.map((e) {
+        return EcoPoint(
+          id: e['idpuntoraccolta'] as String,
+          name: e['nome'] as String? ?? 'Ecopoint',
+          type: e['tipologia'] as String? ?? 'Generico',
+          location: LatLng(
+            (e['latitudine'] as num).toDouble(),
+            (e['longitudine'] as num).toDouble(),
+          ),
+        );
+      }).toList();
 
       if (mounted) {
         setState(() {
           _pollutedZones = zones;
-          _ecoPoints = [...mockPoints, ...realPoints];
+          _ecoPoints = [...realPoints, ...mappedDbPoints];
           _reports = reports;
           _isLoading = false;
         });
@@ -232,7 +246,7 @@ class _MapScreenState extends State<MapScreen> {
       if (mounted) {
         setState(() {
           _pollutedZones = MockMapData.pollutedZones;
-          _ecoPoints = MockMapData.ecoPoints;
+          //_ecoPoints = MockMapData.ecoPoints;
           _isLoading = false;
         });
       }
