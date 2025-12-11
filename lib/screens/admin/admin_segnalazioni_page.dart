@@ -10,10 +10,10 @@ class AdminSegnalazioniPage extends StatefulWidget {
   const AdminSegnalazioniPage({super.key});
 
   @override
-  State<AdminSegnalazioniPage> createState() => _AdminSegnalazioniPageState();
+  AdminSegnalazioniPageState createState() => AdminSegnalazioniPageState();
 }
 
-class _AdminSegnalazioniPageState extends State<AdminSegnalazioniPage> {
+class AdminSegnalazioniPageState extends State<AdminSegnalazioniPage> {
   late final SegnalazioniController _controller;
 
   @override
@@ -29,52 +29,46 @@ class _AdminSegnalazioniPageState extends State<AdminSegnalazioniPage> {
     super.dispose();
   }
 
+  void refreshSegnalazioni() {
+    _controller.loadSegnalazioni();
+  }
+
   Future<void> _launchMaps(double lat, double lng) async {
     final uri = Uri.parse("https://www.google.com/maps/search/?api=1&query=$lat,$lng");
     if (await canLaunchUrl(uri)) {
       await launchUrl(uri, mode: LaunchMode.externalApplication);
     } else {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Impossibile avviare le mappe.')));
+      if(mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Impossibile avviare le mappe.')));
+      }
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Gestione Segnalazioni'),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.refresh, color: adminPrimaryColor),
-            onPressed: _controller.loadSegnalazioni,
-            tooltip: 'Aggiorna Segnalazioni',
-          ),
-        ],
-      ),
-      body: ValueListenableBuilder<SegnalazioniState>(
-        valueListenable: _controller.state,
-        builder: (context, state, _) {
-          if (state == SegnalazioniState.loading) {
-            return const Center(child: CircularProgressIndicator(color: adminPrimaryColor));
-          }
-          if (state == SegnalazioniState.error) {
-            return Center(child: Text('Errore: ${_controller.errorMessage.value}'));
-          }
-          return ValueListenableBuilder<List<Segnalazione>>(
-            valueListenable: _controller.segnalazioni,
-            builder: (context, segnalazioni, _) {
-              if (segnalazioni.isEmpty) {
-                return const Center(child: Text('Nessuna segnalazione trovata.'));
-              }
-              return ListView.builder(
-                padding: const EdgeInsets.all(16),
-                itemCount: segnalazioni.length,
-                itemBuilder: (context, index) => _buildSegnalazioneCard(segnalazioni[index]),
-              );
-            },
-          );
-        },
-      ),
+    return ValueListenableBuilder<SegnalazioniState>(
+      valueListenable: _controller.state,
+      builder: (context, state, _) {
+        if (state == SegnalazioniState.loading) {
+          return const Center(child: CircularProgressIndicator(color: adminPrimaryColor));
+        }
+        if (state == SegnalazioniState.error) {
+          return Center(child: Text('Errore: ${_controller.errorMessage.value}'));
+        }
+        return ValueListenableBuilder<List<Segnalazione>>(
+          valueListenable: _controller.segnalazioni,
+          builder: (context, segnalazioni, _) {
+            if (segnalazioni.isEmpty) {
+              return const Center(child: Text('Nessuna segnalazione trovata.'));
+            }
+            return ListView.builder(
+              padding: const EdgeInsets.all(16),
+              itemCount: segnalazioni.length,
+              itemBuilder: (context, index) => _buildSegnalazioneCard(segnalazioni[index]),
+            );
+          },
+        );
+      },
     );
   }
 
