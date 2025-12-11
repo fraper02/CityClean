@@ -9,14 +9,16 @@ class GuildController with ChangeNotifier {
 
   List<Guild> _allGuilds = [];
   List<Guild> _filteredGuilds = [];
+  String? _userGuildId; // NUOVO: ID della gilda dell'utente
   bool _isLoading = false;
   String? _error;
-  bool _isJoining = false; // NUOVO: per gestire lo stato di unione
+  bool _isJoining = false;
 
   List<Guild> get filteredGuilds => _filteredGuilds;
+  String? get userGuildId => _userGuildId;
   bool get isLoading => _isLoading;
   String? get error => _error;
-  bool get isJoining => _isJoining; // NUOVO
+  bool get isJoining => _isJoining;
 
   GuildController() {
     fetchGuilds();
@@ -28,7 +30,9 @@ class GuildController with ChangeNotifier {
     notifyListeners();
 
     try {
+      // Carica sia la lista di gilde che la gilda dell'utente
       _allGuilds = await _guildService.getGuilds();
+      _userGuildId = await _guildService.getUserGuild();
       _filteredGuilds = _allGuilds;
     } catch (e) {
       _error = "Errore nel caricamento delle gilde.";
@@ -50,7 +54,6 @@ class GuildController with ChangeNotifier {
     notifyListeners();
   }
 
-  // NUOVO: Metodo per unirsi a una gilda
   Future<void> joinGuild(String guildId) async {
     _isJoining = true;
     _error = null;
@@ -58,10 +61,9 @@ class GuildController with ChangeNotifier {
 
     try {
       await _guildService.joinGuild(guildId);
-      // Ricarica i dati per aggiornare lo stato (es. numero membri)
       await fetchGuilds();
     } catch (e) {
-      _error = e.toString(); // Mostra l'errore specifico
+      _error = e.toString();
     } finally {
       _isJoining = false;
       notifyListeners();
