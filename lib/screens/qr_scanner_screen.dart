@@ -181,20 +181,17 @@ class QrScannerOverlayShape extends ShapeBorder {
 
   @override
   Path getOuterPath(Rect rect, {TextDirection? textDirection}) {
-    Path _getOuterPath(Rect rect) {
-      final cutOutSize = rect.width * 0.70; // Leggermente più grande
-      final cutOutRect = Rect.fromCenter(
-        center: rect.center,
-        width: cutOutSize,
-        height: cutOutSize,
-      );
+    final cutOutSize = rect.width * 0.70; // Leggermente più grande
+    final cutOutRect = Rect.fromCenter(
+      center: rect.center,
+      width: cutOutSize,
+      height: cutOutSize,
+    );
 
-      final outerPath = Path()..addRect(rect);
-      final cutOutPath = Path()..addRRect(RRect.fromRectAndRadius(cutOutRect, const Radius.circular(20)));
+    final outerPath = Path()..addRect(rect);
+    final cutOutPath = Path()..addRRect(RRect.fromRectAndRadius(cutOutRect, const Radius.circular(20)));
 
-      return Path.combine(PathOperation.difference, outerPath, cutOutPath);
-    }
-    return _getOuterPath(rect);
+    return Path.combine(PathOperation.difference, outerPath, cutOutPath);
   }
 
   @override
