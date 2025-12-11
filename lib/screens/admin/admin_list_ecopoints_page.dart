@@ -1,4 +1,3 @@
-
 import 'package:cityclean/controllers/admin/ecopoints_controller.dart';
 import 'package:cityclean/models/ecopoint.dart';
 import 'package:flutter/material.dart';
@@ -56,7 +55,6 @@ class _AdminListEcopointsPageState extends State<AdminListEcopointsPage> {
               if (ecopoints.isEmpty) {
                 return const Center(child: Text("Nessun ecopunto trovato."));
               }
-              // Sostituiamo DataTable con una ListView di Card espandibili
               return ListView.builder(
                 padding: const EdgeInsets.all(12),
                 itemCount: ecopoints.length,
@@ -77,7 +75,6 @@ class _AdminListEcopointsPageState extends State<AdminListEcopointsPage> {
     );
   }
 
-  // --- NUOVO WIDGET PER LA CARD ESPANDIBILE ---
   Widget _buildEcopointCard(Ecopoint ecopoint) {
     return Card(
       margin: const EdgeInsets.symmetric(vertical: 8),
@@ -140,8 +137,6 @@ class _AdminListEcopointsPageState extends State<AdminListEcopointsPage> {
   }
 
 
-  // --- DIALOGHI (INVARIATI) ---
-
   void _showDeleteDialog(BuildContext context, Ecopoint ecopoint) {
     showDialog(
       context: context,
@@ -167,7 +162,8 @@ class _AdminListEcopointsPageState extends State<AdminListEcopointsPage> {
     final isCreating = ecopoint == null;
     final formKey = GlobalKey<FormState>();
     
-    final idController = TextEditingController(text: isCreating ? 'ECO-${DateTime.now().millisecondsSinceEpoch}' : ecopoint!.id);
+    // CORREZIONE: Rimosso il `!` da `ecopoint!.id` perché la logica `isCreating` già garantisce che non sia null in questo ramo.
+    final idController = TextEditingController(text: isCreating ? 'ECO-${DateTime.now().millisecondsSinceEpoch}' : ecopoint.id);
     final nomeController = TextEditingController(text: ecopoint?.name ?? '');
     final indirizzoController = TextEditingController(text: ecopoint?.address ?? '');
     final tipologiaController = TextEditingController(text: ecopoint?.type ?? '');
@@ -204,7 +200,6 @@ class _AdminListEcopointsPageState extends State<AdminListEcopointsPage> {
             ElevatedButton(
               onPressed: () {
                 if (formKey.currentState!.validate()) {
-                  // I campi delle statistiche non vengono passati, il modello li imposterà a 0
                   final ecopointData = Ecopoint(
                     id: idController.text,
                     name: nomeController.text,
