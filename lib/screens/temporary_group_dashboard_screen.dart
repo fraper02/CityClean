@@ -52,7 +52,6 @@ class TemporaryGroupDashboardScreen extends StatelessWidget {
     );
   }
 
-  // Header in stile HomeScreen
   Widget _buildHeader(BuildContext context, TemporaryGroupController controller, TemporaryGroup group, bool isCreator) {
     return Container(
       padding: const EdgeInsets.only(bottom: 20),
@@ -69,7 +68,6 @@ class TemporaryGroupDashboardScreen extends StatelessWidget {
           padding: const EdgeInsets.symmetric(horizontal: 20.0),
           child: Column(
             children: [
-              // Riga superiore con titolo e azioni
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
@@ -95,7 +93,6 @@ class TemporaryGroupDashboardScreen extends StatelessWidget {
                 ],
               ),
               const SizedBox(height: 10),
-              // Card bianca in sovrimpressione con tutte le info
               _buildGroupInfoCard(context, group),
             ],
           ),
@@ -104,7 +101,6 @@ class TemporaryGroupDashboardScreen extends StatelessWidget {
     );
   }
 
-  // Card informativa unificata
   Widget _buildGroupInfoCard(BuildContext context, TemporaryGroup group) {
     return Container(
       padding: const EdgeInsets.all(16),
@@ -135,7 +131,7 @@ class TemporaryGroupDashboardScreen extends StatelessWidget {
             ],
           ),
           const Divider(height: 24, thickness: 1, indent: 10, endIndent: 10),
-          const Text("Invita con questo codice", style: TextStyle(color: Colors.grey, fontSize: 14)),
+          const Text("Invita altri membri con questo codice", style: TextStyle(color: Colors.grey, fontSize: 14)),
           const SizedBox(height: 8),
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
@@ -193,14 +189,17 @@ class TemporaryGroupDashboardScreen extends StatelessWidget {
   }
 }
 
-// Funzioni helper per i dialoghi
 void _confirmKick(BuildContext context, TemporaryGroupController controller, TemporaryGroupMember member) {
   showDialog(context: context, builder: (ctx) => AlertDialog(
     title: const Text('Conferma Espulsione'),
     content: Text('Sei sicuro di voler espellere ${member.name}?'),
     actions: [
-      TextButton(child: const Text('Annulla'), onPressed: () => Navigator.pop(ctx)),
-      ElevatedButton(child: const Text('Espelli'), onPressed: () { Navigator.pop(ctx); controller.kickMember(member.id); }, style: ElevatedButton.styleFrom(backgroundColor: Colors.red, foregroundColor: Colors.white)),
+      TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Annulla')),
+      ElevatedButton(
+        onPressed: () { Navigator.pop(ctx); controller.kickMember(member.id); }, 
+        style: ElevatedButton.styleFrom(backgroundColor: Colors.red, foregroundColor: Colors.white), 
+        child: const Text('Espelli'),
+      ),
     ],
   ));
 }
@@ -210,8 +209,12 @@ void _confirmTransferOwnership(BuildContext context, TemporaryGroupController co
     title: const Text('Trasferisci Proprietà'),
     content: Text('Sei sicuro di voler nominare ${member.name} come nuovo creatore?'),
     actions: [
-      TextButton(child: const Text('Annulla'), onPressed: () => Navigator.pop(ctx)),
-      ElevatedButton(child: const Text('Conferma'), onPressed: () { Navigator.pop(ctx); controller.transferOwnership(member.id); }, style: ElevatedButton.styleFrom(backgroundColor: Colors.amber, foregroundColor: Colors.black)),
+      TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Annulla')),
+      ElevatedButton(
+        onPressed: () { Navigator.pop(ctx); controller.transferOwnership(member.id); }, 
+        style: ElevatedButton.styleFrom(backgroundColor: Colors.amber, foregroundColor: Colors.black), 
+        child: const Text('Conferma'),
+      ),
     ],
   ));
 }
@@ -221,11 +224,15 @@ void _confirmLeaveGroup(BuildContext context, TemporaryGroupController controlle
     title: const Text('Lasciare il Gruppo?'),
     content: const Text('Sei sicuro di voler lasciare questo gruppo?'),
     actions: [
-      TextButton(child: const Text('Annulla'), onPressed: () => Navigator.pop(ctx)),
-      ElevatedButton(child: const Text('Lascia'), onPressed: () async {
-        Navigator.pop(ctx);
-        await controller.leaveGroup();
-      }, style: ElevatedButton.styleFrom(backgroundColor: Colors.red, foregroundColor: Colors.white)),
+      TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Annulla')),
+      ElevatedButton(
+        onPressed: () async {
+          Navigator.pop(ctx);
+          await controller.leaveGroup();
+        }, 
+        style: ElevatedButton.styleFrom(backgroundColor: Colors.red, foregroundColor: Colors.white),
+        child: const Text('Lascia'),
+      ),
     ],
   ));
 }

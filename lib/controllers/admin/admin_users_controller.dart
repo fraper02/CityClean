@@ -1,3 +1,4 @@
+import 'package:cityclean/models/user_activity.dart';
 import 'package:cityclean/models/user_profile.dart';
 import 'package:cityclean/services/admin/admin_users_service.dart';
 import 'package:flutter/material.dart';
@@ -5,28 +6,46 @@ import 'package:flutter/material.dart';
 enum AdminUsersState { initial, loading, success, error }
 
 class AdminUsersController {
-  final AdminUsersService _service;
+  final _service = AdminUsersService();
 
-  final ValueNotifier<AdminUsersState> state = ValueNotifier(AdminUsersState.initial);
-  final ValueNotifier<List<UserProfile>> users = ValueNotifier([]);
-  final ValueNotifier<String> errorMessage = ValueNotifier('');
+  final state = ValueNotifier<AdminUsersState>(AdminUsersState.initial);
+  final users = ValueNotifier<List<UserProfile>>([]);
+  final errorMessage = ValueNotifier<String>('');
 
-  AdminUsersController({AdminUsersService? service}) : _service = service ?? AdminUsersService();
+  // Lista per mantenere tutti gli utenti originali
+  List<UserProfile> _allUsers = [];
 
   Future<void> loadUsers() async {
     state.value = AdminUsersState.loading;
     try {
-      users.value = await _service.getUsersWithStats();
-      state.value = AdminUsersState.success;
+      // Salva la lista completa e aggiorna quella filtrata
+      _allUsers = await _service.getUsersWithStats();
+      users.value = _allUsers;
+      state.value = AdminUsersState.success; // Corretto
     } catch (e) {
-      errorMessage.value = e.toString();
+      errorMessage.value = "Errore nel caricamento: ${e.toString()}";
       state.value = AdminUsersState.error;
     }
   }
 
-  Future<void> addPoints(BuildContext context, String userId, int points) async {
+  // Nuovo metodo per filtrare gli utenti
+  void filterUsers(String query) {
+    if (query.isEmpty) {
+      users.value = _allUsers;
+    } else {
+      final lowerCaseQuery = query.toLowerCase();
+      users.value = _allUsers.where((user) {
+        final nameMatch = user.nome.toLowerCase().contains(lowerCaseQuery);
+        final surnameMatch = user.cognome?.toLowerCase().contains(lowerCaseQuery) ?? false;
+        final emailMatch = user.email.toLowerCase().contains(lowerCaseQuery);
+        return nameMatch || surnameMatch || emailMatch;
+      }).toList();
+    }
+  }
+
+  Future<void> addPoints(BuildContext context, String userId, int points, String description) async {
     try {
-      await _service.addPointsToUser(userId, points);
+      await _service.addPointsToUser(userId, points, description);
       await loadUsers(); // Ricarica i dati per mostrare il saldo aggiornato
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -36,10 +55,15 @@ class AdminUsersController {
     } catch (e) {
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Errore: ${e.toString()}'), backgroundColor: Colors.red),
+          SnackBar(content: Text("Errore: ${e.toString()}"), backgroundColor: Colors.red),
         );
       }
     }
+  }
+
+  // Aggiunta la funzione per caricare lo storico
+  Future<List<UserActivity>> getUserActivity(String userId) {
+    return _service.getUserActivity(userId);
   }
 
   void dispose() {

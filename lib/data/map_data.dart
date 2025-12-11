@@ -3,32 +3,7 @@ import '../models/map_models.dart';
 
 class MockMapData {
   // Coordinate reali di Salerno
-  static final List<EcoPoint> ecoPoints = [
-    EcoPoint(
-      id: '1',
-      name: 'Eco Station Via Roma',
-      type: 'Plastica',
-      location: const LatLng(40.6780, 14.7600), // Usa location e LatLng
-    ),
-    EcoPoint(
-      id: '2',
-      name: 'Raccolta Vetro Porto',
-      type: 'Vetro',
-      location: const LatLng(40.6750, 14.7550), // Usa location e LatLng
-    ),
-    EcoPoint(
-      id: '3',
-      name: 'Compattatore Parco',
-      type: 'Generico',
-      location: const LatLng(40.6810, 14.7700), // Usa location e LatLng
-    ),
-    EcoPoint(
-      id: '4',
-      name: 'Compattatore Del Sarno',
-      type: 'Generico',
-      location: const LatLng(40.7775, 14.5894), // Usa location e LatLng
-    ),
-  ];
+
 
   static final List<PollutedZone> pollutedZones = [
     PollutedZone(

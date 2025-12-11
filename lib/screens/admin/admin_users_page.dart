@@ -1,7 +1,6 @@
 import 'package:cityclean/controllers/admin/admin_users_controller.dart';
 import 'package:cityclean/models/user_activity.dart';
 import 'package:cityclean/models/user_profile.dart';
-import 'package:cityclean/services/admin/admin_users_service.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
@@ -19,17 +18,22 @@ class AdminUsersPage extends StatefulWidget {
 
 class _AdminUsersPageState extends State<AdminUsersPage> {
   late final AdminUsersController _controller;
+  final _searchController = TextEditingController();
 
   @override
   void initState() {
     super.initState();
     _controller = AdminUsersController();
     _controller.loadUsers();
+    _searchController.addListener(() {
+      _controller.filterUsers(_searchController.text);
+    });
   }
 
   @override
   void dispose() {
     _controller.dispose();
+    _searchController.dispose();
     super.dispose();
   }
 
@@ -47,31 +51,50 @@ class _AdminUsersPageState extends State<AdminUsersPage> {
         ],
       ),
       backgroundColor: Colors.grey[100],
-      body: ValueListenableBuilder<AdminUsersState>(
-        valueListenable: _controller.state,
-        builder: (context, state, _) {
-          if (state == AdminUsersState.loading) {
-            return const Center(child: CircularProgressIndicator());
-          }
-          if (state == AdminUsersState.error) {
-            return Center(child: Text(_controller.errorMessage.value));
-          }
-          return ValueListenableBuilder<List<UserProfile>>(
-            valueListenable: _controller.users,
-            builder: (context, users, _) {
-              if (users.isEmpty) {
-                return const Center(child: Text("Nessun utente trovato."));
-              }
-              return ListView.builder(
-                padding: const EdgeInsets.all(12),
-                itemCount: users.length,
-                itemBuilder: (context, index) {
-                  return _buildUserCard(users[index]);
-                },
-              );
-            },
-          );
-        },
+      body: Column(
+        children: [
+          Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: TextField(
+              controller: _searchController,
+              decoration: InputDecoration(
+                hintText: "Cerca per nome, cognome o email...",
+                prefixIcon: const Icon(Icons.search),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              ),
+            ),
+          ),
+          Expanded(
+            child: ValueListenableBuilder<AdminUsersState>(
+              valueListenable: _controller.state,
+              builder: (context, state, _) {
+                if (state == AdminUsersState.loading) {
+                  return const Center(child: CircularProgressIndicator());
+                }
+                if (state == AdminUsersState.error) {
+                  return Center(child: Text(_controller.errorMessage.value));
+                }
+                return ValueListenableBuilder<List<UserProfile>>(
+                  valueListenable: _controller.users,
+                  builder: (context, users, _) {
+                    if (users.isEmpty) {
+                      return const Center(child: Text("Nessun utente trovato."));
+                    }
+                    return ListView.builder(
+                      padding: const EdgeInsets.all(12),
+                      itemCount: users.length,
+                      itemBuilder: (context, index) {
+                        return _buildUserCard(users[index]);
+                      },
+                    );
+                  },
+                );
+              },
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -118,20 +141,33 @@ class _AdminUsersPageState extends State<AdminUsersPage> {
               spacing: 8,
               runSpacing: 8,
               children: [
-                // CORREZIONE: Usato OutlinedButton per allineamento verticale
                 OutlinedButton.icon(
                   icon: const Icon(Icons.history, size: 20),
                   label: const Text('Vedi Storico'),
-                  onPressed: () => Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (_) => _UserActivityPage(userId: user.id, userName: user.nome)),
-                  ),
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => _UserActivityPage(
+                          controller: _controller, // Passa il controller
+                          userId: user.id,
+                          userName: user.nome,
+                        ),
+                      ),
+                    ).then((_) => _controller.loadUsers()); 
+                  },
                 ),
-                ElevatedButton.icon(
-                  icon: const Icon(Icons.add_circle, size: 20),
-                  label: const Text('Assegna Punti'),
-                  style: ElevatedButton.styleFrom(backgroundColor: Colors.green[600], foregroundColor: Colors.white),
-                  onPressed: () => _showAddPointsDialog(context, user),
+                Tooltip(
+                  message: 'Assegna Punti',
+                  child: ElevatedButton.icon(
+                    icon: const Icon(Icons.add_circle, size: 20),
+                    label: const Text('Punti'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.green[600],
+                      foregroundColor: Colors.white,
+                    ),
+                    onPressed: () => _showAddPointsDialog(context, user),
+                  ),
                 ),
               ],
             )
@@ -143,7 +179,9 @@ class _AdminUsersPageState extends State<AdminUsersPage> {
 
   void _showAddPointsDialog(BuildContext context, UserProfile user) {
     final pointsController = TextEditingController();
+    final descriptionController = TextEditingController();
     final formKey = GlobalKey<FormState>();
+
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
@@ -163,6 +201,12 @@ class _AdminUsersPageState extends State<AdminUsersPage> {
                 autofocus: true,
                 validator: (v) => (v == null || v.isEmpty || int.tryParse(v) == null || int.parse(v) == 0) ? 'Valore non valido' : null,
               ),
+              const SizedBox(height: 16),
+              TextFormField(
+                controller: descriptionController,
+                decoration: const InputDecoration(labelText: "Motivazione", hintText: "Es. Bonus speciale", border: OutlineInputBorder()),
+                validator: (v) => v!.isEmpty ? 'Motivazione obbligatoria' : null,
+              ),
             ],
           ),
         ),
@@ -171,7 +215,7 @@ class _AdminUsersPageState extends State<AdminUsersPage> {
           ElevatedButton(
             onPressed: () {
               if (formKey.currentState!.validate()) {
-                _controller.addPoints(context, user.id, int.parse(pointsController.text));
+                _controller.addPoints(context, user.id, int.parse(pointsController.text), descriptionController.text);
                 Navigator.pop(ctx);
               }
             },
@@ -203,9 +247,15 @@ class _AdminUsersPageState extends State<AdminUsersPage> {
 //##############################################################################
 
 class _UserActivityPage extends StatefulWidget {
+  final AdminUsersController controller;
   final String userId;
   final String userName;
-  const _UserActivityPage({required this.userId, required this.userName});
+
+  const _UserActivityPage({
+    required this.controller,
+    required this.userId,
+    required this.userName,
+  });
 
   @override
   State<_UserActivityPage> createState() => _UserActivityPageState();
@@ -217,13 +267,26 @@ class _UserActivityPageState extends State<_UserActivityPage> {
   @override
   void initState() {
     super.initState();
-    _activityFuture = AdminUsersService().getUserActivity(widget.userId);
+    _loadActivities();
+  }
+
+  void _loadActivities() {
+    _activityFuture = widget.controller.getUserActivity(widget.userId);
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text("Storico di ${widget.userName}")),
+      appBar: AppBar(
+        title: Text("Storico di ${widget.userName}"),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.refresh),
+            tooltip: "Ricarica Storico",
+            onPressed: () => setState(() => _loadActivities()),
+          )
+        ],
+      ),
       body: FutureBuilder<List<UserActivity>>(
         future: _activityFuture,
         builder: (context, snapshot) {
@@ -280,6 +343,7 @@ class _UserActivityPageState extends State<_UserActivityPage> {
       case ActivityType.obiettivo: return Icons.star;
       case ActivityType.badge: return Icons.shield;
       case ActivityType.premio: return Icons.card_giftcard;
+      case ActivityType.adminAdjustment: return Icons.admin_panel_settings;
     }
   }
 
@@ -290,6 +354,7 @@ class _UserActivityPageState extends State<_UserActivityPage> {
       case ActivityType.obiettivo: return Colors.orange;
       case ActivityType.badge: return Colors.purple;
       case ActivityType.premio: return Colors.red;
+      case ActivityType.adminAdjustment: return Colors.grey;
     }
   }
 }

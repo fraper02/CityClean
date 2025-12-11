@@ -82,7 +82,6 @@ class GuildDashboardScreen extends StatelessWidget {
                     icon: const Icon(Icons.arrow_back, color: Colors.white, size: 28),
                     onPressed: () => Navigator.of(context).pop(),
                   ),
-                  // MODIFICA: Pulsante Lascia rimosso da qui
                   IconButton(
                     icon: const Icon(Icons.refresh, color: Colors.white, size: 28),
                     onPressed: () => controller.fetchGuildDetails(),
@@ -123,12 +122,9 @@ class GuildDashboardScreen extends StatelessWidget {
               ],
             ),
           ),
-          // MODIFICA: Logica per mostrare Chip o Pulsante
           isCreator
             ? const Chip(label: Text('Creatore'), backgroundColor: Color(0xFFFFF3E0), visualDensity: VisualDensity.compact)
             : ElevatedButton.icon(
-                icon: const Icon(Icons.exit_to_app, size: 20),
-                label: const Text('Lascia'),
                 onPressed: () => _confirmLeaveGuild(context, controller),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.red[50],
@@ -136,6 +132,8 @@ class GuildDashboardScreen extends StatelessWidget {
                   elevation: 0,
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
                 ),
+                icon: const Icon(Icons.exit_to_app, size: 20),
+                label: const Text('Lascia'),
               ),
         ],
       ),
@@ -182,8 +180,8 @@ void _confirmKickMember(BuildContext context, GuildDashboardController controlle
     title: const Text('Conferma Espulsione'),
     content: Text('Sei sicuro di voler espellere ${member.name}?'),
     actions: [
-      TextButton(child: const Text('Annulla'), onPressed: () => Navigator.pop(ctx)),
-      ElevatedButton(child: const Text('Espelli'), onPressed: () { Navigator.pop(ctx); controller.kickMember(member.id); }, style: ElevatedButton.styleFrom(backgroundColor: Colors.red, foregroundColor: Colors.white)),
+      TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Annulla')),
+      ElevatedButton(onPressed: () { Navigator.pop(ctx); controller.kickMember(member.id); }, style: ElevatedButton.styleFrom(backgroundColor: Colors.red, foregroundColor: Colors.white), child: const Text('Espelli')),
     ],
   ));
 }
@@ -193,8 +191,8 @@ void _confirmTransferOwnership(BuildContext context, GuildDashboardController co
     title: const Text('Trasferisci Proprietà'),
     content: Text('Sei sicuro di voler nominare ${member.name} come nuovo creatore?'),
     actions: [
-      TextButton(child: const Text('Annulla'), onPressed: () => Navigator.pop(ctx)),
-      ElevatedButton(child: const Text('Conferma'), onPressed: () { Navigator.pop(ctx); controller.transferOwnership(member.id); }, style: ElevatedButton.styleFrom(backgroundColor: Colors.amber, foregroundColor: Colors.black)),
+      TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Annulla')),
+      ElevatedButton(onPressed: () { Navigator.pop(ctx); controller.transferOwnership(member.id); }, style: ElevatedButton.styleFrom(backgroundColor: Colors.amber, foregroundColor: Colors.black), child: const Text('Conferma')),
     ],
   ));
 }
@@ -204,14 +202,14 @@ void _confirmLeaveGuild(BuildContext context, GuildDashboardController controlle
     title: const Text('Lasciare la Gilda?'),
     content: const Text('Sei sicuro di voler lasciare questa gilda?'),
     actions: [
-      TextButton(child: const Text('Annulla'), onPressed: () => Navigator.pop(ctx)),
-      ElevatedButton(child: const Text('Lascia'), onPressed: () async {
+      TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Annulla')),
+      ElevatedButton(onPressed: () async {
         Navigator.pop(ctx);
         await controller.leaveGuild();
         if (context.mounted) {
           Navigator.of(context).pushAndRemoveUntil(MaterialPageRoute(builder: (_) => const GroupScreen()), (route) => false);
         }
-      }, style: ElevatedButton.styleFrom(backgroundColor: Colors.red, foregroundColor: Colors.white)),
+      }, style: ElevatedButton.styleFrom(backgroundColor: Colors.red, foregroundColor: Colors.white), child: const Text('Lascia')),
     ],
   ));
 }
