@@ -102,7 +102,7 @@ class _MapScreenState extends State<MapScreen> {
   List<EcoPoint> _ecoPoints = [];
   List<PollutedZone> _pollutedZones = [];
   List<Map<String, dynamic>> _reports = []; // Lista per le segnalazioni
-
+  // TODO: CONNETTERE AL DB
   // Lista dei negozi associati
   final List<AffiliatedStore> _stores = [
     AffiliatedStore(
