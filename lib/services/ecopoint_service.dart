@@ -21,4 +21,17 @@ class EcopointService {
       return false;
     }
   }
+
+  /// Recupera tutti i punti di raccolta dal database.
+  static Future<List<Map<String, dynamic>>> fetchAllEcopoints() async {
+    try {
+      final response = await _supabase
+          .from('punto_raccolta')
+          .select();
+      return List<Map<String, dynamic>>.from(response);
+    } catch (e) {
+      print("Errore recupero ecopoints: $e");
+      return [];
+    }
+  }
 }

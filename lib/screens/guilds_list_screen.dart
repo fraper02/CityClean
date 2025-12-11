@@ -1,3 +1,4 @@
+import 'package:cityclean/screens/guild_dashboard_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../controllers/guild_controller.dart';
@@ -19,7 +20,6 @@ class _GuildsListScreenState extends State<GuildsListScreen> {
   void initState() {
     super.initState();
     _controller = GuildController();
-    // Usa un listener per gli errori o messaggi, ma non per ricostruire l'intera UI
     _controller.addListener(_handleControllerChanges);
     _searchController.addListener(() {
       _controller.filterGuilds(_searchController.text);
@@ -27,13 +27,23 @@ class _GuildsListScreenState extends State<GuildsListScreen> {
   }
 
   void _handleControllerChanges() {
-    if (_controller.error != null && mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(_controller.error!), backgroundColor: Colors.red),
-      );
+    if (mounted) {
+      if (_controller.error != null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(_controller.error!), backgroundColor: Colors.red),
+        );
+      }
+      // MODIFICA: Controlla se ci siamo appena uniti a una gilda.
+      if (_controller.justJoinedGuildId != null) {
+        final guildId = _controller.justJoinedGuildId!;
+        _controller.clearJustJoinedState(); // Resetta lo stato subito dopo averlo letto.
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (context) => GuildDashboardScreen(guildId: guildId)),
+        );
+      }
+      setState(() {});
     }
-    // Ricostruisci la UI solo se necessario, usando ChangeNotifierProvider
-    setState(() {});
   }
 
   @override
@@ -48,7 +58,6 @@ class _GuildsListScreenState extends State<GuildsListScreen> {
   Widget build(BuildContext context) {
     final Color primaryGreen = Colors.green[700]!;
 
-    // Usa ChangeNotifierProvider per rendere il controller accessibile al widget tree
     return ChangeNotifierProvider.value(
       value: _controller,
       child: Scaffold(
@@ -68,7 +77,6 @@ class _GuildsListScreenState extends State<GuildsListScreen> {
           children: [
             Column(
               children: [
-                // BARRA DI RICERCA
                 Padding(
                   padding: const EdgeInsets.all(16.0),
                   child: TextField(
@@ -82,7 +90,6 @@ class _GuildsListScreenState extends State<GuildsListScreen> {
                     ),
                   ),
                 ),
-                // LISTA GILDE
                 Expanded(
                   child: Consumer<GuildController>(
                     builder: (context, controller, child) {
@@ -92,7 +99,6 @@ class _GuildsListScreenState extends State<GuildsListScreen> {
                 ),
               ],
             ),
-            // TASTO CREA GILDA
             Align(
               alignment: Alignment.bottomCenter,
               child: Padding(
@@ -141,25 +147,36 @@ class _GuildsListScreenState extends State<GuildsListScreen> {
 
   Widget _buildGuildCard(Guild guild, GuildController controller) {
     final String? currentUserId = controller.currentUserId;
+    final bool userIsInAGuild = controller.userGuildId != null;
+    
     bool isCreator = currentUserId == guild.creatorId;
-    bool isMember = guild.memberIds.contains(currentUserId);
+    bool isMemberOfThisGuild = controller.userGuildId == guild.id;
     bool isFull = guild.membersCount >= guild.maxCapacity;
 
-    bool canJoin = !isCreator && !isMember && !isFull;
-
-    String buttonText = "Unisciti";
-    Color buttonColor = Colors.green[700]!;
-    VoidCallback? onPressed = canJoin ? () => controller.joinGuild(guild.id) : null;
+    String buttonText;
+    Color buttonColor;
+    VoidCallback? onPressed;
 
     if (isCreator) {
-      buttonText = "Creatore";
+      buttonText = "Capo";
       buttonColor = Colors.grey;
-    } else if (isMember) {
+      onPressed = null;
+    } else if (isMemberOfThisGuild) {
       buttonText = "Membro";
       buttonColor = Colors.blueGrey;
+      onPressed = null;
     } else if (isFull) {
       buttonText = "Completa";
       buttonColor = Colors.orange;
+      onPressed = null;
+    } else if (userIsInAGuild) {
+      buttonText = "Unisciti";
+      buttonColor = Colors.grey;
+      onPressed = null;
+    } else {
+      buttonText = "Unisciti";
+      buttonColor = Colors.green[700]!;
+      onPressed = () => controller.joinGuild(guild.id);
     }
 
     return Card(
@@ -192,7 +209,9 @@ class _GuildsListScreenState extends State<GuildsListScreen> {
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
             padding: const EdgeInsets.symmetric(horizontal: 16),
           ),
-          child: controller.isJoining ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white)) : Text(buttonText),
+          child: controller.isJoining && onPressed != null 
+              ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+              : Text(buttonText),
         ),
       ),
     );

@@ -80,14 +80,10 @@ class _EventsScreenState extends State<EventsScreen> {
   Widget _buildContentUI() {
     return Column(
       children: [
-        // 1. HEADER VERDE
         Container(
           decoration: BoxDecoration(
             color: Colors.green[700],
-            borderRadius: const BorderRadius.only(
-              bottomLeft: Radius.circular(30),
-              bottomRight: Radius.circular(30),
-            ),
+            borderRadius: const BorderRadius.only(bottomLeft: Radius.circular(30), bottomRight: Radius.circular(30)),
           ),
           child: SafeArea(
             bottom: false,
@@ -97,10 +93,7 @@ class _EventsScreenState extends State<EventsScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   const SizedBox(height: 10),
-                  const Text(
-                    "Eventi in Zona",
-                    style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: Colors.white),
-                  ),
+                  const Text("Eventi in Zona", style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: Colors.white)),
                   const SizedBox(height: 20),
                   TextField(
                     controller: _searchController,
@@ -109,25 +102,17 @@ class _EventsScreenState extends State<EventsScreen> {
                       prefixIcon: const Icon(Icons.search, color: Colors.green),
                       filled: true,
                       fillColor: Colors.white,
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(15),
-                        borderSide: BorderSide.none,
-                      ),
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(15), borderSide: BorderSide.none),
                       contentPadding: const EdgeInsets.symmetric(vertical: 15),
                     ),
                   ),
-                  // Spazio aggiunto per distanziare la barra di ricerca dal bordo inferiore
                   const SizedBox(height: 25),
                 ],
               ),
             ),
           ),
         ),
-
-        // 2. LISTA DEGLI EVENTI
-        Expanded(
-          child: _buildEventsList(),
-        ),
+        Expanded(child: _buildEventsList()),
       ],
     );
   }
@@ -143,17 +128,21 @@ class _EventsScreenState extends State<EventsScreen> {
         return RefreshIndicator(
           onRefresh: _controller.loadEvents,
           child: ListView.builder(
-            // Aggiunto padding superiore per distanziare la lista dall'header
             padding: const EdgeInsets.fromLTRB(20, 10, 20, 20),
             itemCount: events.length,
             itemBuilder: (context, index) {
               final event = events[index];
-              final isSubscribed = _controller.subscribedEventIds.value.contains(event.id);
-
-              return EventCard(
-                event: event,
-                isSubscribed: isSubscribed,
-                onSubscribeToggle: () => _controller.toggleSubscription(context, event.id, event.title),
+              // CORREZIONE: La card ora ascolta le modifiche dello stato di iscrizione
+              return ValueListenableBuilder<Set<String>>(
+                valueListenable: _controller.subscribedEventIds,
+                builder: (context, subscribedIds, _) {
+                  final isSubscribed = subscribedIds.contains(event.id);
+                  return EventCard(
+                    event: event,
+                    isSubscribed: isSubscribed,
+                    onSubscribeToggle: () => _controller.toggleSubscription(context, event.id, event.titolo),
+                  );
+                },
               );
             },
           ),

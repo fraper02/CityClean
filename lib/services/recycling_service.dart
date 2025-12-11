@@ -1,35 +1,46 @@
-import 'dart:async';
-import 'package:shared_preferences/shared_preferences.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:latlong2/latlong.dart';
+import '../models/map_models.dart';
 
 class RecyclingService {
-  static final RecyclingService _instance = RecyclingService._internal();
-  factory RecyclingService() => _instance;
-  RecyclingService._internal();
+  final SupabaseClient _supabase = Supabase.instance.client;
 
-  static const _key = 'recycling_start_time';
+  // Recupera i punti dalla tabella 'punto_raccolta'
+  Future<List<EcoPoint>> getRecyclingPoints() async {
+    try {
+      // Eseguiamo la query sulla tabella specificata
+      final List<dynamic> response = await _supabase
+          .from('punto_raccolta')
+          .select('nome, indirizzo, latitudine, longitudine, tipologia');
 
-  Future<void> startRecycling() async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString(_key, DateTime.now().toIso8601String());
-  }
+      // Mappiamo i dati del DB nel modello EcoPoint
+      return response.map((data) {
+        // Gestione sicura dei double (a volte arrivano come int o stringhe dal DB)
+        final double lat = (data['latitudine'] is int)
+            ? (data['latitudine'] as int).toDouble()
+            : data['latitudine'];
 
-  Future<Duration> stopRecycling() async {
-    final prefs = await SharedPreferences.getInstance();
-    final startTimeString = prefs.getString(_key);
+        final double lng = (data['longitudine'] is int)
+            ? (data['longitudine'] as int).toDouble()
+            : data['longitudine'];
 
-    if (startTimeString == null) {
-      return Duration.zero;
+        // Gestione tipologia: puoi personalizzare la logica qui
+        // Es. se nel DB 'C' sta per Cestino, puoi fare un check.
+        // Qui assumiamo che il DB contenga già il nome completo o una sigla.
+        String tipo = data['tipologia'] ?? 'Generico';
+        if (tipo.toUpperCase() == 'C') tipo = 'Cestino'; // Esempio di conversione
+
+        return EcoPoint(
+          name: data['nome'] ?? 'Punto di raccolta',
+          location: LatLng(lat, lng),
+          type: tipo, id: '',
+          // Se EcoPoint ha altri campi nel tuo model, aggiungili qui o metti valori di default
+        );
+      }).toList();
+
+    } catch (e) {
+      print('Errore recupero punti raccolta: $e');
+      return []; // Ritorna lista vuota in caso di errore per non bloccare la mappa
     }
-
-    await prefs.remove(_key);
-    final startTime = DateTime.parse(startTimeString);
-    return DateTime.now().difference(startTime);
-  }
-
-  Future<bool> isRecycling() async {
-    final prefs = await SharedPreferences.getInstance();
-    // Force a reload of the data from disk to prevent reading cached values.
-    await prefs.reload();
-    return prefs.containsKey(_key);
   }
 }

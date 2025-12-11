@@ -1,5 +1,5 @@
 import 'package:cityclean/models/user_profile.dart';
-import 'package:cityclean/services/recycling_service.dart';
+import 'package:cityclean/services/session_service.dart';
 import 'package:cityclean/services/user_service.dart';
 import 'package:cityclean/screens/profile_screen.dart';
 import 'package:cityclean/screens/settings_screen.dart';

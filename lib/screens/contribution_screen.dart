@@ -2,8 +2,7 @@ import 'package:cityclean/models/sessione_raccolta.dart';
 import 'package:cityclean/screens/home_screen.dart';
 import 'package:cityclean/services/contribution_service.dart';
 import 'package:cityclean/models/aggiungi_punti.dart';
-import 'package:cityclean/services/recycling_service.dart';
-import 'package:cityclean/services/sessione_raccolta_service.dart';
+import 'package:cityclean/services/session_service.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -21,7 +20,6 @@ class ContributionScreen extends StatefulWidget {
 class _ContributionScreenState extends State<ContributionScreen> {
   final supabase = Supabase.instance.client;
   final RecyclingService _recyclingService = RecyclingService();
-  final SessioneRaccoltaService _sessioneRaccoltaService = SessioneRaccoltaService();
   final Uuid _uuid = const Uuid();
 
   // Stato per i dati dinamici
@@ -194,7 +192,7 @@ class _ContributionScreenState extends State<ContributionScreen> {
         );
 
         try {
-          await _sessioneRaccoltaService.createSessioneRaccolta(sessione);
+          await _recyclingService.createSessioneRaccolta(sessione);
           if (!mounted) return;
 
           // Clear the navigation stack and navigate to a new HomeScreen instance

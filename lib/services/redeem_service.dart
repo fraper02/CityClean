@@ -1,6 +1,8 @@
 import 'dart:developer';
+import 'package:cityclean/models/user_profile.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import '../models/prizes.dart';
-import '../models/user_profile.dart';
+import '../services/user_service.dart';
 import '../main.dart';
 import '../services/notifiche.dart'; // 👈 aggiungi questo
 
@@ -49,12 +51,10 @@ class RedeemService {
       }
 
       log("Riscatto OK: ${result?['message']}");
-/*
+
       await NotificheService.premioRiscattato(
-        nomePremio: "Buono Amazon 10€",
-        immagineLocale: 'assets/images/reward_icon.png', // opzionale
+        nomePremio: prize.id
       );
-*/
 
     } catch (e) {
       log("Errore riscatto: $e");
