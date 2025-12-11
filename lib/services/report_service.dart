@@ -70,6 +70,7 @@ class ReportService {
             ? fullDescription.substring(0, 255) 
             : fullDescription,
         'ultimoaggiornamento': DateTime.now().toIso8601String(),
+        'datacreazione': DateTime.now().toIso8601String(),
         'fontedato': 'App Utente',
         'stato': 'Aperta',
       });
