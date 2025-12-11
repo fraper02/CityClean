@@ -93,7 +93,10 @@ class ReportService {
     required String userId,
   }) async {
     try {
+      final eventId = _generateId(prefix: 'evt'); // Generazione ID evento
+
       await supabase.from('evento').insert({
+        'idevento': eventId,
         'titolo': title,
         'descrizione': description,
         'categoria': wasteType,
