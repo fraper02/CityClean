@@ -89,6 +89,8 @@ class _UserActivityScreenState extends State<UserActivityScreen> {
       case ActivityType.obiettivo: return Icons.star;
       case ActivityType.badge: return Icons.shield;
       case ActivityType.premio: return Icons.card_giftcard;
+      // CORREZIONE: Aggiunto il nuovo tipo di attività
+      case ActivityType.adminAdjustment: return Icons.admin_panel_settings;
     }
   }
 
@@ -99,6 +101,8 @@ class _UserActivityScreenState extends State<UserActivityScreen> {
       case ActivityType.obiettivo: return Colors.orange;
       case ActivityType.badge: return Colors.purple;
       case ActivityType.premio: return Colors.red;
+      // CORREZIONE: Aggiunto il nuovo tipo di attività
+      case ActivityType.adminAdjustment: return Colors.grey;
     }
   }
 }

@@ -93,7 +93,10 @@ class ReportService {
     required String userId,
   }) async {
     try {
+      final eventId = _generateId(prefix: 'evt'); // Generazione ID evento
+
       await supabase.from('evento').insert({
+        'idevento': eventId,
         'titolo': title,
         'descrizione': description,
         'categoria': wasteType,
@@ -109,7 +112,7 @@ class ReportService {
       await NotificheService.nuovaNotificaEvento(
         nomeEvento: title,
         descrizione: description,
-        immagineLocale: null, // Se hai un'immagine locale cambia questo
+        immagineLocale: 'https://placehold.co/600x400/orange/white?text=Evento+CityClean', // Se hai un'immagine locale cambia questo
       );
 
     } on PostgrestException catch (e) {
