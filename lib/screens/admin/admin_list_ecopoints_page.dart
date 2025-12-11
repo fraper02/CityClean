@@ -104,7 +104,7 @@ class AdminListEcopointsPageState extends State<AdminListEcopointsPage> {
                   mainAxisAlignment: MainAxisAlignment.end,
                   children: [
                     IconButton(
-                      icon: const Icon(Icons.edit, color: Colors.blue), 
+                      icon: const Icon(Icons.edit, color: Colors.black), 
                       tooltip: 'Modifica',
                       onPressed: () => _showEditDialog(context, ecopoint)
                     ),

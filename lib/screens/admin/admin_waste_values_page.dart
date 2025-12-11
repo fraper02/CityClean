@@ -158,7 +158,7 @@ class AdminWasteValuesPageState extends State<AdminWasteValuesPage> {
           mainAxisSize: MainAxisSize.min,
           children: [
             IconButton(
-              icon: const Icon(Icons.edit, color: Colors.blue),
+              icon: const Icon(Icons.edit, color: Colors.black),
               onPressed: () => _showEditDialog(item),
             ),
             IconButton(
