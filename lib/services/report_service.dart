@@ -109,7 +109,7 @@ class ReportService {
       await NotificheService.nuovaNotificaEvento(
         nomeEvento: title,
         descrizione: description,
-        immagineLocale: null, // Se hai un'immagine locale cambia questo
+        immagineLocale: 'https://placehold.co/600x400/orange/white?text=Evento+CityClean', // Se hai un'immagine locale cambia questo
       );
 
     } on PostgrestException catch (e) {
