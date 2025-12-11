@@ -1,4 +1,5 @@
 import 'package:cityclean/models/user_profile.dart';
+import 'package:cityclean/services/recycling_service.dart';
 import 'package:cityclean/services/user_service.dart';
 import 'package:cityclean/screens/profile_screen.dart';
 import 'package:cityclean/screens/settings_screen.dart';
@@ -8,12 +9,13 @@ import 'package:cityclean/screens/subscribed_events_screen.dart';
 import 'package:cityclean/screens/qr_scanner_screen.dart';
 import 'package:cityclean/screens/badge_screen.dart';
 import 'package:cityclean/screens/objectives_screen.dart';
-import 'package:cityclean/screens/missions_screen.dart'; // Importa la nuova schermata
-import 'package:cityclean/screens/collection_history_screen.dart'; // Importa la nuova schermata
+import 'package:cityclean/screens/missions_screen.dart';
+import 'package:cityclean/screens/collection_history_screen.dart';
 import 'package:cityclean/components/bottom_nav_bar.dart';
 import 'package:cityclean/screens/create_event_screen.dart';
 import 'package:flutter/material.dart';
 import 'group_screen.dart';
+import 'map_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -24,6 +26,7 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   final UserService _userService = UserService();
+  final RecyclingService _recyclingService = RecyclingService();
   Future<UserProfile>? _profileDataFuture;
 
   @override
@@ -43,6 +46,8 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed) {
       _loadProfile();
+      // Refresh the UI to reflect the latest recycling state
+      setState(() {});
     }
   }
 
@@ -196,24 +201,63 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   }
 
   Widget _buildMainAction(BuildContext context) {
-    return SizedBox(
-      width: double.infinity,
-      height: 90,
-      child: ElevatedButton.icon(
-        onPressed: () {
-          Navigator.push(
-            context,
-            MaterialPageRoute(builder: (context) => const QrScannerScreen()),
+    return FutureBuilder<bool>(
+      // Use a key to re-trigger the future when the state changes
+      key: ValueKey(DateTime.now()),
+      future: _recyclingService.isRecycling(),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return SizedBox(
+            width: double.infinity,
+            height: 90,
+            child: ElevatedButton.icon(
+              onPressed: null, // Disabled while loading
+              icon: const Icon(Icons.hourglass_empty, size: 30),
+              label: const Text("Caricamento...", style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.grey,
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+              ),
+            ),
           );
-        },
-        icon: const Icon(Icons.qr_code_scanner, size: 30),
-        label: const Text("Inizia a Riciclare", style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
-        style: ElevatedButton.styleFrom(
-          backgroundColor: Colors.green[600],
-          foregroundColor: Colors.white,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        ),
-      ),
+        }
+
+        final isRecycling = snapshot.data ?? false;
+
+        return SizedBox(
+          width: double.infinity,
+          height: 90,
+          child: ElevatedButton.icon(
+            onPressed: () async {
+              if (isRecycling) {
+                await Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => const QrScannerScreen()),
+                );
+              } else {
+                await _recyclingService.startRecycling();
+                await Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => const MapScreen()),
+                );
+              }
+              // Rebuild the widget to reflect the new state
+              setState(() {});
+            },
+            icon: Icon(isRecycling ? Icons.stop_circle_outlined : Icons.qr_code_scanner, size: 30),
+            label: Text(
+              isRecycling ? "Concludi sessione" : "Inizia a Riciclare",
+              style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+            ),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: isRecycling ? Colors.red[600] : Colors.green[600],
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+            ),
+          ),
+        );
+      },
     );
   }
 
@@ -307,7 +351,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
             const SizedBox(height: 10),
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 8.0),
-              child: Text(label, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500), textAlign: TextAlign.center,),
+              child: Text(label, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500), textAlign: TextAlign.center),
             ),
           ],
         ),
