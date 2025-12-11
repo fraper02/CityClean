@@ -11,6 +11,8 @@ import '../services/report_service.dart';
 import '../services/storage_service.dart';
 import 'dart:async';
 import '../data/map_data.dart';
+import '../services/store_service.dart';
+import 'package:cityclean/models/affiliated_store.dart';
 
 class MapScreen extends StatefulWidget {
   const MapScreen({super.key});
@@ -94,6 +96,7 @@ class _MapScreenState extends State<MapScreen> {
   final MapController _mapController = MapController();
   final OsmService _osmService = OsmService();
   final ReportService _reportService = ReportService();
+  final StoreService _storeService = StoreService();
 
   LatLng _currentCenter = const LatLng(40.6795, 14.7645);
   bool _isLocationLoaded = false;
@@ -101,58 +104,7 @@ class _MapScreenState extends State<MapScreen> {
   List<EcoPoint> _ecoPoints = [];
   List<PollutedZone> _pollutedZones = [];
   List<Map<String, dynamic>> _reports = []; // Lista per le segnalazioni
-
-  // Lista dei negozi associati
-  final List<AffiliatedStore> _stores = [
-    AffiliatedStore(
-      name: "Centro Commerciale Le Cotoniere",
-      location: const LatLng(40.7039561, 14.7766496),
-      openHours: "10:00 - 21:00",
-      imageUrl: "https://th.bing.com/th/id/OIP.pz8O-CNwViydgfwsn7D1FQHaEK?w=293&h=180&c=7&r=0&o=7&dpr=1.1&pid=1.7&rm=3",
-    ),
-    AffiliatedStore(
-      name: "Unieuro",
-      location: const LatLng(40.6514007, 14.8212368),
-      openHours: "09:00 - 20:30",
-      imageUrl: "https://iportaliweb.it/wp-content/uploads/2022/08/unieuro-768x490.png",
-    ),
-    AffiliatedStore(
-      name: "Supermercato etè",
-      location: const LatLng(40.6633147, 14.7945714),
-      openHours: "08:00 - 14:00 / 15:00 - 20:30",
-      imageUrl: "https://tse4.mm.bing.net/th/id/OIP.1A2buJX0N_sTwMQYdVPmJQHaEL?rs=1&pid=ImgDetMain&o=7&rm=3",
-    ),
-    AffiliatedStore(
-      name: "The Space Cinema",
-      location: const LatLng(40.6471238, 14.8166512),
-      openHours: "13:00 - 23:00",
-      imageUrl: "https://th.bing.com/th/id/OIP.tuqxik_9HroDY_hmQWyi5gAAAA?o=7&cb=ucfimg2&rm=3&ucfimg=1&rs=1&pid=ImgDetMain&o=7&rm=3",
-    ),
-    AffiliatedStore(
-      name: "Bar Gelateria Nettuno",
-      location: const LatLng(40.6691654, 14.7901217),
-      openHours: "06:00 - 01:00",
-      imageUrl: "https://th.bing.com/th/id/R.5384a56c0be5170469b970de51ebbba4?rik=Iexp5NJ3LsC59A&pid=ImgRaw&r=0",
-    ),
-    AffiliatedStore(
-      name: "Chiosco della Musica",
-      location: const LatLng(40.6755, 14.7933),
-      openHours: "09:00 - 20:00",
-      imageUrl: "https://th.bing.com/th/id/OIP.ZQagfDB_FZ2HiCZpDybY9wHaHa?o=7&cb=ucfimg2&rm=3&ucfimg=1&rs=1&pid=ImgDetMain&o=7&rm=3",
-    ),
-    AffiliatedStore(
-      name: "Sole365",
-      location: const LatLng(40.6754715, 14.7773649),
-      openHours: "mercoledì,07–22\n"
-          "giovedì,07–22\n"
-          "venerdì,07–22\n"
-          "sabato,07–22\n"
-          "domenica,08–22\n"
-          "lunedì,07–22\n"
-          "martedì,07–22\n",
-      imageUrl: "https://lh3.googleusercontent.com/gps-cs-s/AG0ilSw2zmkkVlWl6ROpX-pl47hafV6B8GhiAGMjzsK82rWTKS3xMHTQm5rvkemoCOzKBFwC4_8I0x_2p8CtaeRhl7tua2KmdZLhSsc5ZFjrhqB0jNQKl3lVdimc-gQZNZzRb8sJ_pwq=w408-h306-k-no",
-    ),
-  ];
+  List<AffiliatedStore> _stores = [];// Lista dei negozi associati
   bool _isLoading = false;
   bool _showBins = true;
 
@@ -201,32 +153,39 @@ class _MapScreenState extends State<MapScreen> {
   Future<void> _loadPoints() async {
     if (_isLoading) return;
 
-    setState(() {
-      _isLoading = true;
-    });
+    setState(() => _isLoading = true);
 
     await Future.delayed(const Duration(seconds: 1));
 
     try {
+      // Carica zone e punti (tuo codice)
       final zones = MockMapData.pollutedZones;
       final mockPoints = MockMapData.ecoPoints;
 
       LatLng centerToUse = _currentCenter;
       try {
         centerToUse = _mapController.camera.center;
-      } catch(_) {}
+      } catch (_) {}
 
       final realPoints = await _osmService.fetchRecyclingPoints(centerToUse, 2000);
-      final reports = await _reportService.getReports(); // Carica le segnalazioni
 
-      if (mounted) {
-        setState(() {
-          _pollutedZones = zones;
-          _ecoPoints = [...mockPoints, ...realPoints];
-          _reports = reports;
-          _isLoading = false;
-        });
-      }
+      // 🔥 Carichiamo i negozi dal DATABASE
+      final stores = await _storeService.getStores();
+
+      final reports = await _reportService.getReports();
+
+      if (!mounted) return;
+
+      setState(() {
+        _pollutedZones = zones;
+        _ecoPoints = [...mockPoints, ...realPoints];
+        _reports = reports;
+
+        _stores = stores;   // 👈 ECCO I NEGOZI CARICATI
+
+        _isLoading = false;
+      });
+
     } catch (e) {
       print("Errore caricamento punti: $e");
       if (mounted) {
@@ -794,17 +753,4 @@ class _UserLocationMarker extends StatelessWidget {
       ),
     );
   }
-}
-class AffiliatedStore {
-  final String name;
-  final LatLng location;
-  final String openHours;
-  final String imageUrl;
-
-  AffiliatedStore({
-    required this.name,
-    required this.location,
-    required this.openHours,
-    required this.imageUrl,
-  });
 }

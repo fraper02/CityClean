@@ -1,12 +1,12 @@
-// lib/services/notifiche.dart
-
+import 'dart:io';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+import 'package:permission_handler/permission_handler.dart';
 
 class NotificheService {
   static final FlutterLocalNotificationsPlugin _notificationsPlugin =
   FlutterLocalNotificationsPlugin();
 
-  // Inizializzazione del plugin
+  /// Inizializzazione del plugin
   static Future<void> init() async {
     const AndroidInitializationSettings androidSettings =
     AndroidInitializationSettings('@mipmap/ic_launcher');
@@ -17,9 +17,23 @@ class NotificheService {
     await _notificationsPlugin.initialize(
       settings,
       onDidReceiveNotificationResponse: (response) {
-        // Azione al tap sulla notifica (opzionale)
+        // Azione quando l’utente clicca sulla notifica
       },
     );
+
+    // Richiesta permesso su Android 13+
+    if (Platform.isAndroid) {
+      final androidImplementation =
+      _notificationsPlugin.resolvePlatformSpecificImplementation<
+          AndroidFlutterLocalNotificationsPlugin>();
+
+      if (androidImplementation != null) {
+        // Controlla se siamo su Android 13+
+        if (await Permission.notification.isDenied) {
+          await Permission.notification.request();
+        }
+      }
+    }
   }
 
   /// 1) Notifica nuovo evento
@@ -34,7 +48,9 @@ class NotificheService {
       channelDescription: 'Notifiche per nuovi eventi',
       importance: Importance.max,
       priority: Priority.high,
-      largeIcon: immagineLocale != null ? DrawableResourceAndroidBitmap(immagineLocale) : null,
+      largeIcon: immagineLocale != null
+          ? DrawableResourceAndroidBitmap(immagineLocale)
+          : null,
     );
 
     final details = NotificationDetails(android: androidDetails);
@@ -59,7 +75,9 @@ class NotificheService {
       channelDescription: 'Notifiche per premi riscattati',
       importance: Importance.max,
       priority: Priority.high,
-      largeIcon: immagineLocale != null ? DrawableResourceAndroidBitmap(immagineLocale) : null,
+      largeIcon: immagineLocale != null
+          ? DrawableResourceAndroidBitmap(immagineLocale)
+          : null,
     );
 
     final details = NotificationDetails(android: androidDetails);

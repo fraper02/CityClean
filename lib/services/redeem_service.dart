@@ -54,7 +54,7 @@ class RedeemService {
 
       await NotificheService.premioRiscattato(
         nomePremio: prize.id,
-        immagineLocale: 'assets/images/spunta.png', // opzionale
+        //immagineLocale: 'assets/images/spunta.png', // opzionale
       );
 
     } catch (e) {
