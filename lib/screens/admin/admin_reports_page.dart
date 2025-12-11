@@ -143,7 +143,9 @@ class AdminReportsPageState extends State<AdminReportsPage> {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Text(title, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                    Expanded(
+                      child: Text(title, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                    ),
                     const Icon(Icons.arrow_forward_ios, size: 16, color: Colors.grey),
                   ],
                 ),
@@ -172,11 +174,11 @@ class AdminReportsPageState extends State<AdminReportsPage> {
       final index = aggregatedData.keys.toList().indexOf(entry.key);
       return BarChartGroupData(
         x: index,
-        barRods: [BarChartRodData(toY: entry.value.toDouble(), color: _getColorForLevel(entry.key), width: 35, borderRadius: BorderRadius.circular(4))],
+        barRods: [BarChartRodData(toY: entry.value.toDouble(), color: _getColorForLevel(entry.key), width: 25, borderRadius: BorderRadius.circular(4))],
       );
     }).toList();
 
-    return BarChart(BarChartData(barGroups: barGroups, titlesData: FlTitlesData(bottomTitles: AxisTitles(sideTitles: SideTitles(showTitles: true, getTitlesWidget: (value, meta) => SideTitleWidget(axisSide: meta.axisSide, child: Text(aggregatedData.keys.toList()[value.toInt()], style: const TextStyle(fontSize: 12))), reservedSize: 20)), leftTitles: const AxisTitles(sideTitles: SideTitles(showTitles: true, reservedSize: 28)), topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)), rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false))), borderData: FlBorderData(show: false), gridData: const FlGridData(show: false)));
+    return BarChart(BarChartData(barGroups: barGroups, titlesData: FlTitlesData(bottomTitles: AxisTitles(sideTitles: SideTitles(showTitles: true, getTitlesWidget: (value, meta) => SideTitleWidget(axisSide: meta.axisSide, child: Text(aggregatedData.keys.toList()[value.toInt()], style: const TextStyle(fontSize: 11))), reservedSize: 20)), leftTitles: const AxisTitles(sideTitles: SideTitles(showTitles: true, reservedSize: 28)), topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)), rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false))), borderData: FlBorderData(show: false), gridData: const FlGridData(show: false)));
   }
 
   Widget _buildCo2BarChart(List data) {
