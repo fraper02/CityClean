@@ -1,4 +1,4 @@
-// lib/models/prizes.dart
+import 'package:cityclean/models/partner.dart'; // Importa il modello Partner
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 class Prize {
@@ -8,6 +8,7 @@ class Prize {
   final int costoPunti;
   final int quantitaDisponibile;
   final String idPartner;
+  final Partner? partner; // Campo per contenere l'oggetto Partner
 
   Prize({
     required this.id,
@@ -16,6 +17,7 @@ class Prize {
     required this.costoPunti,
     required this.quantitaDisponibile,
     required this.idPartner,
+    this.partner, // Aggiunto al costruttore
   });
 
   factory Prize.fromJson(Map<String, dynamic> json) {
@@ -30,6 +32,8 @@ class Prize {
           ? json['quantitadisponibile']
           : int.tryParse(json['quantitadisponibile'].toString()) ?? 0,
       idPartner: json['idpartner'] ?? '',
+      // Se nel JSON c'è l'oggetto partner (da una join), lo crea.
+      partner: json.containsKey('partner') && json['partner'] != null ? Partner.fromJson(json['partner']) : null,
     );
   }
 
@@ -44,14 +48,10 @@ class Prize {
     };
   }
 
-  // --- LOGICA DAO ---
   static final _supabase = Supabase.instance.client;
 
-  /// Recupera tutti i premi disponibili.
   static Future<List<Prize>> fetchAll() async {
     final response = await _supabase.from('premio').select();
     return (response as List).map((item) => Prize.fromJson(item)).toList();
   }
-
-// IL METODO updateQuantity È STATO RIMOSSO PERCHÉ GESTITO DALLA RPC LATO SERVER
 }

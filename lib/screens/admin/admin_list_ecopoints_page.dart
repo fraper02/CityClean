@@ -1,163 +1,227 @@
+import 'package:cityclean/controllers/admin/ecopoints_controller.dart';
+import 'package:cityclean/models/ecopoint.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart'; // Per copiare negli appunti
-import 'package:supabase_flutter/supabase_flutter.dart';
 
-class AdminListEcopointsPage extends StatelessWidget {
+class AdminListEcopointsPage extends StatefulWidget {
   const AdminListEcopointsPage({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    final supabase = Supabase.instance.client;
+  State<AdminListEcopointsPage> createState() => _AdminListEcopointsPageState();
+}
 
+class _AdminListEcopointsPageState extends State<AdminListEcopointsPage> {
+  late final EcopointsController _controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = EcopointsController();
+    _controller.loadEcopoints();
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text("Lista Punti Raccolta"),
-        backgroundColor: Colors.green[800],
-        foregroundColor: Colors.white,
+        title: const Text("Gestione Punti di Raccolta"),
+        backgroundColor: Colors.white,
+        elevation: 1,
       ),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(
-              "Ecopunti Attivi",
-              style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+      backgroundColor: Colors.grey[100],
+      body: ValueListenableBuilder<EcopointsState>(
+        valueListenable: _controller.state,
+        builder: (context, state, _) {
+          if (state == EcopointsState.loading) {
+            return const Center(child: CircularProgressIndicator());
+          }
+          if (state == EcopointsState.error) {
+            return Center(
+              child: Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: Text(_controller.errorMessage.value, textAlign: TextAlign.center),
+              ),
+            );
+          }
+
+          return ValueListenableBuilder<List<Ecopoint>>(
+            valueListenable: _controller.ecopoints,
+            builder: (context, ecopoints, _) {
+              if (ecopoints.isEmpty) {
+                return const Center(child: Text("Nessun ecopunto trovato."));
+              }
+              return ListView.builder(
+                padding: const EdgeInsets.all(12),
+                itemCount: ecopoints.length,
+                itemBuilder: (context, index) {
+                  return _buildEcopointCard(ecopoints[index]);
+                },
+              );
+            },
+          );
+        },
+      ),
+      floatingActionButton: FloatingActionButton(
+        onPressed: () => _showEditDialog(context, null),
+        backgroundColor: Colors.green[700],
+        tooltip: 'Aggiungi Ecopunto',
+        child: const Icon(Icons.add, color: Colors.white),
+      ),
+    );
+  }
+
+  Widget _buildEcopointCard(Ecopoint ecopoint) {
+    return Card(
+      margin: const EdgeInsets.symmetric(vertical: 8),
+      elevation: 2,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      clipBehavior: Clip.antiAlias,
+      child: ExpansionTile(
+        title: Text(ecopoint.name, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+        subtitle: Text(ecopoint.address, maxLines: 1, overflow: TextOverflow.ellipsis),
+        leading: Icon(Icons.location_on, color: Colors.green[700]),
+        children: [
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text("Statistiche (Ultimi 30 giorni)", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+                const Divider(height: 16),
+                _buildStatRow(Icons.recycling, "Totale Conferimenti", ecopoint.monthlyConferimentiCount.toString()),
+                _buildStatRow(Icons.person, "Utenti Unici", ecopoint.monthlyUniqueUsers.toString()),
+                _buildStatRow(Icons.star, "Punti Generati", ecopoint.monthlyTotalPunti.toString()),
+                const Divider(height: 24),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  children: [
+                    IconButton(
+                      icon: const Icon(Icons.edit, color: Colors.blue), 
+                      tooltip: 'Modifica',
+                      onPressed: () => _showEditDialog(context, ecopoint)
+                    ),
+                    const SizedBox(width: 8),
+                    IconButton(
+                      icon: const Icon(Icons.delete, color: Colors.red), 
+                      tooltip: 'Elimina',
+                      onPressed: () => _showDeleteDialog(context, ecopoint)
+                    ),
+                  ],
+                )
+              ],
             ),
-            const SizedBox(height: 8),
-            const Text(
-              "Elenco di tutti i punti di raccolta configurati nel sistema.",
-              style: TextStyle(color: Colors.grey),
-            ),
-            const SizedBox(height: 20),
+          ),
+        ],
+      ),
+    );
+  }
 
-            Expanded(
-              child: Card(
-                elevation: 2,
-                child: StreamBuilder<List<Map<String, dynamic>>>(
-                  // Query: Seleziona tutti i punti raccolta
-                  stream: supabase
-                      .from('punto_raccolta')
-                      .stream(primaryKey: ['idpuntoraccolta'])
-                      .order('nome', ascending: true),
-                  builder: (context, snapshot) {
-                    if (snapshot.hasError) {
-                      return Center(child: Text("Errore: ${snapshot.error}", style: const TextStyle(color: Colors.red)));
-                    }
-                    if (!snapshot.hasData) {
-                      return const Center(child: CircularProgressIndicator());
-                    }
+  Widget _buildStatRow(IconData icon, String label, String value) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4.0),
+      child: Row(
+        children: [
+          Icon(icon, color: Colors.grey[600], size: 18),
+          const SizedBox(width: 12),
+          Text("$label:", style: TextStyle(color: Colors.grey[700])),
+          const Spacer(),
+          Text(value, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
+        ],
+      ),
+    );
+  }
 
-                    final ecopoints = snapshot.data!;
 
-                    if (ecopoints.isEmpty) {
-                      return const Center(child: Text("Nessun punto raccolta trovato."));
-                    }
+  void _showDeleteDialog(BuildContext context, Ecopoint ecopoint) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text("Conferma Eliminazione"),
+        content: Text("Sei sicuro di voler eliminare l'ecopunto '${ecopoint.name}'? L'azione è irreversibile."),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Annulla')),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+            onPressed: () {
+              _controller.deleteEcopoint(context, ecopoint.id);
+              Navigator.pop(context);
+            },
+            child: const Text('Elimina', style: TextStyle(color: Colors.white)),
+          ),
+        ],
+      ),
+    );
+  }
 
-                    return SingleChildScrollView(
-                      scrollDirection: Axis.vertical,
-                      child: SingleChildScrollView(
-                        scrollDirection: Axis.horizontal,
-                        child: DataTable(
-                          headingRowColor: WidgetStateProperty.all(Colors.green[50]),
-                          columns: const [
-                            DataColumn(label: Text('ID', style: TextStyle(fontWeight: FontWeight.bold))),
-                            DataColumn(label: Text('Nome', style: TextStyle(fontWeight: FontWeight.bold))),
-                            DataColumn(label: Text('Tipologia', style: TextStyle(fontWeight: FontWeight.bold))),
-                            DataColumn(label: Text('Coordinate', style: TextStyle(fontWeight: FontWeight.bold))),
-                            DataColumn(label: Text('Azioni', style: TextStyle(fontWeight: FontWeight.bold))),
-                          ],
-                          rows: ecopoints.map((point) {
-                            final id = point['idpuntoraccolta'] ?? 'N/A';
-                            final nome = point['nome'] ?? 'N/A';
-                            final tipo = point['tipologia'] ?? '-';
-                            final lat = point['latitudine']?.toStringAsFixed(4) ?? '0';
-                            final long = point['longitudine']?.toStringAsFixed(4) ?? '0';
+  void _showEditDialog(BuildContext context, Ecopoint? ecopoint) {
+    final isCreating = ecopoint == null;
+    final formKey = GlobalKey<FormState>();
+    
+    // CORREZIONE: Rimosso il `!` da `ecopoint!.id` perché la logica `isCreating` già garantisce che non sia null in questo ramo.
+    final idController = TextEditingController(text: isCreating ? 'ECO-${DateTime.now().millisecondsSinceEpoch}' : ecopoint.id);
+    final nomeController = TextEditingController(text: ecopoint?.name ?? '');
+    final indirizzoController = TextEditingController(text: ecopoint?.address ?? '');
+    final tipologiaController = TextEditingController(text: ecopoint?.type ?? '');
+    final latController = TextEditingController(text: ecopoint?.latitude.toString() ?? '');
+    final lonController = TextEditingController(text: ecopoint?.longitude.toString() ?? '');
 
-                            return DataRow(cells: [
-                              // Colonna ID con pulsante copia
-                              DataCell(
-                                InkWell(
-                                  onTap: () {
-                                    Clipboard.setData(ClipboardData(text: id));
-                                    ScaffoldMessenger.of(context).showSnackBar(
-                                      const SnackBar(content: Text("ID copiato negli appunti"), duration: Duration(seconds: 1)),
-                                    );
-                                  },
-                                  child: Row(
-                                    children: [
-                                      const Icon(Icons.copy, size: 14, color: Colors.grey),
-                                      const SizedBox(width: 4),
-                                      Text(id, style: const TextStyle(fontFamily: 'monospace', fontWeight: FontWeight.bold, fontSize: 12)),
-                                    ],
-                                  ),
-                                ),
-                              ),
-                              DataCell(Row(
-                                children: [
-                                  Icon(Icons.location_on, color: Colors.green[700], size: 20),
-                                  const SizedBox(width: 8),
-                                  Text(nome, style: const TextStyle(fontWeight: FontWeight.w600)),
-                                ],
-                              )),
-                              DataCell(Chip(
-                                label: Text(tipo, style: const TextStyle(fontSize: 12)),
-                                backgroundColor: Colors.grey[200],
-                              )),
-                              DataCell(Text("$lat, $long", style: const TextStyle(fontFamily: 'monospace'))),
-                              DataCell(Row(
-                                children: [
-                                  IconButton(
-                                    icon: const Icon(Icons.edit, color: Colors.blue),
-                                    tooltip: "Modifica",
-                                    onPressed: () {
-                                      // TODO: Implementare modifica
-                                    },
-                                  ),
-                                  IconButton(
-                                    icon: const Icon(Icons.delete, color: Colors.red),
-                                    tooltip: "Elimina",
-                                    onPressed: () async {
-                                      final confirm = await showDialog<bool>(
-                                        context: context,
-                                        builder: (ctx) => AlertDialog(
-                                          title: const Text("Eliminare Ecopunto?"),
-                                          content: Text("Vuoi davvero eliminare $nome?"),
-                                          actions: [
-                                            TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text("Annulla")),
-                                            TextButton(onPressed: () => Navigator.pop(ctx, true), child: const Text("Elimina", style: TextStyle(color: Colors.red))),
-                                          ],
-                                        ),
-                                      );
-
-                                      if (confirm == true) {
-                                        try {
-                                          await supabase.from('punto_raccolta').delete().eq('idpuntoraccolta', id);
-                                          if (context.mounted) {
-                                            ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Eliminato con successo")));
-                                          }
-                                        } catch (e) {
-                                          if (context.mounted) {
-                                            ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Errore: $e"), backgroundColor: Colors.red));
-                                          }
-                                        }
-                                      }
-                                    },
-                                  ),
-                                ],
-                              )),
-                            ]);
-                          }).toList(),
-                        ),
-                      ),
-                    );
-                  },
-                ),
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: Text(isCreating ? "Nuovo Ecopunto" : "Modifica Ecopunto"),
+          content: Form(
+            key: formKey,
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  TextFormField(
+                    controller: idController,
+                    decoration: const InputDecoration(labelText: 'ID'),
+                    readOnly: true,
+                  ),
+                  TextFormField(controller: nomeController, decoration: const InputDecoration(labelText: 'Nome'), validator: (v) => v!.isEmpty ? 'Campo obbligatorio' : null),
+                  TextFormField(controller: indirizzoController, decoration: const InputDecoration(labelText: 'Indirizzo')),
+                  TextFormField(controller: tipologiaController, decoration: const InputDecoration(labelText: 'Tipologia')),
+                  TextFormField(controller: latController, decoration: const InputDecoration(labelText: 'Latitudine'), keyboardType: TextInputType.number, validator: (v) => (v == null || v.isEmpty || double.tryParse(v) == null) ? 'Valore non valido' : null),
+                  TextFormField(controller: lonController, decoration: const InputDecoration(labelText: 'Longitudine'), keyboardType: TextInputType.number, validator: (v) => (v == null || v.isEmpty || double.tryParse(v) == null) ? 'Valore non valido' : null),
+                ],
               ),
             ),
+          ),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(context), child: const Text('Annulla')),
+            ElevatedButton(
+              onPressed: () {
+                if (formKey.currentState!.validate()) {
+                  final ecopointData = Ecopoint(
+                    id: idController.text,
+                    name: nomeController.text,
+                    address: indirizzoController.text,
+                    type: tipologiaController.text,
+                    latitude: double.parse(latController.text),
+                    longitude: double.parse(lonController.text),
+                  );
+
+                  if (isCreating) {
+                    _controller.createEcopoint(context, ecopointData);
+                  } else {
+                    _controller.updateEcopoint(context, ecopointData);
+                  }
+                  Navigator.pop(context);
+                }
+              },
+              child: const Text('Salva'),
+            ),
           ],
-        ),
-      ),
+        );
+      },
     );
   }
 }

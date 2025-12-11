@@ -24,9 +24,11 @@ dependencies:
   tflite_flutter: ^0.12.1 # Libreria per la classificazione
   image: ^4.2.0          # Per processare le immagini
   camera: ^0.11.1
+  fl_chart: ^0.68.0      # Aggiunto per i grafici
 
   http: any
   provider: ^6.1.5+1
+
 dev_dependencies:
   flutter_native_splash: ^2.3.10
   flutter_test:
@@ -43,14 +45,11 @@ flutter:
 
 
 flutter_launcher_icons:
-  android: "launcher_icon" # Nome dell'icona per Android (standard)
-  ios: true                # Genera anche per iOS
-  image_path: "assets/images/logo.png" # <--- PERCORSO DELLA TUA IMMAGINE ICONA
-  min_sdk_android: 21      # Opzionale: Assicurati che sia compatibile con la tua minSdk
-  # remove_alpha_ios: true # Opzionale: Se la tua icona ha trasparenza per iOS
+  android: "launcher_icon"
+  ios: true
+  image_path: "assets/images/logo.png"
+  min_sdk_android: 21
 
-
-# ⬇⬇⬇ ATTENZIONE: questa sezione deve stare FUORI da "flutter:" ⬇⬇⬇
 flutter_native_splash:
   color: "#A7FFB5"
   image: assets/images/logo.png

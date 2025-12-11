@@ -1,18 +1,22 @@
-// 1. AGGIUNTO QUESTO IMPORT PER debugPrint
+import 'package:cityclean/main.dart';
 import 'package:flutter/foundation.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
 
-class UserProfile {
-  final String id;
-  final String nome;
-  final String? cognome;
-  final String email;
-  final int saldoPunti;
-  final String codiceReferral;
-  final String? fotoProfilo;
-  final bool isAdmin;
-  final String? idBadgeTitolo; // ID del badge scelto come titolo
-  final String? titolo;        // Nome del badge (verrà popolato dal service)
+class UserProfile with ChangeNotifier {
+  String id;
+  String nome;
+  String? cognome;
+  String email;
+  int saldoPunti;
+  String codiceReferral;
+  String? fotoProfilo;
+  bool isAdmin;
+  DateTime? dataDiNascita;
+  String? idBadgeTitolo;
+  String? titolo; // Questo è il nome del badge/titolo
+
+  // Campi per le statistiche
+  final int conferimentiCount;
+  final int eventsCount;
 
   UserProfile({
     required this.id,
@@ -23,63 +27,61 @@ class UserProfile {
     required this.codiceReferral,
     this.fotoProfilo,
     required this.isAdmin,
+    this.dataDiNascita,
     this.idBadgeTitolo,
-    this.titolo,
+    this.titolo, 
+    this.conferimentiCount = 0,
+    this.eventsCount = 0,
   });
 
-  factory UserProfile.fromJson(Map<String, dynamic> json) {
-    return UserProfile(
-      id: json['idutente'] as String? ?? '',
-      nome: json['nome'] as String? ?? 'Nome utente',
-      cognome: json['cognome'] as String?,
-      email: json['email'] as String? ?? '',
-      saldoPunti: json['saldopunti'] as int? ?? 0,
-      codiceReferral: json['codicereferral'] as String? ?? '',
-      fotoProfilo: json['fotoprofilo'] as String?,
-      isAdmin: json['isadmin'] as bool? ?? false,
-      idBadgeTitolo: json['id_badge_titolo'] as String?,
-      // Questo campo viene aggiunto dinamicamente dal service
-      titolo: json['titolo_nome'] as String?,
-    );
-  }
-
-  Map<String, dynamic> toJson() {
-    return {
-      'idutente': id,
-      'nome': nome,
-      'cognome': cognome,
-      'email': email,
-      'saldopunti': saldoPunti,
-      'codicereferral': codiceReferral,
-      'fotoprofilo': fotoProfilo,
-      'isadmin': isAdmin,
-      'id_badge_titolo': idBadgeTitolo,
-    };
-  }
-
-  // Questi metodi DAO rimangono per compatibilità con altre parti dell'app
-  static final _supabase = Supabase.instance.client;
-  static const _tableName = 'utente';
-
+  // Metodo statico per compatibilità
   static Future<int> getPoints(String userId) async {
     try {
-      final response = await _supabase
-          .from(_tableName)
+      final data = await supabase
+          .from('utente')
           .select('saldopunti')
           .eq('idutente', userId)
           .single();
-      return response['saldopunti'] as int? ?? 0;
+      return (data['saldopunti'] as num?)?.toInt() ?? 0;
     } catch (e) {
-      // 2. SOSTITUITO print CON debugPrint
-      debugPrint("ERRORE CARICAMENTO PUNTI: $e");
       return 0;
     }
   }
 
-  static Future<void> updatePoints(String userId, int newPoints) async {
-    await _supabase
-        .from(_tableName)
-        .update({'saldopunti': newPoints})
-        .eq('idutente', userId);
+  factory UserProfile.fromJson(Map<String, dynamic> json) {
+    return UserProfile(
+      id: json['idutente'] as String,
+      nome: json['nome'] as String? ?? 'Utente',
+      cognome: json['cognome'] as String?,
+      email: json['email'] as String? ?? 'N/A',
+      saldoPunti: (json['saldopunti'] as num?)?.toInt() ?? 0,
+      codiceReferral: json['codicereferral'] as String? ?? 'N/A',
+      fotoProfilo: json['fotoprofilo'] as String?,
+      isAdmin: json['isadmin'] as bool? ?? false,
+      dataDiNascita: json['datadinascita'] != null ? DateTime.tryParse(json['datadinascita']) : null,
+      idBadgeTitolo: json['id_badge_titolo'] as String?,
+      // CORREZIONE: Legge il nome del titolo dalla chiave corretta usata nel service
+      titolo: json['titolo_nome'] as String?,
+      conferimentiCount: (json['conferimenti_count'] as num?)?.toInt() ?? 0,
+      eventsCount: (json['events_count'] as num?)?.toInt() ?? 0,
+    );
+  }
+
+  UserProfile withStats({required int conferimenti, required int events}) {
+    return UserProfile(
+      id: id,
+      nome: nome,
+      cognome: cognome,
+      email: email,
+      saldoPunti: saldoPunti,
+      codiceReferral: codiceReferral,
+      fotoProfilo: fotoProfilo,
+      isAdmin: isAdmin,
+      dataDiNascita: dataDiNascita,
+      idBadgeTitolo: idBadgeTitolo,
+      titolo: titolo,
+      conferimentiCount: conferimenti,
+      eventsCount: events,
+    );
   }
 }

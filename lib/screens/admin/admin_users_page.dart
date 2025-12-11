@@ -1,7 +1,14 @@
-import 'package:cityclean/models/aggiungi_punti.dart'; // Importa il nuovo model
+import 'package:cityclean/controllers/admin/admin_users_controller.dart';
+import 'package:cityclean/models/user_activity.dart';
+import 'package:cityclean/models/user_profile.dart';
+import 'package:cityclean/services/admin/admin_users_service.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart'; // Per input numerici
-import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:flutter/services.dart';
+import 'package:intl/intl.dart';
+
+//##############################################################################
+// 1. PAGINA PRINCIPALE CON LA LISTA DEGLI UTENTI
+//##############################################################################
 
 class AdminUsersPage extends StatefulWidget {
   const AdminUsersPage({super.key});
@@ -11,276 +18,278 @@ class AdminUsersPage extends StatefulWidget {
 }
 
 class _AdminUsersPageState extends State<AdminUsersPage> {
-  final supabase = Supabase.instance.client;
-
-  // Usiamo un Future per gestire il caricamento iniziale e il refresh manuale
-  late Future<List<Map<String, dynamic>>> _usersFuture;
+  late final AdminUsersController _controller;
 
   @override
   void initState() {
     super.initState();
-    _usersFuture = _fetchUsers();
+    _controller = AdminUsersController();
+    _controller.loadUsers();
   }
 
-  // Funzione per ricaricare i dati (utile dopo aver assegnato punti)
-  void _refreshData() {
-    setState(() {
-      _usersFuture = _fetchUsers();
-    });
-  }
-
-  Future<List<Map<String, dynamic>>> _fetchUsers() async {
-    try {
-      final response = await supabase
-          .from('utente')
-          .select()
-          .order('nome', ascending: true); // Ordinamento base
-
-      return List<Map<String, dynamic>>.from(response);
-    } catch (e) {
-      debugPrint("ERRORE QUERY: $e");
-      // Rilanciamo l'errore per gestirlo nell'interfaccia se necessario
-      // o ritorniamo lista vuota in caso di errore non bloccante
-      rethrow;
-    }
-  }
-
-  // --- LOGICA DIALOG AGGIUNTA PUNTI ---
-  Future<void> _showAddPointsDialog(BuildContext context, String userId, String userName, int currentPoints) async {
-    final pointsController = TextEditingController();
-
-    return showDialog(
-      context: context,
-      builder: (ctx) {
-        return AlertDialog(
-          title: Text("Assegna Punti a $userName"),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text("Saldo attuale: $currentPoints punti"),
-              const SizedBox(height: 16),
-              TextField(
-                controller: pointsController,
-                keyboardType: const TextInputType.numberWithOptions(signed: true),
-                inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'^-?\d*'))], // Solo numeri (anche negativi)
-                decoration: const InputDecoration(
-                  labelText: "Punti da aggiungere",
-                  hintText: "Es. 50 o -20",
-                  border: OutlineInputBorder(),
-                  prefixIcon: Icon(Icons.stars),
-                ),
-                autofocus: true,
-              ),
-            ],
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(ctx),
-              child: const Text("Annulla", style: TextStyle(color: Colors.grey)),
-            ),
-            ElevatedButton(
-              style: ElevatedButton.styleFrom(backgroundColor: Colors.green),
-              onPressed: () async {
-                final pointsStr = pointsController.text;
-                if (pointsStr.isEmpty) return;
-
-                final int? points = int.tryParse(pointsStr);
-                if (points == null || points == 0) return;
-
-                // Chiudi il dialog prima dell'operazione asincrona per UI reattiva
-                Navigator.pop(ctx);
-
-                // Mostra un caricamento o feedback immediato
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text("Elaborazione in corso..."), duration: Duration(seconds: 1)),
-                );
-
-                // Chiamata al Model separato
-                final success = await AggiungiPuntiModel.assegnaPunti(userId, points);
-
-                if (context.mounted) {
-                  if (success) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text("Successo! Nuovi punti assegnati a $userName."),
-                        backgroundColor: Colors.green,
-                      ),
-                    );
-                    _refreshData(); // Ricarica la tabella per vedere i nuovi punti
-                  } else {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text("Errore durante l'assegnazione dei punti."),
-                        backgroundColor: Colors.red,
-                      ),
-                    );
-                  }
-                }
-              },
-              child: const Text("Conferma"),
-            ),
-          ],
-        );
-      },
-    );
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.all(16.0),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text("Monitoraggio Utenti"),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.refresh),
+            tooltip: "Ricarica Utenti",
+            onPressed: _controller.loadUsers,
+          ),
+        ],
+      ),
+      backgroundColor: Colors.grey[100],
+      body: ValueListenableBuilder<AdminUsersState>(
+        valueListenable: _controller.state,
+        builder: (context, state, _) {
+          if (state == AdminUsersState.loading) {
+            return const Center(child: CircularProgressIndicator());
+          }
+          if (state == AdminUsersState.error) {
+            return Center(child: Text(_controller.errorMessage.value));
+          }
+          return ValueListenableBuilder<List<UserProfile>>(
+            valueListenable: _controller.users,
+            builder: (context, users, _) {
+              if (users.isEmpty) {
+                return const Center(child: Text("Nessun utente trovato."));
+              }
+              return ListView.builder(
+                padding: const EdgeInsets.all(12),
+                itemCount: users.length,
+                itemBuilder: (context, index) {
+                  return _buildUserCard(users[index]);
+                },
+              );
+            },
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _buildUserCard(UserProfile user) {
+    return Card(
+      margin: const EdgeInsets.symmetric(vertical: 8),
+      elevation: 2,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      child: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                CircleAvatar(
+                  radius: 25,
+                  backgroundImage: user.fotoProfilo != null ? NetworkImage(user.fotoProfilo!) : null,
+                  child: user.fotoProfilo == null ? const Icon(Icons.person) : null,
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text("${user.nome} ${user.cognome ?? ''}", style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                      Text(user.email, style: TextStyle(color: Colors.grey[600])),
+                    ],
+                  ),
+                ),
+                if (user.isAdmin) const Tooltip(message: 'Amministratore', child: Icon(Icons.shield, color: Colors.blue)),
+              ],
+            ),
+            const Divider(height: 24),
+            const Text("Attività Riepilogativa", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+            const SizedBox(height: 8),
+            _buildStatRow(Icons.recycling, "Conferimenti totali", user.conferimentiCount.toString()),
+            _buildStatRow(Icons.event, "Eventi partecipati", user.eventsCount.toString()),
+            _buildStatRow(Icons.star, "Saldo Punti", user.saldoPunti.toString()),
+            const SizedBox(height: 8),
+            Wrap(
+              alignment: WrapAlignment.end,
+              spacing: 8,
+              runSpacing: 8,
+              children: [
+                // CORREZIONE: Usato OutlinedButton per allineamento verticale
+                OutlinedButton.icon(
+                  icon: const Icon(Icons.history, size: 20),
+                  label: const Text('Vedi Storico'),
+                  onPressed: () => Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => _UserActivityPage(userId: user.id, userName: user.nome)),
+                  ),
+                ),
+                ElevatedButton.icon(
+                  icon: const Icon(Icons.add_circle, size: 20),
+                  label: const Text('Assegna Punti'),
+                  style: ElevatedButton.styleFrom(backgroundColor: Colors.green[600], foregroundColor: Colors.white),
+                  onPressed: () => _showAddPointsDialog(context, user),
+                ),
+              ],
+            )
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showAddPointsDialog(BuildContext context, UserProfile user) {
+    final pointsController = TextEditingController();
+    final formKey = GlobalKey<FormState>();
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text("Assegna Punti a ${user.nome}"),
+        content: Form(
+          key: formKey,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
             children: [
-              const Text(
-                "Gestione Utenti",
-                style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: Colors.black87),
+              Text("Saldo attuale: ${user.saldoPunti} punti"),
+              const SizedBox(height: 16),
+              TextFormField(
+                controller: pointsController,
+                inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'^-?[0-9]*'))],
+                keyboardType: const TextInputType.numberWithOptions(signed: true),
+                decoration: const InputDecoration(labelText: "Punti", hintText: "Es. 50 oppure -20", border: OutlineInputBorder()),
+                autofocus: true,
+                validator: (v) => (v == null || v.isEmpty || int.tryParse(v) == null || int.parse(v) == 0) ? 'Valore non valido' : null,
               ),
-              IconButton(
-                icon: const Icon(Icons.refresh),
-                tooltip: "Ricarica Lista",
-                onPressed: _refreshData,
-              )
             ],
           ),
-          const SizedBox(height: 24),
-
-          Expanded(
-            child: Card(
-              elevation: 2,
-              child: FutureBuilder<List<Map<String, dynamic>>>(
-                future: _usersFuture,
-                builder: (context, snapshot) {
-                  if (snapshot.connectionState == ConnectionState.waiting) {
-                    return const Center(child: CircularProgressIndicator());
-                  }
-
-                  if (snapshot.hasError) {
-                    return Center(
-                      child: SelectableText(
-                        "Errore: ${snapshot.error}",
-                        style: const TextStyle(color: Colors.red),
-                      ),
-                    );
-                  }
-
-                  final users = snapshot.data ?? [];
-
-                  if (users.isEmpty) {
-                    return const Center(child: Text("Nessun utente trovato."));
-                  }
-
-                  return SingleChildScrollView(
-                    scrollDirection: Axis.vertical,
-                    child: SingleChildScrollView(
-                      scrollDirection: Axis.horizontal,
-                      child: DataTable(
-                        headingRowColor: WidgetStateProperty.all(Colors.green[50]),
-                        columns: const [
-                          DataColumn(label: Text('Nome e Cognome', style: TextStyle(fontWeight: FontWeight.bold))),
-                          DataColumn(label: Text('Referral', style: TextStyle(fontWeight: FontWeight.bold))),
-                          DataColumn(label: Text('Punti', style: TextStyle(fontWeight: FontWeight.bold))),
-                          DataColumn(label: Text('Ruolo', style: TextStyle(fontWeight: FontWeight.bold))),
-                          DataColumn(label: Text('Azioni', style: TextStyle(fontWeight: FontWeight.bold))),
-                        ],
-                        rows: users.map((user) {
-                          final id = user['idutente'] as String;
-                          final nome = user['nome'] ?? 'N/A';
-                          final cognome = user['cognome'] ?? '';
-                          final email = user['email'] ?? '';
-                          final referral = user['codicereferral'] ?? '-';
-                          final punti = user['saldopunti'] ?? 0;
-                          final isAdmin = user['isadmin'] == true;
-                          final foto = user['fotoprofilo'];
-
-                          return DataRow(cells: [
-                            // 1. Nome e Avatar
-                            DataCell(Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                CircleAvatar(
-                                  radius: 16,
-                                  backgroundImage: foto != null ? NetworkImage(foto) : null,
-                                  backgroundColor: Colors.green[100],
-                                  child: foto == null
-                                      ? Text(nome.isNotEmpty ? nome[0].toUpperCase() : '?',
-                                      style: TextStyle(color: Colors.green[800], fontSize: 12))
-                                      : null,
-                                ),
-                                const SizedBox(width: 12),
-                                Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  children: [
-                                    Text("$nome $cognome", style: const TextStyle(fontWeight: FontWeight.w600)),
-                                    Text(email, style: TextStyle(fontSize: 12, color: Colors.grey[600])),
-                                  ],
-                                ),
-                              ],
-                            )),
-
-                            // 2. Referral
-                            DataCell(Text(referral, style: const TextStyle(fontFamily: 'monospace'))),
-
-                            // 3. Punti (Evidenziati)
-                            DataCell(
-                                Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                                  decoration: BoxDecoration(
-                                      color: Colors.green[50],
-                                      borderRadius: BorderRadius.circular(4),
-                                      border: Border.all(color: Colors.green[200]!)
-                                  ),
-                                  child: Text("$punti", style: TextStyle(fontWeight: FontWeight.bold, color: Colors.green[800])),
-                                )
-                            ),
-
-                            // 4. Ruolo
-                            DataCell(
-                                isAdmin
-                                    ? const Chip(
-                                  label: Text("ADMIN", style: TextStyle(color: Colors.white, fontSize: 10)),
-                                  backgroundColor: Colors.orange,
-                                  padding: EdgeInsets.zero,
-                                  visualDensity: VisualDensity.compact,
-                                )
-                                    : const Text("Utente")
-                            ),
-
-                            // 5. AZIONI (Modifica + Aggiungi Punti)
-                            DataCell(Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                // Pulsante Modifica (Placeholder)
-                                IconButton(
-                                  icon: const Icon(Icons.edit, color: Colors.grey),
-                                  tooltip: "Modifica Utente",
-                                  onPressed: () {
-                                    // Futura implementazione modifica anagrafica
-                                  },
-                                ),
-                                // NUOVO PULSANTE: Assegna Punti
-                                IconButton(
-                                  icon: const Icon(Icons.add_circle, color: Colors.green),
-                                  tooltip: "Assegna Punti",
-                                  onPressed: () => _showAddPointsDialog(context, id, nome, punti),
-                                ),
-                              ],
-                            )),
-                          ]);
-                        }).toList(),
-                      ),
-                    ),
-                  );
-                },
-              ),
-            ),
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text("Annulla")),
+          ElevatedButton(
+            onPressed: () {
+              if (formKey.currentState!.validate()) {
+                _controller.addPoints(context, user.id, int.parse(pointsController.text));
+                Navigator.pop(ctx);
+              }
+            },
+            child: const Text("Conferma"),
           ),
         ],
       ),
     );
+  }
+
+  Widget _buildStatRow(IconData icon, String label, String value) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4.0),
+      child: Row(
+        children: [
+          Icon(icon, color: Colors.grey[600], size: 18),
+          const SizedBox(width: 12),
+          Text("$label:", style: TextStyle(color: Colors.grey[700])),
+          const Spacer(),
+          Text(value, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
+        ],
+      ),
+    );
+  }
+}
+
+//##############################################################################
+// 2. PAGINA DELLO STORICO ATTIVITÀ UTENTE
+//##############################################################################
+
+class _UserActivityPage extends StatefulWidget {
+  final String userId;
+  final String userName;
+  const _UserActivityPage({required this.userId, required this.userName});
+
+  @override
+  State<_UserActivityPage> createState() => _UserActivityPageState();
+}
+
+class _UserActivityPageState extends State<_UserActivityPage> {
+  late Future<List<UserActivity>> _activityFuture;
+
+  @override
+  void initState() {
+    super.initState();
+    _activityFuture = AdminUsersService().getUserActivity(widget.userId);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: Text("Storico di ${widget.userName}")),
+      body: FutureBuilder<List<UserActivity>>(
+        future: _activityFuture,
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const Center(child: CircularProgressIndicator());
+          }
+          if (snapshot.hasError) {
+            return Center(child: Padding(padding: const EdgeInsets.all(16.0), child: Text("Errore: ${snapshot.error}")));
+          }
+          if (!snapshot.hasData || snapshot.data!.isEmpty) {
+            return const Center(child: Text("Nessuna attività registrata per questo utente."));
+          }
+
+          final activities = snapshot.data!;
+          return ListView.builder(
+            padding: const EdgeInsets.all(8),
+            itemCount: activities.length,
+            itemBuilder: (context, index) {
+              return _buildActivityTile(activities[index]);
+            },
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _buildActivityTile(UserActivity activity) {
+    final icon = _getIconForActivity(activity.type);
+    final color = _getColorForActivity(activity.type);
+    final pointsText = activity.points != null ? (activity.points! > 0 ? '+${activity.points}' : activity.points.toString()) : null;
+
+    return Card(
+      margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      child: ListTile(
+        leading: CircleAvatar(backgroundColor: color, child: Icon(icon, color: Colors.white, size: 20)),
+        title: Text(activity.description, style: const TextStyle(fontWeight: FontWeight.w500)),
+        subtitle: Text(DateFormat('dd/MM/yyyy HH:mm').format(activity.date)),
+        trailing: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          crossAxisAlignment: CrossAxisAlignment.end,
+          children: [
+            if (pointsText != null) Text(pointsText, style: TextStyle(fontWeight: FontWeight.bold, color: activity.points! > 0 ? Colors.green : Colors.red, fontSize: 14)),
+            if (activity.badgeName != null) Text(activity.badgeName!, style: TextStyle(fontSize: 12, color: Colors.grey[700])),
+          ],
+        ),
+      ),
+    );
+  }
+
+  IconData _getIconForActivity(ActivityType type) {
+    switch (type) {
+      case ActivityType.conferimento: return Icons.recycling;
+      case ActivityType.missione: return Icons.flag;
+      case ActivityType.obiettivo: return Icons.star;
+      case ActivityType.badge: return Icons.shield;
+      case ActivityType.premio: return Icons.card_giftcard;
+    }
+  }
+
+  Color _getColorForActivity(ActivityType type) {
+    switch (type) {
+      case ActivityType.conferimento: return Colors.green;
+      case ActivityType.missione: return Colors.blue;
+      case ActivityType.obiettivo: return Colors.orange;
+      case ActivityType.badge: return Colors.purple;
+      case ActivityType.premio: return Colors.red;
+    }
   }
 }

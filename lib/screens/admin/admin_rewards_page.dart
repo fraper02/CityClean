@@ -1,7 +1,7 @@
-import 'dart:math';
+import 'package:cityclean/controllers/admin/admin_prizes_controller.dart';
+import 'package:cityclean/models/partner.dart';
+import 'package:cityclean/models/prizes.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
 
 class AdminRewardsPage extends StatefulWidget {
   const AdminRewardsPage({super.key});
@@ -10,298 +10,276 @@ class AdminRewardsPage extends StatefulWidget {
   State<AdminRewardsPage> createState() => _AdminRewardsPageState();
 }
 
-class _AdminRewardsPageState extends State<AdminRewardsPage> {
-  final supabase = Supabase.instance.client;
-  late Future<List<Map<String, dynamic>>> _rewardsFuture;
+class _AdminRewardsPageState extends State<AdminRewardsPage> with SingleTickerProviderStateMixin {
+  late final AdminPrizesController _controller;
+  late final TabController _tabController;
 
   @override
   void initState() {
     super.initState();
-    _rewardsFuture = _fetchRewards();
+    _controller = AdminPrizesController();
+    _tabController = TabController(length: 2, vsync: this);
+    _controller.loadAll();
   }
 
-  void _refreshData() {
-    setState(() {
-      _rewardsFuture = _fetchRewards();
-    });
-  }
-
-  Future<List<Map<String, dynamic>>> _fetchRewards() async {
-    try {
-      final response = await supabase
-          .from('premio')
-          .select()
-          .order('nome', ascending: true);
-      return List<Map<String, dynamic>>.from(response);
-    } catch (e) {
-      debugPrint("Errore caricamento premi: $e");
-      rethrow;
-    }
-  }
-
-  // --- DIALOG AGGIUNGI / MODIFICA ---
-  Future<void> _showRewardDialog({Map<String, dynamic>? premioEsistente}) async {
-    final isEditing = premioEsistente != null;
-
-    // Controllers
-    final nomeController = TextEditingController(text: isEditing ? premioEsistente['nome'] : '');
-    final descController = TextEditingController(text: isEditing ? premioEsistente['descrizione'] : '');
-    final partnerController = TextEditingController(text: isEditing ? premioEsistente['idpartner'] : '');
-    final costoController = TextEditingController(text: isEditing ? premioEsistente['costopunti'].toString() : '');
-    final quantitaController = TextEditingController(text: isEditing ? premioEsistente['quantitadisponibile'].toString() : '');
-
-    final formKey = GlobalKey<FormState>();
-
-    if (!mounted) return;
-
-    await showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (ctx) => AlertDialog(
-        title: Text(isEditing ? "Modifica Premio" : "Nuovo Premio"),
-        content: SizedBox(
-          width: 400, // Larghezza fissa per desktop/tablet
-          child: SingleChildScrollView(
-            child: Form(
-              key: formKey,
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  TextFormField(
-                    controller: nomeController,
-                    decoration: const InputDecoration(labelText: "Nome Premio", border: OutlineInputBorder()),
-                    validator: (val) => val == null || val.isEmpty ? 'Obbligatorio' : null,
-                  ),
-                  const SizedBox(height: 12),
-                  TextFormField(
-                    controller: descController,
-                    decoration: const InputDecoration(labelText: "Descrizione", border: OutlineInputBorder()),
-                    maxLines: 2,
-                  ),
-                  const SizedBox(height: 12),
-                  TextFormField(
-                    controller: partnerController,
-                    decoration: const InputDecoration(labelText: "ID Partner (Azienda)", border: OutlineInputBorder(), hintText: "Es. PARTNER-001"),
-                    validator: (val) => val == null || val.isEmpty ? 'Obbligatorio' : null,
-                  ),
-                  const SizedBox(height: 12),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: TextFormField(
-                          controller: costoController,
-                          decoration: const InputDecoration(labelText: "Costo (Punti)", border: OutlineInputBorder(), suffixText: "pts"),
-                          keyboardType: TextInputType.number,
-                          inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                          validator: (val) => val == null || val.isEmpty ? 'Obbligatorio' : null,
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: TextFormField(
-                          controller: quantitaController,
-                          decoration: const InputDecoration(labelText: "Quantità", border: OutlineInputBorder()),
-                          keyboardType: TextInputType.number,
-                          inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                          validator: (val) => val == null || val.isEmpty ? 'Obbligatorio' : null,
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: const Text("Annulla", style: TextStyle(color: Colors.grey)),
-          ),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.green),
-            onPressed: () async {
-              if (formKey.currentState!.validate()) {
-                try {
-                  // Prepara i dati
-                  final data = {
-                    'nome': nomeController.text.trim(),
-                    'descrizione': descController.text.trim(),
-                    'idpartner': partnerController.text.trim(),
-                    'costopunti': int.parse(costoController.text),
-                    'quantitadisponibile': int.parse(quantitaController.text),
-                  };
-
-                  if (isEditing) {
-                    // UPDATE
-                    await supabase.from('premio').update(data).eq('idpremio', premioEsistente['idpremio']);
-                  } else {
-                    // INSERT
-                    // Genera ID se nuovo (es. REW-12345)
-                    final newId = "REW-${DateTime.now().millisecondsSinceEpoch}-${Random().nextInt(100)}";
-                    data['idpremio'] = newId;
-
-                    await supabase.from('premio').insert(data);
-                  }
-
-                  // 1. Check mounted prima di usare il context dopo l'await
-                  if (mounted) {
-                    Navigator.pop(ctx);
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text("Salvataggio completato!"), backgroundColor: Colors.green),
-                    );
-                    _refreshData();
-                  }
-                } catch (e) {
-                  // 2. IMPORTANTE: Check mounted anche nel catch
-                  if (context.mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text("Errore: $e"), backgroundColor: Colors.red),
-                    );
-                  }
-                }
-              }
-            },
-            child: Text(isEditing ? "Salva Modifiche" : "Crea Premio"),
-          ),
-        ],
-      ),
-    );
-  }
-
-  // --- ELIMINAZIONE ---
-  Future<void> _deleteReward(String id, String nome) async {
-    final confirm = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text("Elimina Premio"),
-        content: Text("Sei sicuro di voler eliminare '$nome'?"),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text("Annulla")),
-          TextButton(onPressed: () => Navigator.pop(ctx, true), child: const Text("Elimina", style: TextStyle(color: Colors.red))),
-        ],
-      ),
-    );
-
-    if (confirm == true) {
-      await supabase.from('premio').delete().eq('idpremio', id);
-      // Check mounted prima di aggiornare la UI
-      if (mounted) {
-        _refreshData();
-      }
-    }
+  @override
+  void dispose() {
+    _controller.dispose();
+    _tabController.dispose();
+    super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.grey[50],
-      body: Padding(
-        padding: const EdgeInsets.all(24.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+      appBar: AppBar(
+        title: const Text("Gestione Premi e Partner"),
+        bottom: TabBar(
+          controller: _tabController,
+          tabs: const [
+            Tab(icon: Icon(Icons.card_giftcard), text: "Premi"),
+            Tab(icon: Icon(Icons.business), text: "Partner"),
+          ],
+        ),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.refresh),
+            tooltip: "Ricarica Dati",
+            onPressed: _controller.loadAll,
+          ),
+        ],
+      ),
+      body: ValueListenableBuilder<AdminPrizesState>(
+        valueListenable: _controller.state,
+        builder: (context, state, _) {
+          if (state == AdminPrizesState.loading) {
+            return const Center(child: CircularProgressIndicator());
+          }
+          if (state == AdminPrizesState.error) {
+            return Center(child: Text(_controller.errorMessage.value));
+          }
+          return TabBarView(
+            controller: _tabController,
+            children: [
+              _buildPrizesTab(),
+              _buildPartnersTab(),
+            ],
+          );
+        },
+      ),
+    );
+  }
+
+  // --- WIDGET PER IL TAB DEI PREMI ---
+  Widget _buildPrizesTab() {
+    return Scaffold(
+      body: ValueListenableBuilder<List<Prize>>(
+        valueListenable: _controller.prizes,
+        builder: (context, prizes, _) {
+          if (prizes.isEmpty) {
+            return const Center(child: Text("Nessun premio trovato."));
+          }
+          return ListView.builder(
+            padding: const EdgeInsets.all(12),
+            itemCount: prizes.length,
+            itemBuilder: (context, index) => _buildPrizeCard(prizes[index]),
+          );
+        },
+      ),
+      floatingActionButton: FloatingActionButton(
+        onPressed: () => _showPrizeDialog(null),
+        backgroundColor: Colors.blue[700],
+        tooltip: 'Aggiungi Premio',
+        child: const Icon(Icons.add, color: Colors.white),
+      ),
+    );
+  }
+
+  // --- WIDGET PER IL TAB DEI PARTNER ---
+  Widget _buildPartnersTab() {
+    return Scaffold(
+      body: ValueListenableBuilder<List<Partner>>(
+        valueListenable: _controller.partners,
+        builder: (context, partners, _) {
+          if (partners.isEmpty) {
+            return const Center(child: Text("Nessun partner trovato."));
+          }
+          return ListView.builder(
+            padding: const EdgeInsets.all(12),
+            itemCount: partners.length,
+            itemBuilder: (context, index) => _buildPartnerCard(partners[index]),
+          );
+        },
+      ),
+      floatingActionButton: FloatingActionButton(
+        onPressed: () => _showPartnerDialog(null),
+        backgroundColor: Colors.purple[700],
+        tooltip: 'Aggiungi Partner',
+        child: const Icon(Icons.add, color: Colors.white),
+      ),
+    );
+  }
+
+  // --- CARD UI ---
+  Widget _buildPrizeCard(Prize prize) {
+    return Card(
+      margin: const EdgeInsets.symmetric(vertical: 8),
+      child: ListTile(
+        title: Text(prize.nome, style: const TextStyle(fontWeight: FontWeight.bold)),
+        subtitle: Text("Partner: ${prize.partner?.nome ?? 'N/D'} | Qty: ${prize.quantitaDisponibile}"),
+        trailing: Row(
+          mainAxisSize: MainAxisSize.min,
           children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                const Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text("Gestione Premi", style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold)),
-                    SizedBox(height: 8),
-                    Text("Configura il catalogo premi riscattabili dagli utenti.", style: TextStyle(color: Colors.grey)),
-                  ],
-                ),
-                ElevatedButton.icon(
-                  onPressed: () => _showRewardDialog(),
-                  icon: const Icon(Icons.add),
-                  label: const Text("Nuovo Premio"),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.green[700],
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 15),
-                  ),
-                )
-              ],
-            ),
-            const SizedBox(height: 30),
-
-            Expanded(
-              child: Card(
-                elevation: 2,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                child: FutureBuilder<List<Map<String, dynamic>>>(
-                  future: _rewardsFuture,
-                  builder: (context, snapshot) {
-                    if (snapshot.connectionState == ConnectionState.waiting) {
-                      return const Center(child: CircularProgressIndicator());
-                    }
-                    if (snapshot.hasError) {
-                      return Center(child: Text("Errore: ${snapshot.error}", style: const TextStyle(color: Colors.red)));
-                    }
-
-                    final rewards = snapshot.data ?? [];
-
-                    if (rewards.isEmpty) {
-                      return const Center(child: Text("Nessun premio presente nel catalogo."));
-                    }
-
-                    return SingleChildScrollView(
-                      scrollDirection: Axis.vertical,
-                      child: DataTable(
-                        columnSpacing: 20,
-                        headingRowColor: WidgetStateProperty.all(Colors.green[50]),
-                        columns: const [
-                          DataColumn(label: Text('Nome', style: TextStyle(fontWeight: FontWeight.bold))),
-                          DataColumn(label: Text('Partner', style: TextStyle(fontWeight: FontWeight.bold))),
-                          DataColumn(label: Text('Costo', style: TextStyle(fontWeight: FontWeight.bold))),
-                          DataColumn(label: Text('Disponibilità', style: TextStyle(fontWeight: FontWeight.bold))),
-                          DataColumn(label: Text('Azioni', style: TextStyle(fontWeight: FontWeight.bold))),
-                        ],
-                        rows: rewards.map((r) {
-                          final id = r['idpremio'];
-                          final nome = r['nome'] ?? '-';
-                          final partner = r['idpartner'] ?? '-';
-                          final costo = r['costopunti'] ?? 0;
-                          final qta = r['quantitadisponibile'] ?? 0;
-
-                          // Colore quantità bassa
-                          final qtaColor = qta < 5 ? Colors.red : Colors.black;
-
-                          return DataRow(cells: [
-                            DataCell(Text(nome, style: const TextStyle(fontWeight: FontWeight.w600))),
-                            DataCell(Text(partner, style: const TextStyle(fontFamily: 'monospace', fontSize: 12))),
-                            DataCell(Chip(
-                              label: Text("$costo pts"),
-                              backgroundColor: Colors.amber[100],
-                              labelStyle: TextStyle(color: Colors.amber[900], fontWeight: FontWeight.bold),
-                            )),
-                            DataCell(Text("$qta pz.", style: TextStyle(color: qtaColor, fontWeight: FontWeight.bold))),
-                            DataCell(Row(
-                              children: [
-                                IconButton(
-                                  icon: const Icon(Icons.edit, color: Colors.blue),
-                                  onPressed: () => _showRewardDialog(premioEsistente: r),
-                                  tooltip: "Modifica",
-                                ),
-                                IconButton(
-                                  icon: const Icon(Icons.delete, color: Colors.grey),
-                                  onPressed: () => _deleteReward(id, nome),
-                                  tooltip: "Elimina",
-                                ),
-                              ],
-                            )),
-                          ]);
-                        }).toList(),
-                      ),
-                    );
-                  },
-                ),
-              ),
-            ),
+            Text("${prize.costoPunti} Punti", style: TextStyle(color: Colors.green[700], fontWeight: FontWeight.bold)),
+            IconButton(icon: const Icon(Icons.edit), onPressed: () => _showPrizeDialog(prize)),
+            IconButton(icon: const Icon(Icons.delete, color: Colors.red), onPressed: () => _controller.deletePrize(context, prize.id)),
           ],
         ),
       ),
+    );
+  }
+
+  Widget _buildPartnerCard(Partner partner) {
+    return Card(
+      margin: const EdgeInsets.symmetric(vertical: 8),
+      child: ListTile(
+        title: Text(partner.nome, style: const TextStyle(fontWeight: FontWeight.bold)),
+        subtitle: Text(partner.descrizione ?? 'Nessuna descrizione'),
+        trailing: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            IconButton(icon: const Icon(Icons.edit), onPressed: () => _showPartnerDialog(partner)),
+            IconButton(icon: const Icon(Icons.delete, color: Colors.red), onPressed: () => _controller.deletePartner(context, partner.id)),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // --- DIALOGHI ---
+
+  void _showPrizeDialog(Prize? prize) {
+    final isCreating = prize == null;
+    final formKey = GlobalKey<FormState>();
+
+    String? selectedPartnerId = prize?.idPartner;
+    final nomeController = TextEditingController(text: prize?.nome ?? '');
+    final descController = TextEditingController(text: prize?.descrizione ?? '');
+    final costoController = TextEditingController(text: prize?.costoPunti.toString() ?? '');
+    final qtyController = TextEditingController(text: prize?.quantitaDisponibile.toString() ?? '');
+
+    showDialog(
+      context: context,
+      builder: (ctx) {
+        return AlertDialog(
+          title: Text(isCreating ? "Nuovo Premio" : "Modifica Premio"),
+          content: Form(
+            key: formKey,
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  TextFormField(controller: nomeController, decoration: const InputDecoration(labelText: 'Nome Premio'), validator: (v) => v!.isEmpty ? 'Campo obbligatorio' : null),
+                  TextFormField(controller: descController, decoration: const InputDecoration(labelText: 'Descrizione')),
+                  TextFormField(controller: costoController, decoration: const InputDecoration(labelText: 'Costo in Punti'), keyboardType: TextInputType.number, validator: (v) => (v == null || v.isEmpty || int.tryParse(v) == null) ? 'Valore non valido' : null),
+                  TextFormField(controller: qtyController, decoration: const InputDecoration(labelText: 'Quantità Disponibile'), keyboardType: TextInputType.number, validator: (v) => (v == null || v.isEmpty || int.tryParse(v) == null) ? 'Valore non valido' : null),
+                  const SizedBox(height: 16),
+                  ValueListenableBuilder<List<Partner>>(
+                    valueListenable: _controller.partners,
+                    builder: (context, partners, _) {
+                      return DropdownButtonFormField<String>(
+                        value: selectedPartnerId,
+                        decoration: const InputDecoration(labelText: 'Partner', border: OutlineInputBorder()),
+                        hint: const Text("Seleziona un partner"),
+                        items: partners.map((p) => DropdownMenuItem(value: p.id, child: Text(p.nome))).toList(),
+                        onChanged: (value) => selectedPartnerId = value,
+                        validator: (v) => v == null ? 'Campo obbligatorio' : null,
+                      );
+                    },
+                  ),
+                ],
+              ),
+            ),
+          ),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(ctx), child: const Text("Annulla")),
+            ElevatedButton(
+              onPressed: () {
+                if (formKey.currentState!.validate()) {
+                  final newPrize = Prize(
+                    id: prize?.id ?? 'PRIZE-${DateTime.now().millisecondsSinceEpoch}',
+                    nome: nomeController.text,
+                    descrizione: descController.text,
+                    costoPunti: int.parse(costoController.text),
+                    quantitaDisponibile: int.parse(qtyController.text),
+                    idPartner: selectedPartnerId!,
+                  );
+                  if (isCreating) {
+                    _controller.createPrize(context, newPrize);
+                  } else {
+                    _controller.updatePrize(context, newPrize);
+                  }
+                  Navigator.pop(ctx);
+                }
+              },
+              child: const Text("Salva"),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  void _showPartnerDialog(Partner? partner) {
+    final isCreating = partner == null;
+    final formKey = GlobalKey<FormState>();
+
+    final nomeController = TextEditingController(text: partner?.nome ?? '');
+    final descController = TextEditingController(text: partner?.descrizione ?? '');
+    final linkController = TextEditingController(text: partner?.link ?? '');
+
+    showDialog(
+      context: context,
+      builder: (ctx) {
+        return AlertDialog(
+          title: Text(isCreating ? "Nuovo Partner" : "Modifica Partner"),
+          content: Form(
+            key: formKey,
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  TextFormField(controller: nomeController, decoration: const InputDecoration(labelText: 'Nome Partner'), validator: (v) => v!.isEmpty ? 'Campo obbligatorio' : null),
+                  TextFormField(controller: descController, decoration: const InputDecoration(labelText: 'Descrizione')),
+                  TextFormField(controller: linkController, decoration: const InputDecoration(labelText: 'Sito Web (URL)')),
+                ],
+              ),
+            ),
+          ),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(ctx), child: const Text("Annulla")),
+            ElevatedButton(
+              onPressed: () {
+                if (formKey.currentState!.validate()) {
+                  final newPartner = Partner(
+                    id: partner?.id ?? 'PARTNER-${DateTime.now().millisecondsSinceEpoch}',
+                    nome: nomeController.text,
+                    descrizione: descController.text,
+                    link: linkController.text,
+                  );
+                  if (isCreating) {
+                    _controller.createPartner(context, newPartner);
+                  } else {
+                    _controller.updatePartner(context, newPartner);
+                  }
+                  Navigator.pop(ctx);
+                }
+              },
+              child: const Text("Salva"),
+            ),
+          ],
+        );
+      },
     );
   }
 }
