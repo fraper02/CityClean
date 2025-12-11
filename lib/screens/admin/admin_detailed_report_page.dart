@@ -48,6 +48,7 @@ class AdminDetailedReportPage extends StatelessWidget {
                           ),
                         ),
                         const Divider(),
+                        // CORREZIONE: Rimosso .toList() non necessario
                         ...item.entries.map((entry) {
                           String value = entry.value?.toString() ?? 'N/D';
                           // Formattazione speciale per le date
@@ -67,7 +68,7 @@ class AdminDetailedReportPage extends StatelessWidget {
                               ],
                             ),
                           );
-                        }).toList(),
+                        }),
                       ],
                     ),
                   ),
