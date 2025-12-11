@@ -1,16 +1,17 @@
 import 'package:cityclean/controllers/profile_controller.dart';
 import 'package:cityclean/models/user_profile.dart';
 import 'package:cityclean/screens/objectives_screen.dart';
-import 'package:cityclean/services/report_service.dart'; // Import ReportService
+import 'package:cityclean/services/report_service.dart';
 import 'package:flutter/material.dart';
-// Import Geolocator
-// Import LatLong
-// Import DateFormat
 import '../components/bottom_nav_bar.dart';
-// Import Location Picker
 import 'redeemed_rewards_screen.dart';
 import 'guilds_list_screen.dart';
 import 'badge_screen.dart';
+import 'user_activity_screen.dart';
+//import Geolocator
+//import LatLong
+//import DateFormat
+//import Location Picker
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -114,7 +115,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
                             Text(
-                              user.titolo ?? 'No title',
+                              user.titolo ?? 'Nessun titolo', // Modificato per chiarezza
                               style: const TextStyle(color: Colors.grey, fontSize: 16),
                             ),
                             const SizedBox(width: 8),
@@ -134,10 +135,22 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   ),
                 ),
                 const SizedBox(height: 20),
-                
-                // --- NUOVO PULSANTE CREA EVENTO ---
 
-                
+                // --- NUOVO PULSANTE CRONOLOGIA ATTIVITÀ ---
+                _buildNavigationCard(
+                  context: context,
+                  icon: Icons.history,
+                  label: "Cronologia Attività",
+                  subtitle: "Visualizza tutte le tue attività recenti",
+                  iconColor: primaryGreen,
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (context) => const UserActivityScreen()),
+                    );
+                  },
+                ),
+
                 _buildNavigationCard(
                   context: context,
                   icon: Icons.card_giftcard_outlined,
@@ -164,7 +177,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     );
                   },
                 ),
-                // Nuovo pulsante per gli obiettivi
                 _buildNavigationCard(
                   context: context,
                   icon: Icons.flag_outlined,

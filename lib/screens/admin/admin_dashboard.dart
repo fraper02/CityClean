@@ -3,12 +3,7 @@ import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'admin_list_ecopoints_page.dart';
 import 'admin_users_page.dart';
-
-class ManagePrizesScreen extends StatelessWidget {
-  const ManagePrizesScreen({super.key});
-  @override
-  Widget build(BuildContext context) => Scaffold(appBar: AppBar(title: const Text('Gestione Premi')), body: const Center(child: Text('Pagina Gestione Premi')));
-}
+import 'admin_rewards_page.dart';
 
 class DashboardView extends StatefulWidget {
   const DashboardView({super.key});
@@ -141,6 +136,8 @@ class _DashboardViewState extends State<DashboardView> {
             SizedBox(
               height: 200,
               child: BarChart(
+                // CORREZIONE DEFINITIVA: Rimosso il parametro `data:` che non esiste.
+                // Il costruttore di BarChart accetta BarChartData come argomento posizionale.
                 BarChartData(
                   alignment: BarChartAlignment.spaceAround,
                   barGroups: _getChartData(),
@@ -197,7 +194,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
     const DashboardView(),
     const AdminListEcopointsPage(),
     const AdminUsersPage(), 
-    const ManagePrizesScreen(),
+    const AdminRewardsPage(),
   ];
 
   void _onItemTapped(int index) {

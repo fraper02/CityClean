@@ -27,7 +27,7 @@ class GuildService {
           .eq('idparty', guildId)
           .single();
 
-      // CORREZIONE: `membriid` è una stringa JSON, non una lista.
+      // CORREZIONE DEFINITIVA: `membriid` è una stringa JSON, non una lista.
       final String membersJson = guildData['membriid'] as String? ?? '[]';
       final List<dynamic> members = json.decode(membersJson);
       final int maxCapacity = guildData['capienzamassima'] ?? 0;

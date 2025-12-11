@@ -1,5 +1,5 @@
 import 'package:cityclean/controllers/admin/admin_users_controller.dart';
-import 'package:cityclean/models/user_activity.dart'; // CORREZIONE: Rimosso /admin/ dal path
+import 'package:cityclean/models/user_activity.dart';
 import 'package:cityclean/models/user_profile.dart';
 import 'package:cityclean/services/admin/admin_users_service.dart';
 import 'package:flutter/material.dart';
@@ -116,9 +116,10 @@ class _AdminUsersPageState extends State<AdminUsersPage> {
             Wrap(
               alignment: WrapAlignment.end,
               spacing: 8,
-              runSpacing: 4,
+              runSpacing: 8,
               children: [
-                TextButton.icon(
+                // CORREZIONE: Usato OutlinedButton per allineamento verticale
+                OutlinedButton.icon(
                   icon: const Icon(Icons.history, size: 20),
                   label: const Text('Vedi Storico'),
                   onPressed: () => Navigator.push(
