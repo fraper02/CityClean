@@ -19,7 +19,6 @@ class _GuildsListScreenState extends State<GuildsListScreen> {
   void initState() {
     super.initState();
     _controller = GuildController();
-    // Usa un listener per gli errori o messaggi, ma non per ricostruire l'intera UI
     _controller.addListener(_handleControllerChanges);
     _searchController.addListener(() {
       _controller.filterGuilds(_searchController.text);
@@ -32,7 +31,6 @@ class _GuildsListScreenState extends State<GuildsListScreen> {
         SnackBar(content: Text(_controller.error!), backgroundColor: Colors.red),
       );
     }
-    // Ricostruisci la UI solo se necessario, usando ChangeNotifierProvider
     setState(() {});
   }
 
@@ -48,7 +46,6 @@ class _GuildsListScreenState extends State<GuildsListScreen> {
   Widget build(BuildContext context) {
     final Color primaryGreen = Colors.green[700]!;
 
-    // Usa ChangeNotifierProvider per rendere il controller accessibile al widget tree
     return ChangeNotifierProvider.value(
       value: _controller,
       child: Scaffold(
@@ -68,7 +65,6 @@ class _GuildsListScreenState extends State<GuildsListScreen> {
           children: [
             Column(
               children: [
-                // BARRA DI RICERCA
                 Padding(
                   padding: const EdgeInsets.all(16.0),
                   child: TextField(
@@ -82,7 +78,6 @@ class _GuildsListScreenState extends State<GuildsListScreen> {
                     ),
                   ),
                 ),
-                // LISTA GILDE
                 Expanded(
                   child: Consumer<GuildController>(
                     builder: (context, controller, child) {
@@ -92,7 +87,6 @@ class _GuildsListScreenState extends State<GuildsListScreen> {
                 ),
               ],
             ),
-            // TASTO CREA GILDA
             Align(
               alignment: Alignment.bottomCenter,
               child: Padding(
@@ -141,25 +135,40 @@ class _GuildsListScreenState extends State<GuildsListScreen> {
 
   Widget _buildGuildCard(Guild guild, GuildController controller) {
     final String? currentUserId = controller.currentUserId;
+    final bool userIsInAGuild = controller.userGuildId != null;
+    
     bool isCreator = currentUserId == guild.creatorId;
-    bool isMember = guild.memberIds.contains(currentUserId);
+    // CORREZIONE: La logica ora controlla se l'utente è membro di QUESTA gilda specifica.
+    bool isMemberOfThisGuild = controller.userGuildId == guild.id;
     bool isFull = guild.membersCount >= guild.maxCapacity;
 
-    bool canJoin = !isCreator && !isMember && !isFull;
-
-    String buttonText = "Unisciti";
-    Color buttonColor = Colors.green[700]!;
-    VoidCallback? onPressed = canJoin ? () => controller.joinGuild(guild.id) : null;
+    // Logica per determinare lo stato del pulsante
+    String buttonText;
+    Color buttonColor;
+    VoidCallback? onPressed;
 
     if (isCreator) {
       buttonText = "Creatore";
       buttonColor = Colors.grey;
-    } else if (isMember) {
+      onPressed = null;
+    } else if (isMemberOfThisGuild) {
       buttonText = "Membro";
       buttonColor = Colors.blueGrey;
+      onPressed = null;
     } else if (isFull) {
       buttonText = "Completa";
       buttonColor = Colors.orange;
+      onPressed = null;
+    } else if (userIsInAGuild) {
+      // L'utente è in un'altra gilda, quindi non può unirsi
+      buttonText = "Unisciti";
+      buttonColor = Colors.grey;
+      onPressed = null;
+    } else {
+      // L'utente è libero di unirsi
+      buttonText = "Unisciti";
+      buttonColor = Colors.green[700]!;
+      onPressed = () => controller.joinGuild(guild.id);
     }
 
     return Card(
@@ -192,7 +201,9 @@ class _GuildsListScreenState extends State<GuildsListScreen> {
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
             padding: const EdgeInsets.symmetric(horizontal: 16),
           ),
-          child: controller.isJoining ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white)) : Text(buttonText),
+          child: controller.isJoining && onPressed != null // Mostra il loader solo se questo è il pulsante attivo
+              ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+              : Text(buttonText),
         ),
       ),
     );

@@ -2,18 +2,17 @@ import 'package:cityclean/models/user_profile.dart';
 import 'package:cityclean/services/user_service.dart';
 import 'package:cityclean/screens/profile_screen.dart';
 import 'package:cityclean/screens/settings_screen.dart';
-import 'package:cityclean/screens/guilds_list_screen.dart';
 import 'package:cityclean/screens/redeemed_rewards_screen.dart';
 import 'package:cityclean/screens/subscribed_events_screen.dart';
 import 'package:cityclean/screens/qr_scanner_screen.dart';
 import 'package:cityclean/screens/badge_screen.dart';
 import 'package:cityclean/screens/objectives_screen.dart';
-import 'package:cityclean/screens/missions_screen.dart'; // Importa la nuova schermata
-import 'package:cityclean/screens/collection_history_screen.dart'; // Importa la nuova schermata
+import 'package:cityclean/screens/missions_screen.dart';
 import 'package:cityclean/components/bottom_nav_bar.dart';
 import 'package:cityclean/screens/create_event_screen.dart';
 import 'package:flutter/material.dart';
-import 'group_screen.dart';
+import 'group_screen.dart'; // Per le Gilde
+import 'temporary_group_router_screen.dart'; // Import per i Gruppi Temporanei
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -95,7 +94,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
               ),
               Expanded(
                 child: SingleChildScrollView(
-                  padding: const EdgeInsets.fromLTRB(20, 20, 20, 0),
+                  padding: const EdgeInsets.fromLTRB(20, 20, 20, 20),
                   child: Column(
                     children: [
                       _buildMainAction(context),
@@ -260,30 +259,31 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
         const SizedBox(height: 15),
         Row(
           children: [
-            Expanded(child: _buildOptionCard(Icons.group_work_outlined, "Cerca Gilda", onTap: () {
-              Navigator.push(context, MaterialPageRoute(builder: (context) => const GuildsListScreen()));
+            Expanded(child: _buildOptionCard(Icons.group_work_outlined, "Gilda", onTap: () {
+              Navigator.push(context, MaterialPageRoute(builder: (context) => const GroupScreen()));
             })),
             const SizedBox(width: 15),
-            Expanded(child: _buildOptionCard(Icons.add_circle_outline, "Segnala Evento Futuro", onTap: () {
-              Navigator.push(context, MaterialPageRoute(builder: (context) => CreateEventScreen(userId: userId)));
+            // COLLEGAMENTO AI GRUPPI TEMPORANEI
+            Expanded(child: _buildOptionCard(Icons.group_add_outlined, "Gruppi", onTap: () {
+              Navigator.push(context, MaterialPageRoute(builder: (context) => const TemporaryGroupRouterScreen()));
             })),
           ],
         ),
         const SizedBox(height: 15),
-        _buildFullWidthCard(Icons.flag_outlined, "I Miei Obiettivi", onTap: () {
-          Navigator.push(context, MaterialPageRoute(builder: (context) => const ObjectivesScreen()));
-        }),
+        Row(
+          children: [
+            Expanded(child: _buildOptionCard(Icons.add_circle_outline, "Segnala Evento Futuro", onTap: () {
+              Navigator.push(context, MaterialPageRoute(builder: (context) => CreateEventScreen(userId: userId)));
+            })),
+             const SizedBox(width: 15),
+            Expanded(child: _buildOptionCard(Icons.flag_outlined, "I Miei Obiettivi", onTap: () {
+              Navigator.push(context, MaterialPageRoute(builder: (context) => const ObjectivesScreen()));
+            })),
+          ],
+        ),
         const SizedBox(height: 15),
         _buildFullWidthCard(Icons.assignment_turned_in_outlined, "Missioni", onTap: () {
           Navigator.push(context, MaterialPageRoute(builder: (context) => const MissionsScreen()));
-        }),
-        const SizedBox(height: 15),
-        _buildFullWidthCard(Icons.group_outlined, "Gruppi", onTap: () {
-          Navigator.push(context, MaterialPageRoute(builder: (context) => const GroupScreen()));
-        }),
-        const SizedBox(height: 15),
-        _buildFullWidthCard(Icons.history, "Storico Raccolte", onTap: () {
-          Navigator.push(context, MaterialPageRoute(builder: (context) => const CollectionHistoryScreen()));
         }),
       ],
     );
