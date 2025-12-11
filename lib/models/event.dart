@@ -26,8 +26,11 @@ class Event {
   });
 
   factory Event.fromJson(Map<String, dynamic> json) {
-    // Calcoliamo il numero di partecipanti dalla sub-query
-    final participationList = json['partecipazione'] as List? ?? [];
+    // CORREZIONE: Legge correttamente il conteggio dei partecipanti
+    final participationData = json['partecipazione'] as List? ?? [];
+    final count = participationData.isNotEmpty
+        ? (participationData[0]['count'] as num? ?? 0).toInt()
+        : 0;
 
     return Event(
       id: json['idevento'] as String,
@@ -40,7 +43,7 @@ class Event {
       immagine: json['immagine'] as String?,
       longitude: (json['longitudine'] as num?)?.toDouble(),
       latitude: (json['latitudine'] as num?)?.toDouble(),
-      participantCount: participationList.length,
+      participantCount: count,
     );
   }
 }
