@@ -1,5 +1,5 @@
-// lib/screens/qr_scanner_screen.dart
-
+import 'package:cityclean/screens/contribution_screen.dart';
+import 'package:cityclean/services/ecopoint_service.dart';
 import 'package:flutter/material.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 
@@ -12,32 +12,84 @@ class QrScannerScreen extends StatefulWidget {
 
 class _QrScannerScreenState extends State<QrScannerScreen> {
   final MobileScannerController _scannerController = MobileScannerController(
-    detectionSpeed: DetectionSpeed.normal,
+    detectionSpeed: DetectionSpeed.noDuplicates, // Evita scansioni multiple immediate
     facing: CameraFacing.back,
   );
 
   bool _isProcessing = false;
 
-  void _handleBarcode(BarcodeCapture capture) {
+  Future<void> _handleBarcode(BarcodeCapture capture) async {
+    // Se stiamo già elaborando, ignoriamo altre scansioni
     if (_isProcessing) return;
-    _isProcessing = true;
 
     final String? code = capture.barcodes.first.rawValue;
-    if (code == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Codice QR non valido.')),
-      );
-      _isProcessing = false;
-      return;
-    }
+    if (code == null) return;
 
-    // Qui puoi gestire la logica del codice QR (es. inviarlo a un service)
-    debugPrint('Codice QR trovato: $code');
+    setState(() {
+      _isProcessing = true; // Blocca UI
+    });
 
-    Navigator.of(context).pop();
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Codice scannerizzato: $code')),
+    // 1. Mostra indicatore di caricamento
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) => const Center(
+        child: Card(
+          child: Padding(
+            padding: EdgeInsets.all(20.0),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                CircularProgressIndicator(),
+                SizedBox(height: 16),
+                Text("Verifica Ecopoint..."),
+              ],
+            ),
+          ),
+        ),
+      ),
     );
+
+    // 2. Chiama il service per verificare se esiste nel DB
+    final bool exists = await EcopointService.verifyEcopointExists(code);
+
+    if (!mounted) return;
+
+    // Chiudi il dialog di caricamento
+    Navigator.of(context).pop();
+
+    if (exists) {
+      // 3A. ESISTE: Vai alla schermata di inserimento
+      // Mettiamo in pausa la camera per risparmiare risorse
+      _scannerController.stop();
+
+      await Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(
+          builder: (context) => ContributionScreen(ecopointId: code),
+        ),
+      );
+    } else {
+      // 3B. NON ESISTE: Mostra errore e riprendi
+      await showDialog(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          title: const Text("Errore"),
+          content: Text("L'Ecopoint scansionato ($code) non è stato trovato nel sistema."),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: const Text("Riprova"),
+            ),
+          ],
+        ),
+      );
+
+      // Resetta lo stato per permettere una nuova scansione
+      setState(() {
+        _isProcessing = false;
+      });
+    }
   }
 
   @override
@@ -50,10 +102,26 @@ class _QrScannerScreenState extends State<QrScannerScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Scannerizza Codice QR'),
+        title: const Text('Scannerizza Ecopoint'),
         backgroundColor: Colors.black.withOpacity(0.8),
         foregroundColor: Colors.white,
+        actions: [
+          // FIX: Utilizzo di ValueListenableBuilder ascoltando direttamente il controller
+          ValueListenableBuilder<MobileScannerState>(
+            valueListenable: _scannerController,
+            builder: (context, state, child) {
+              return IconButton(
+                icon: Icon(
+                  state.torchState == TorchState.on ? Icons.flash_on : Icons.flash_off,
+                  color: Colors.white,
+                ),
+                onPressed: () => _scannerController.toggleTorch(),
+              );
+            },
+          ),
+        ],
       ),
+      extendBodyBehindAppBar: true,
       body: Stack(
         children: [
           MobileScanner(
@@ -61,6 +129,26 @@ class _QrScannerScreenState extends State<QrScannerScreen> {
             onDetect: _handleBarcode,
           ),
           const QRScannerOverlay(),
+
+          // Istruzioni in basso
+          Positioned(
+            bottom: 80,
+            left: 0,
+            right: 0,
+            child: Center(
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                decoration: BoxDecoration(
+                  color: Colors.black54,
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: const Text(
+                  "Inquadra il QR code sul cassonetto",
+                  style: TextStyle(color: Colors.white, fontSize: 16),
+                ),
+              ),
+            ),
+          )
         ],
       ),
     );
@@ -93,8 +181,8 @@ class QrScannerOverlayShape extends ShapeBorder {
 
   @override
   Path getOuterPath(Rect rect, {TextDirection? textDirection}) {
-    Path getOuterPath(Rect rect) {
-      final cutOutSize = rect.width * 0.65;
+    Path _getOuterPath(Rect rect) {
+      final cutOutSize = rect.width * 0.70; // Leggermente più grande
       final cutOutRect = Rect.fromCenter(
         center: rect.center,
         width: cutOutSize,
@@ -102,17 +190,17 @@ class QrScannerOverlayShape extends ShapeBorder {
       );
 
       final outerPath = Path()..addRect(rect);
-      final cutOutPath = Path()..addRRect(RRect.fromRectAndRadius(cutOutRect, const Radius.circular(10)));
+      final cutOutPath = Path()..addRRect(RRect.fromRectAndRadius(cutOutRect, const Radius.circular(20)));
 
       return Path.combine(PathOperation.difference, outerPath, cutOutPath);
     }
-    return getOuterPath(rect);
+    return _getOuterPath(rect);
   }
 
   @override
   void paint(Canvas canvas, Rect rect, {TextDirection? textDirection}) {
-    final cutOutSize = rect.width * 0.65;
-    final borderLength = cutOutSize * 0.1;
+    final cutOutSize = rect.width * 0.70;
+    final borderLength = 40.0;
     final cutOutRect = Rect.fromCenter(
       center: rect.center,
       width: cutOutSize,
@@ -124,25 +212,31 @@ class QrScannerOverlayShape extends ShapeBorder {
       ..style = PaintingStyle.fill;
 
     final borderPaint = Paint()
-      ..color = Colors.white
+      ..color = Colors.greenAccent // Colore verde per l'overlay
       ..style = PaintingStyle.stroke
-      ..strokeWidth = 5;
+      ..strokeWidth = 4
+      ..strokeCap = StrokeCap.round;
 
     canvas.drawPath(getOuterPath(rect), backgroundPaint);
 
-    final Path cornersPath = Path()
-      ..moveTo(cutOutRect.left, cutOutRect.top + borderLength)
-      ..lineTo(cutOutRect.left, cutOutRect.top)
-      ..lineTo(cutOutRect.left + borderLength, cutOutRect.top)
-      ..moveTo(cutOutRect.right - borderLength, cutOutRect.top)
-      ..lineTo(cutOutRect.right, cutOutRect.top)
-      ..lineTo(cutOutRect.right, cutOutRect.top + borderLength)
-      ..moveTo(cutOutRect.right, cutOutRect.bottom - borderLength)
-      ..lineTo(cutOutRect.right, cutOutRect.bottom)
-      ..lineTo(cutOutRect.right - borderLength, cutOutRect.bottom)
-      ..moveTo(cutOutRect.left + borderLength, cutOutRect.bottom)
-      ..lineTo(cutOutRect.left, cutOutRect.bottom)
-      ..lineTo(cutOutRect.left, cutOutRect.bottom - borderLength);
+    // Disegna gli angoli
+    final Path cornersPath = Path();
+    // Top Left
+    cornersPath.moveTo(cutOutRect.left, cutOutRect.top + borderLength);
+    cornersPath.lineTo(cutOutRect.left, cutOutRect.top);
+    cornersPath.lineTo(cutOutRect.left + borderLength, cutOutRect.top);
+    // Top Right
+    cornersPath.moveTo(cutOutRect.right - borderLength, cutOutRect.top);
+    cornersPath.lineTo(cutOutRect.right, cutOutRect.top);
+    cornersPath.lineTo(cutOutRect.right, cutOutRect.top + borderLength);
+    // Bottom Right
+    cornersPath.moveTo(cutOutRect.right, cutOutRect.bottom - borderLength);
+    cornersPath.lineTo(cutOutRect.right, cutOutRect.bottom);
+    cornersPath.lineTo(cutOutRect.right - borderLength, cutOutRect.bottom);
+    // Bottom Left
+    cornersPath.moveTo(cutOutRect.left + borderLength, cutOutRect.bottom);
+    cornersPath.lineTo(cutOutRect.left, cutOutRect.bottom);
+    cornersPath.lineTo(cutOutRect.left, cutOutRect.bottom - borderLength);
 
     canvas.drawPath(cornersPath, borderPaint);
   }
