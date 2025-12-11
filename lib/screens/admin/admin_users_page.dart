@@ -19,17 +19,22 @@ class AdminUsersPage extends StatefulWidget {
 
 class _AdminUsersPageState extends State<AdminUsersPage> {
   late final AdminUsersController _controller;
+  final _searchController = TextEditingController();
 
   @override
   void initState() {
     super.initState();
     _controller = AdminUsersController();
     _controller.loadUsers();
+    _searchController.addListener(() {
+      _controller.filterUsers(_searchController.text);
+    });
   }
 
   @override
   void dispose() {
     _controller.dispose();
+    _searchController.dispose();
     super.dispose();
   }
 
@@ -47,31 +52,50 @@ class _AdminUsersPageState extends State<AdminUsersPage> {
         ],
       ),
       backgroundColor: Colors.grey[100],
-      body: ValueListenableBuilder<AdminUsersState>(
-        valueListenable: _controller.state,
-        builder: (context, state, _) {
-          if (state == AdminUsersState.loading) {
-            return const Center(child: CircularProgressIndicator());
-          }
-          if (state == AdminUsersState.error) {
-            return Center(child: Text(_controller.errorMessage.value));
-          }
-          return ValueListenableBuilder<List<UserProfile>>(
-            valueListenable: _controller.users,
-            builder: (context, users, _) {
-              if (users.isEmpty) {
-                return const Center(child: Text("Nessun utente trovato."));
-              }
-              return ListView.builder(
-                padding: const EdgeInsets.all(12),
-                itemCount: users.length,
-                itemBuilder: (context, index) {
-                  return _buildUserCard(users[index]);
-                },
-              );
-            },
-          );
-        },
+      body: Column(
+        children: [
+          Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: TextField(
+              controller: _searchController,
+              decoration: InputDecoration(
+                hintText: "Cerca per nome, cognome o email...",
+                prefixIcon: const Icon(Icons.search),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              ),
+            ),
+          ),
+          Expanded(
+            child: ValueListenableBuilder<AdminUsersState>(
+              valueListenable: _controller.state,
+              builder: (context, state, _) {
+                if (state == AdminUsersState.loading) {
+                  return const Center(child: CircularProgressIndicator());
+                }
+                if (state == AdminUsersState.error) {
+                  return Center(child: Text(_controller.errorMessage.value));
+                }
+                return ValueListenableBuilder<List<UserProfile>>(
+                  valueListenable: _controller.users,
+                  builder: (context, users, _) {
+                    if (users.isEmpty) {
+                      return const Center(child: Text("Nessun utente trovato."));
+                    }
+                    return ListView.builder(
+                      padding: const EdgeInsets.all(12),
+                      itemCount: users.length,
+                      itemBuilder: (context, index) {
+                        return _buildUserCard(users[index]);
+                      },
+                    );
+                  },
+                );
+              },
+            ),
+          ),
+        ],
       ),
     );
   }

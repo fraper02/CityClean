@@ -11,17 +11,11 @@ class ValoreRifiuto {
 
   factory ValoreRifiuto.fromJson(Map<String, dynamic> json) {
     return ValoreRifiuto(
-      id: json['id'],
-      tipoRifiuto: json['tipoRifiuto'],
-      valoreRifiuto: (json['valoreRifiuto'] as num).toDouble(),
+      id: json['id'] as int,
+      // Legge dal nuovo nome della colonna `tipo_rifiuto`
+      tipoRifiuto: json['tipo_rifiuto'] as String,
+      // Legge dal nuovo nome della colonna `valore_rifiuto` e lo converte
+      valoreRifiuto: (json['valore_rifiuto'] as num).toDouble(),
     );
-  }
-
-  Map<String, dynamic> toJson() {
-    return {
-      'id': id,
-      'tipoRifiuto': tipoRifiuto,
-      'valoreRifiuto': valoreRifiuto,
-    };
   }
 }

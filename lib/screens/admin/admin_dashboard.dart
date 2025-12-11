@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'admin_list_ecopoints_page.dart';
 import 'admin_users_page.dart';
 import 'admin_rewards_page.dart';
+import 'admin_waste_values_page.dart';
 
 class DashboardView extends StatefulWidget {
   const DashboardView({super.key});
@@ -195,6 +196,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
     const AdminListEcopointsPage(),
     const AdminUsersPage(), 
     const AdminRewardsPage(),
+    const AdminWasteValuesPage(),
   ];
 
   void _onItemTapped(int index) {
@@ -236,6 +238,11 @@ class _AdminDashboardState extends State<AdminDashboard> {
                 icon: Icon(Icons.card_giftcard),
                 selectedIcon: Icon(Icons.card_giftcard_sharp),
                 label: Text('Premi'),
+              ),
+              NavigationRailDestination(
+                icon: Icon(Icons.settings_outlined),
+                selectedIcon: Icon(Icons.settings_outlined),
+                label: Text('Valori Rifiuto'),
               ),
             ],
           ),

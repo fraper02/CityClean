@@ -24,7 +24,7 @@ class MockMapData {
     ),
     EcoPoint(
       id: '4',
-      name: 'Compattatore Del Sarno',
+      name: 'Compattatore Del Sarno2',
       type: 'Generico',
       location: const LatLng(40.7775, 14.5894), // Usa location e LatLng
     ),

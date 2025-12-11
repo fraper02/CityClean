@@ -12,257 +12,253 @@ class AdminWasteValuesPage extends StatefulWidget {
 
 class _AdminWasteValuesPageState extends State<AdminWasteValuesPage> {
   final supabase = Supabase.instance.client;
-  final _formKey = GlobalKey<FormState>();
-  bool _isLoading = false;
 
-  late Future<List<ValoreRifiuto>> _wasteValuesFuture;
-  final Map<int, TextEditingController> _controllers = {};
+  // Stato
+  bool _isLoading = true;
+  String? _errorMessage;
+  List<ValoreRifiuto> _wasteValues = [];
 
   @override
   void initState() {
     super.initState();
-    _wasteValuesFuture = _fetchWasteValues();
+    _loadData();
   }
 
-  Future<List<ValoreRifiuto>> _fetchWasteValues() async {
+  Future<void> _loadData() async {
+    setState(() {
+      _isLoading = true;
+      _errorMessage = null;
+    });
+
     try {
       final response = await supabase
-          .from('valore_rifiuto') // Assicurati che il nome tabella sia corretto
+          .from('valore_rifiuto')
           .select()
-          .order('id', ascending: true);
+          .order('tipo_rifiuto', ascending: true); // Ordina per nome
 
-      final values = List<ValoreRifiuto>.from(
-          response.map((item) => ValoreRifiuto.fromJson(item)));
+      if (!mounted) return;
 
-      for (var value in values) {
-        if (!_controllers.containsKey(value.id)) {
-          _controllers[value.id] =
-              TextEditingController(text: value.valoreRifiuto.toInt().toString());
-        }
-      }
-      return values;
+      setState(() {
+        _wasteValues = List<ValoreRifiuto>.from(
+            response.map((item) => ValoreRifiuto.fromJson(item)));
+        _isLoading = false;
+      });
     } catch (e) {
-      debugPrint("Errore nel caricamento dei valori: $e");
-      rethrow;
+      if (!mounted) return;
+      setState(() {
+        _errorMessage = "Errore caricamento dati: $e";
+        _isLoading = false;
+      });
     }
   }
 
-  Future<void> _saveChanges() async {
-    if (!_formKey.currentState!.validate()) return;
+  // --- CRUD OPERATIONS ---
 
-    setState(() => _isLoading = true);
-
-    try {
-      final List<Map<String, dynamic>> updatedValues = [];
-
-      for (var entry in _controllers.entries) {
-        final id = entry.key;
-        final controller = entry.value;
-        final newValue = double.tryParse(controller.text);
-
-        if (newValue != null) {
-          updatedValues.add({
-            'id': id,
-            'valoreRifiuto': newValue,
-          });
-        }
-      }
-
-      await supabase.from('valore_rifiuto').upsert(updatedValues);
-
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Valori aggiornati con successo!'),
-            backgroundColor: Colors.green,
-            behavior: SnackBarBehavior.floating, // Più bello su web
-            width: 400, // Non occupa tutto lo schermo su web
+  Future<void> _deleteValue(BuildContext context, int id) async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text("Conferma eliminazione"),
+        content: const Text("Sei sicuro di voler eliminare questo tipo di rifiuto?"),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text("Annulla")),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            style: TextButton.styleFrom(foregroundColor: Colors.red),
+            child: const Text("Elimina"),
           ),
-        );
+        ],
+      ),
+    );
+
+    if (confirm == true) {
+      try {
+        await supabase.from('valore_rifiuto').delete().eq('id', id);
+        _loadData(); // Ricarica la lista
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Elemento eliminato")));
+        }
+      } catch (e) {
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Errore eliminazione: $e"), backgroundColor: Colors.red));
+        }
       }
-    } catch (e) {
-      debugPrint("Errore salvataggio: $e");
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Errore: $e'), backgroundColor: Colors.red),
-        );
-      }
-    } finally {
-      if (mounted) setState(() => _isLoading = false);
     }
   }
 
-  @override
-  void dispose() {
-    for (var controller in _controllers.values) {
-      controller.dispose();
+  Future<void> _saveValue(BuildContext context, ValoreRifiuto? original, String nome, double valore) async {
+    try {
+      if (original == null) {
+        // CREATE
+        await supabase.from('valore_rifiuto').insert({
+          'tipo_rifiuto': nome,
+          'valore_rifiuto': valore,
+        });
+      } else {
+        // UPDATE
+        await supabase.from('valore_rifiuto').update({
+          'tipo_rifiuto': nome,
+          'valore_rifiuto': valore,
+        }).eq('id', original.id);
+      }
+
+      if (context.mounted) {
+        Navigator.pop(context); // Chiude il dialog
+        _loadData(); // Ricarica
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("Operazione completata con successo"), backgroundColor: Colors.green),
+        );
+      }
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("Errore salvataggio: $e"), backgroundColor: Colors.red),
+        );
+      }
     }
-    super.dispose();
   }
+
+  // --- UI ---
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.grey[50],
-      body: SafeArea(
-        child: Center(
-          // 1. LIMITA LA LARGHEZZA PER SCHERMI GRANDI
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 1000),
-            child: Padding(
-              padding: const EdgeInsets.all(24.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // --- Header ---
-                  const Text(
-                    "Imposta Valore Rifiuti",
-                    style: TextStyle(
-                        fontSize: 28,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.black87),
-                  ),
-                  const SizedBox(height: 8),
-                  const Text(
-                    "Definisci i punti assegnati per ogni tipo di rifiuto.",
-                    style: TextStyle(fontSize: 16, color: Colors.grey),
-                  ),
-                  const SizedBox(height: 30),
-
-                  // --- Card Principale ---
-                  Expanded(
-                    child: Card(
-                      elevation: 2,
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                      child: FutureBuilder<List<ValoreRifiuto>>(
-                        future: _wasteValuesFuture,
-                        builder: (context, snapshot) {
-                          if (snapshot.connectionState == ConnectionState.waiting) {
-                            return const Center(child: CircularProgressIndicator());
-                          }
-                          if (snapshot.hasError) {
-                            return Center(child: Text("Errore: ${snapshot.error}", style: const TextStyle(color: Colors.red)));
-                          }
-                          if (!snapshot.hasData || snapshot.data!.isEmpty) {
-                            return const Center(child: Text("Nessun dato trovato."));
-                          }
-
-                          final wasteValues = snapshot.data!;
-
-                          // 2. SCROLLBAR PER UTENTI DESKTOP
-                          return Scrollbar(
-                            thumbVisibility: true,
-                            child: SingleChildScrollView(
-                              padding: const EdgeInsets.all(24.0),
-                              child: Form(
-                                key: _formKey,
-                                child: Column(
-                                  children: [
-                                    // 3. GRIGLIA RESPONSIVE
-                                    // LayoutBuilder ci permette di sapere quanto spazio abbiamo
-                                    LayoutBuilder(
-                                      builder: (context, constraints) {
-                                        // Su schermi larghi (> 600px) usiamo 2 colonne, altrimenti 1
-                                        final int crossAxisCount = constraints.maxWidth > 600 ? 2 : 1;
-                                        // Calcoliamo l'aspect ratio per non avere celle troppo alte
-                                        final double childAspectRatio = constraints.maxWidth > 600 ? 4 : 3;
-
-                                        return GridView.builder(
-                                          shrinkWrap: true, // Importante dentro SingleChildScrollView
-                                          physics: const NeverScrollableScrollPhysics(), // Lo scroll lo gestisce il genitore
-                                          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                                            crossAxisCount: crossAxisCount,
-                                            crossAxisSpacing: 20,
-                                            mainAxisSpacing: 10,
-                                            childAspectRatio: childAspectRatio,
-                                          ),
-                                          itemCount: wasteValues.length,
-                                          itemBuilder: (context, index) {
-                                            final value = wasteValues[index];
-                                            return _buildValueInputRow(
-                                              label: value.tipoRifiuto,
-                                              controller: _controllers[value.id]!,
-                                            );
-                                          },
-                                        );
-                                      },
-                                    ),
-
-                                    const SizedBox(height: 40),
-
-                                    // --- Bottone Salva ---
-                                    Align(
-                                      alignment: Alignment.centerRight,
-                                      child: SizedBox(
-                                        width: 200, // Larghezza fissa per il bottone su Web
-                                        height: 50,
-                                        child: ElevatedButton.icon(
-                                          onPressed: _isLoading ? null : _saveChanges,
-                                          icon: _isLoading
-                                              ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-                                              : const Icon(Icons.save),
-                                          label: Text(_isLoading ? "Salvataggio..." : "Salva Modifiche"),
-                                          style: ElevatedButton.styleFrom(
-                                            backgroundColor: Colors.green[700],
-                                            foregroundColor: Colors.white,
-                                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                                          ),
-                                        ),
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ),
-                          );
-                        },
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
+      appBar: AppBar(
+        title: const Text("Gestione Valori Rifiuti"),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.refresh),
+            tooltip: "Ricarica Dati",
+            onPressed: _loadData,
           ),
+        ],
+      ),
+      body: _isLoading
+          ? const Center(child: CircularProgressIndicator())
+          : _errorMessage != null
+          ? Center(child: Text(_errorMessage!, style: const TextStyle(color: Colors.red)))
+          : _wasteValues.isEmpty
+          ? const Center(child: Text("Nessun tipo di rifiuto configurato."))
+          : ListView.builder(
+        padding: const EdgeInsets.all(12),
+        itemCount: _wasteValues.length,
+        itemBuilder: (context, index) => _buildWasteCard(_wasteValues[index]),
+      ),
+      floatingActionButton: FloatingActionButton(
+        onPressed: () => _showEditDialog(null),
+        backgroundColor: Colors.green[700],
+        tooltip: 'Aggiungi Tipo Rifiuto',
+        child: const Icon(Icons.add, color: Colors.white),
+      ),
+    );
+  }
+
+  Widget _buildWasteCard(ValoreRifiuto item) {
+    return Card(
+      margin: const EdgeInsets.symmetric(vertical: 8),
+      child: ListTile(
+        leading: CircleAvatar(
+          backgroundColor: Colors.green[50],
+          child: Icon(_getIconForType(item.tipoRifiuto), color: Colors.green[700]),
+        ),
+        title: Text(item.tipoRifiuto, style: const TextStyle(fontWeight: FontWeight.bold)),
+        subtitle: Text("${item.valoreRifiuto.toStringAsFixed(2)} punti al pezzo"),
+        trailing: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            IconButton(
+              icon: const Icon(Icons.edit, color: Colors.blue),
+              onPressed: () => _showEditDialog(item),
+            ),
+            IconButton(
+              icon: const Icon(Icons.delete, color: Colors.red),
+              onPressed: () => _deleteValue(context, item.id),
+            ),
+          ],
         ),
       ),
     );
   }
 
-  Widget _buildValueInputRow({
-    required String label,
-    required TextEditingController controller,
-  }) {
-    // Nota: Ho rimosso il Padding esterno perché lo gestisce la GridView con 'spacing'
-    return Row(
-      children: [
-        Expanded(
-          flex: 2,
-          child: Text(
-            label,
-            style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w500),
-            overflow: TextOverflow.ellipsis, // Evita errori se il testo è lungo
-          ),
-        ),
-        const SizedBox(width: 10),
-        Expanded(
-          flex: 3,
-          child: TextFormField(
-            controller: controller,
-            textAlign: TextAlign.center,
-            keyboardType: const TextInputType.numberWithOptions(decimal: true),
-            inputFormatters: [
-              FilteringTextInputFormatter.allow(RegExp(r'^\d+\.?\d*')),
-            ],
-            decoration: InputDecoration(
-              hintText: "0",
-              border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
-              contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 16), // Più alto per cliccare facile col mouse
-              suffixText: "pt",
+  // Helper semplice per le icone (opzionale, solo estetico)
+  IconData _getIconForType(String type) {
+    final t = type.toLowerCase();
+    if (t.contains('plastica')) return Icons.local_drink;
+    if (t.contains('vetro')) return Icons.wine_bar;
+    if (t.contains('alluminio') || t.contains('lattina')) return Icons.takeout_dining;
+    if (t.contains('carta') || t.contains('cartone')) return Icons.newspaper;
+    return Icons.delete_outline;
+  }
+
+  // --- DIALOGS ---
+
+  void _showEditDialog(ValoreRifiuto? item) {
+    final isCreating = item == null;
+    final formKey = GlobalKey<FormState>();
+    final nomeController = TextEditingController(text: item?.tipoRifiuto ?? '');
+    final valoreController = TextEditingController(text: item?.valoreRifiuto.toString() ?? '');
+
+    showDialog(
+      context: context,
+      builder: (ctx) {
+        return AlertDialog(
+          title: Text(isCreating ? "Nuovo Tipo Rifiuto" : "Modifica Valore"),
+          content: Form(
+            key: formKey,
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  TextFormField(
+                    controller: nomeController,
+                    decoration: const InputDecoration(
+                      labelText: 'Tipo Rifiuto (es. Plastica)',
+                      border: OutlineInputBorder(),
+                    ),
+                    validator: (v) => v!.isEmpty ? 'Campo obbligatorio' : null,
+                  ),
+                  const SizedBox(height: 16),
+                  TextFormField(
+                    controller: valoreController,
+                    decoration: const InputDecoration(
+                      labelText: 'Punti per unità',
+                      suffixText: 'pt',
+                      border: OutlineInputBorder(),
+                    ),
+                    keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                    inputFormatters: [
+                      FilteringTextInputFormatter.allow(RegExp(r'^\d+\.?\d*')),
+                    ],
+                    validator: (v) => (v == null || v.isEmpty || double.tryParse(v) == null)
+                        ? 'Inserisci un numero valido'
+                        : null,
+                  ),
+                ],
+              ),
             ),
-            validator: (value) => (value == null || value.isEmpty) ? 'Richiesto' : null,
           ),
-        ),
-      ],
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: const Text("Annulla"),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                if (formKey.currentState!.validate()) {
+                  _saveValue(
+                    context, // Passiamo il context originale (non quello del dialog) se necessario, ma qui ctx va bene per chiudere
+                    item,
+                    nomeController.text.trim(),
+                    double.parse(valoreController.text),
+                  );
+                }
+              },
+              style: ElevatedButton.styleFrom(backgroundColor: Colors.green[700], foregroundColor: Colors.white),
+              child: const Text("Salva"),
+            ),
+          ],
+        );
+      },
     );
   }
 }
