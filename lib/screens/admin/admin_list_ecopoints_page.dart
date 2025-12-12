@@ -265,6 +265,11 @@ class AdminListEcopointsPageState extends State<AdminListEcopointsPage> {
 
                       setState(() => isSaving = true);
 
+                      // FIX: Catturiamo navigator e messenger PRIMA delle operazioni async/sync
+                      // per evitare l'uso del context dopo il gap.
+                      final navigator = Navigator.of(context);
+                      final messenger = ScaffoldMessenger.of(context);
+
                       try {
                         final double lat = double.parse(latController.text.replaceAll(',', '.'));
                         final double lon = double.parse(lonController.text.replaceAll(',', '.'));
@@ -290,19 +295,14 @@ class AdminListEcopointsPageState extends State<AdminListEcopointsPage> {
                           await _controller.updateEcopoint(parentContext, ecopointData);
                         }
 
-                        // CORREZIONE CRITICA PER CI/CD:
-                        // Usiamo 'if (mounted)' positivo. Rimuovendo 'return' eliminiamo l'istruzione 'Dead code'.
-                        if (context.mounted) {
-                          Navigator.of(context).pop();
-                        }
+                        // LOGICA CAMBIATA: Nessun controllo 'mounted' perché l'analizzatore lo vede come sincrono
+                        // o perché usiamo l'oggetto navigator catturato precedentemente.
+                        navigator.pop();
 
                       } catch (e) {
-                        // CORREZIONE CRITICA ANCHE QUI:
-                        // Usiamo 'if (mounted)' positivo invece di 'if (!mounted) return'
-                        if (context.mounted) {
-                          setState(() => isSaving = false);
-                          ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Errore: $e")));
-                        }
+                        // LOGICA CAMBIATA: Idem qui.
+                        setState(() => isSaving = false);
+                        messenger.showSnackBar(SnackBar(content: Text("Errore: $e")));
                       }
                     },
                     child: isSaving ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator()) : Text(isCreating ? 'Crea' : 'Salva'),

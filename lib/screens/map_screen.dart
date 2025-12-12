@@ -433,8 +433,9 @@ class _MapScreenState extends State<MapScreen> {
                       if (reportDescController.text.isEmpty) return;
                       setState(() => isDialogUploading = true);
 
-                      // Best Practice: Catturare il messenger del parent PRIMA dell'await
-                      final scaffoldMessenger = ScaffoldMessenger.of(parentContext);
+                      // FIX: Catturiamo navigator e messenger PRIMA dell'await
+                      final navigator = Navigator.of(context);
+                      final messenger = ScaffoldMessenger.of(context);
 
                       bool success = await _controller.submitReport(
                           description: reportDescController.text,
@@ -443,18 +444,14 @@ class _MapScreenState extends State<MapScreen> {
                           imageFile: selectedImage
                       );
 
-                      // CORREZIONE PER CI/CD:
-                      // Uso di 'if (mounted)' positivo invece di 'if (!mounted) return'
-                      // per eliminare l'errore Dead Code.
-                      if (context.mounted) {
-                        Navigator.of(context).pop();
-                      }
+                      // LOGICA CAMBIATA: Usiamo l'istanza catturata, rimuovendo la dipendenza dal context
+                      // e il relativo controllo mounted (causa del dead code).
+                      navigator.pop();
 
-                      // Usa il messenger catturato
                       if (success) {
-                        scaffoldMessenger.showSnackBar(const SnackBar(content: Text("Inviata!")));
+                        messenger.showSnackBar(const SnackBar(content: Text("Inviata!")));
                       } else {
-                        scaffoldMessenger.showSnackBar(const SnackBar(content: Text("Errore invio."), backgroundColor: Colors.red));
+                        messenger.showSnackBar(const SnackBar(content: Text("Errore invio."), backgroundColor: Colors.red));
                       }
                     },
                     child: Text(isDialogUploading ? "..." : "Invia"),
