@@ -4,6 +4,7 @@ import 'package:cityclean/screens/objectives_screen.dart';
 import 'package:cityclean/services/report_service.dart';
 import 'package:flutter/material.dart';
 import '../components/bottom_nav_bar.dart';
+import 'collection_history_screen.dart';
 import 'home_screen.dart';
 import 'redeemed_rewards_screen.dart';
 import 'guilds_list_screen.dart';
@@ -151,7 +152,19 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     );
                   },
                 ),
-
+                _buildNavigationCard(
+                  context: context,
+                  icon: Icons.history,
+                  label: "Storico Raccolte",
+                  subtitle: "Visualizza lo storico delle tue raccolte",
+                  iconColor: primaryGreen,
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (context) => const CollectionHistoryScreen()),
+                    );
+                  },
+                ),
                 _buildNavigationCard(
                   context: context,
                   icon: Icons.card_giftcard_outlined,
