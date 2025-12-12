@@ -76,9 +76,9 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
   }
 
   Future<void> _submitEvent() async {
-    if (_titleController.text.isEmpty || _eventLocation == null) {
+    if (_titleController.text.isEmpty || _eventLocation == null || _wasteTypeController.text.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Titolo e Posizione sono obbligatori!")),
+        const SnackBar(content: Text("Titolo, Tipologia rifiuto, Posizione sono obbligatori!")),
       );
       return;
     }
