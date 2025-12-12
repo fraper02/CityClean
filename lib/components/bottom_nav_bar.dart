@@ -96,9 +96,9 @@ class CityCleanBottomNavBar extends StatelessWidget {
           ),
           activeIcon: Semantics(
             identifier: 'nav_profile_active',
-            child: const Icon(Icons.person),
+            child: const Icon(Icons.home),
           ),
-          label: 'Profilo',
+          label: 'Home',
         ),
         BottomNavigationBarItem(
           icon: Semantics(

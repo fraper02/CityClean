@@ -24,17 +24,26 @@ class SegnalazioniController {
     }
   }
 
-  // Nuovo metodo per aggiornare lo stato e ricaricare la lista
+  // Metodo per aggiornare lo stato e ricaricare la lista
   Future<void> updateStatus(String segnalazioneId, bool approvata) async {
     try {
       await _service.updateSegnalazioneStatus(segnalazioneId, approvata);
       // Ricarica la lista per mostrare lo stato aggiornato
       await loadSegnalazioni();
     } catch (e) {
-      // Gestisci l'errore mostrando un messaggio all'utente, se necessario
       print("Errore nell'aggiornare lo stato: $e");
       errorMessage.value = "Impossibile aggiornare lo stato della segnalazione.";
-      // Potresti voler notificare la UI in qualche modo
+    }
+  }
+
+  // Nuovo metodo per eliminare una segnalazione
+  Future<void> deleteSegnalazione(String segnalazioneId) async {
+    try {
+      await _service.deleteSegnalazione(segnalazioneId);
+      await loadSegnalazioni();
+    } catch (e) {
+      print("Errore nell'eliminare la segnalazione: $e");
+      errorMessage.value = "Impossibile eliminare la segnalazione.";
     }
   }
 

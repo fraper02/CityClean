@@ -21,7 +21,7 @@ class SegnalazioniService {
     }
   }
 
-  // Nuovo metodo per aggiornare lo stato di una segnalazione
+  // Metodo per aggiornare lo stato di una segnalazione
   Future<void> updateSegnalazioneStatus(String segnalazioneId, bool approvata) async {
     try {
       await _supabase.from('segnalazione').update({
@@ -31,6 +31,16 @@ class SegnalazioniService {
     } catch (e) {
       print("Errore nell'aggiornamento della segnalazione: $e");
       throw Exception("Impossibile aggiornare lo stato della segnalazione.");
+    }
+  }
+
+  // Nuovo metodo per eliminare una segnalazione
+  Future<void> deleteSegnalazione(String segnalazioneId) async {
+    try {
+      await _supabase.from('segnalazione').delete().eq('idsegnalazione', segnalazioneId);
+    } catch (e) {
+      print("Errore nell'eliminazione della segnalazione: $e");
+      throw Exception("Impossibile eliminare la segnalazione.");
     }
   }
 }

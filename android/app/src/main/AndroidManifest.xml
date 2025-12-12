@@ -1,21 +1,10 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
-    <!-- permessi per notifiche-->
-    <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
-
-    <!-- Permessi di localizzazione (DEVONO stare qui) -->
-    <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
+    <uses-permission android:name="android.permission.INTERNET"/>
 
-    <!-- Se servono (solo Android 10+) -->
-    <!-- <uses-permission android:name="android.permission.ACCESS_BACKGROUND_LOCATION" /> -->
-
-    <!-- Permesso già presente -->
-    <uses-permission android:name="android.permission.CAMERA" />
-    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
-
-    <!-- Query richieste da Flutter -->
+    <!-- Blocco per permettere l'apertura di link esterni come le mappe -->
     <queries>
         <!-- Browser -->
         <intent>
