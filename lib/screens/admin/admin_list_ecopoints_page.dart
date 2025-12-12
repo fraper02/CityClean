@@ -284,19 +284,25 @@ class AdminListEcopointsPageState extends State<AdminListEcopointsPage> {
                           longitude: lon,
                         );
 
+                        // NOTA: Assicurati che il controller restituisca Future<void> per far funzionare l'await correttamente.
                         if (isCreating) {
                           await _controller.createEcopoint(parentContext, ecopointData);
                         } else {
                           await _controller.updateEcopoint(parentContext, ecopointData);
                         }
 
-                        if (!context.mounted) return;
-                        Navigator.of(context).pop();
+                        // CORREZIONE CI/CD: Uso di 'if (mounted)' positivo invece di 'if (!mounted) return'
+                        // Questo evita che il linter segni il 'return' come Dead Code se pensa (erroneamente) che sia sincrono.
+                        if (context.mounted) {
+                          Navigator.of(context).pop();
+                        }
 
                       } catch (e) {
-                        if (!context.mounted) return; // Controllo extra per sicurezza
-                        setState(() => isSaving = false);
-                        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Errore: $e")));
+                        // CORREZIONE CI/CD: Controllo positivo
+                        if (context.mounted) {
+                          setState(() => isSaving = false);
+                          ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Errore: $e")));
+                        }
                       }
                     },
                     child: isSaving ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator()) : Text(isCreating ? 'Crea' : 'Salva'),
