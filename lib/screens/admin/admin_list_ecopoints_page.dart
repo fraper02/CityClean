@@ -290,23 +290,19 @@ class AdminListEcopointsPageState extends State<AdminListEcopointsPage> {
                           await _controller.updateEcopoint(parentContext, ecopointData);
                         }
 
-                        // FIX PER CI/CD:
-                        // Forza un gap asincrono reale. Se il controller è 'void', l'await sopra è istantaneo.
-                        // Future.delayed(Duration.zero) forza un tick del loop eventi, rendendo
-                        // teoricamente possibile che 'mounted' diventi false.
-                        // Questo elimina il warning "Dead code".
-                        await Future.delayed(Duration.zero);
-
-                        if (!context.mounted) return;
-                        Navigator.of(context).pop();
+                        // CORREZIONE CRITICA PER CI/CD:
+                        // Usiamo 'if (mounted)' positivo. Rimuovendo 'return' eliminiamo l'istruzione 'Dead code'.
+                        if (context.mounted) {
+                          Navigator.of(context).pop();
+                        }
 
                       } catch (e) {
-                        // FIX ANALOGO
-                        await Future.delayed(Duration.zero);
-                        if (!context.mounted) return;
-
-                        setState(() => isSaving = false);
-                        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Errore: $e")));
+                        // CORREZIONE CRITICA ANCHE QUI:
+                        // Usiamo 'if (mounted)' positivo invece di 'if (!mounted) return'
+                        if (context.mounted) {
+                          setState(() => isSaving = false);
+                          ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Errore: $e")));
+                        }
                       }
                     },
                     child: isSaving ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator()) : Text(isCreating ? 'Crea' : 'Salva'),
