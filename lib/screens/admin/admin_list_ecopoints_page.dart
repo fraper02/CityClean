@@ -27,6 +27,11 @@ class AdminListEcopointsPageState extends State<AdminListEcopointsPage> {
     super.dispose();
   }
 
+  // Metodo pubblico richiamato dalla Dashboard tramite GlobalKey
+  void refreshEcopoints() {
+    _controller.loadEcopoints();
+  }
+
   void _openEcopointDialog([Ecopoint? ecopoint]) {
     showDialog(
       context: context,
@@ -42,11 +47,9 @@ class AdminListEcopointsPageState extends State<AdminListEcopointsPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.grey[100],
+      // Rimossi i pulsanti (actions) dall'AppBar locale per usare quelli della Dashboard
       appBar: AppBar(
         title: const Text("Gestione Ecopunti"),
-        actions: [
-          IconButton(onPressed: _controller.loadEcopoints, icon: const Icon(Icons.refresh))
-        ],
       ),
       body: ValueListenableBuilder<EcopointsState>(
         valueListenable: _controller.state,
@@ -252,8 +255,6 @@ class _EcopointDialogState extends State<_EcopointDialog> {
     setState(() => _isSaving = true);
 
     // REFERENCE CAPTURE: Catturiamo le referenze PRIMA dell'operazione asincrona.
-    // Questo evita di accedere al 'context' dopo l'await, eliminando la necessità
-    // di controlli come 'if (!mounted)' che causavano il "Dead code" warning.
     final navigator = Navigator.of(context);
     final messenger = ScaffoldMessenger.of(context);
 
@@ -275,21 +276,16 @@ class _EcopointDialogState extends State<_EcopointDialog> {
         longitude: lon,
       );
 
-      // Usiamo il 'context' corrente per il controller (che potrebbe mostrare dialog o snackbar)
       if (_isCreating) {
         await widget.controller.createEcopoint(context, ecopointData);
       } else {
         await widget.controller.updateEcopoint(context, ecopointData);
       }
 
-      // USO SICURO: Usiamo il navigator catturato. Nessun check necessario.
       navigator.pop();
 
     } catch (e) {
-      // Se c'è un errore, mostriamo lo snackbar usando il messenger catturato.
       messenger.showSnackBar(SnackBar(content: Text("Errore: $e")));
-
-      // Ripristiniamo lo stato di salvataggio. Qui 'mounted' è un controllo positivo standard.
       if (mounted) {
         setState(() => _isSaving = false);
       }

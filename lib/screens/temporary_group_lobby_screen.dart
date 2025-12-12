@@ -33,9 +33,12 @@ class _TemporaryGroupLobbyScreenState extends State<TemporaryGroupLobbyScreen> {
           content: Text(widget.controller.error!),
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
           actions: [
-            TextButton(
-              child: const Text('OK'),
-              onPressed: () => Navigator.of(ctx).pop(),
+            Semantics(
+              identifier: 'errorDialogOkButton',
+              child: TextButton(
+                child: const Text('OK'),
+                onPressed: () => Navigator.of(ctx).pop(),
+              ),
             ),
           ],
         ),
@@ -51,21 +54,30 @@ class _TemporaryGroupLobbyScreenState extends State<TemporaryGroupLobbyScreen> {
       builder: (ctx) => AlertDialog(
         title: const Text('Crea Nuovo Gruppo'),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
-        content: TextField(
-          controller: textController,
-          decoration: const InputDecoration(labelText: 'Nome del gruppo'),
-          autofocus: true,
+        content: Semantics(
+          identifier: 'groupNameTextField',
+          child: TextField(
+            controller: textController,
+            decoration: const InputDecoration(labelText: 'Nome del gruppo'),
+            autofocus: true,
+          ),
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Annulla')),
-          ElevatedButton(
-            child: const Text('Crea'),
-            onPressed: () {
-              if (textController.text.trim().isNotEmpty) {
-                Navigator.pop(ctx);
-                widget.controller.createGroup(textController.text.trim());
-              }
-            },
+          Semantics(
+            identifier: 'cancelCreateGroupButton',
+            child: TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Annulla')),
+          ),
+          Semantics(
+            identifier: 'confirmCreateGroupButton',
+            child: ElevatedButton(
+              child: const Text('Crea'),
+              onPressed: () {
+                if (textController.text.trim().isNotEmpty) {
+                  Navigator.pop(ctx);
+                  widget.controller.createGroup(textController.text.trim());
+                }
+              },
+            ),
           ),
         ],
       ),
@@ -79,21 +91,30 @@ class _TemporaryGroupLobbyScreenState extends State<TemporaryGroupLobbyScreen> {
       builder: (ctx) => AlertDialog(
         title: const Text('Unisciti a un Gruppo'),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
-        content: TextField(
-          controller: textController,
-          decoration: const InputDecoration(labelText: 'Codice di invito'),
-          autofocus: true,
+        content: Semantics(
+          identifier: 'inviteCodeTextField',
+          child: TextField(
+            controller: textController,
+            decoration: const InputDecoration(labelText: 'Codice di invito'),
+            autofocus: true,
+          ),
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Annulla')),
-          ElevatedButton(
-            child: const Text('Unisciti'),
-            onPressed: () {
-              if (textController.text.trim().isNotEmpty) {
-                Navigator.pop(ctx);
-                widget.controller.joinGroup(textController.text.trim());
-              }
-            },
+          Semantics(
+            identifier: 'cancelJoinGroupButton',
+            child: TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Annulla')),
+          ),
+          Semantics(
+            identifier: 'confirmJoinGroupButton',
+            child: ElevatedButton(
+              child: const Text('Unisciti'),
+              onPressed: () {
+                if (textController.text.trim().isNotEmpty) {
+                  Navigator.pop(ctx);
+                  widget.controller.joinGroup(textController.text.trim());
+                }
+              },
+            ),
           ),
         ],
       ),
@@ -129,30 +150,36 @@ class _TemporaryGroupLobbyScreenState extends State<TemporaryGroupLobbyScreen> {
                 style: TextStyle(fontSize: 16, color: Colors.grey),
               ),
               const SizedBox(height: 40),
-              ElevatedButton.icon(
-                icon: const Icon(Icons.add_circle_outline),
-                label: const Text('Crea Gruppo'),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.green,
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(vertical: 16),
-                  textStyle: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+              Semantics(
+                identifier: 'createGroupButton',
+                child: ElevatedButton.icon(
+                  icon: const Icon(Icons.add_circle_outline),
+                  label: const Text('Crea Gruppo'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.green,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    textStyle: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+                  ),
+                  onPressed: () => _showCreateGroupDialog(context),
                 ),
-                onPressed: () => _showCreateGroupDialog(context),
               ),
               const SizedBox(height: 20),
-              OutlinedButton.icon(
-                icon: const Icon(Icons.qr_code_scanner_outlined),
-                label: const Text('Unisciti con Codice'),
-                style: OutlinedButton.styleFrom(
-                  foregroundColor: Colors.green,
-                  side: const BorderSide(color: Colors.green, width: 2),
-                  padding: const EdgeInsets.symmetric(vertical: 16),
-                  textStyle: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+              Semantics(
+                identifier: 'joinGroupButton',
+                child: OutlinedButton.icon(
+                  icon: const Icon(Icons.qr_code_scanner_outlined),
+                  label: const Text('Unisciti con Codice'),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: Colors.green,
+                    side: const BorderSide(color: Colors.green, width: 2),
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    textStyle: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+                  ),
+                  onPressed: () => _showJoinGroupDialog(context),
                 ),
-                onPressed: () => _showJoinGroupDialog(context),
               ),
             ],
           ),
