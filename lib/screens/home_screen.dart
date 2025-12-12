@@ -293,18 +293,6 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
       children: [
         Row(
           children: [
-            Expanded(child: _buildOptionCard(Icons.shield_outlined, "I Miei Badge", onTap: () {
-              Navigator.push(context, MaterialPageRoute(builder: (context) => const BadgeScreen()));
-            })),
-            const SizedBox(width: 15),
-            Expanded(child: _buildOptionCard(Icons.card_giftcard_outlined, "Storico Premi", onTap: () {
-              Navigator.push(context, MaterialPageRoute(builder: (context) => const RedeemedRewardsScreen()));
-            })),
-          ],
-        ),
-        const SizedBox(height: 15),
-        Row(
-          children: [
             Expanded(child: _buildOptionCard(Icons.group_work_outlined, "Gilda", onTap: () {
               Navigator.push(context, MaterialPageRoute(builder: (context) => const GroupScreen()));
             })),
@@ -330,12 +318,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
         const SizedBox(height: 15),
         _buildFullWidthCard(Icons.assignment_turned_in_outlined, "Missioni", onTap: () {
           Navigator.push(context, MaterialPageRoute(builder: (context) => const MissionsScreen()));
-        }),
-        const SizedBox(height: 15),
-        // PULSANTE AGGIUNTO: Storico Raccolte
-        _buildFullWidthCard(Icons.history, "Storico Raccolte", onTap: () {
-          Navigator.push(context, MaterialPageRoute(builder: (context) => const CollectionHistoryScreen()));
-        }),
+        })
       ],
     );
   }
