@@ -1,4 +1,5 @@
 import 'dart:math';
+
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../services/notifiche.dart';
@@ -21,7 +22,11 @@ class _LoginScreenState extends State<LoginScreen> with TickerProviderStateMixin
   late Animation<double> _fingerprintAnimation;
   late AnimationController _buttonController;
   late Animation<double> _buttonWidthAnimation;
+  late AnimationController _shakeController;
+  late Animation<double> _shakeAnimation;
   bool _isLoading = false;
+  bool _loginError = false;
+  bool _showResultIcon = false;
 
   @override
   void initState() {
@@ -39,6 +44,15 @@ class _LoginScreenState extends State<LoginScreen> with TickerProviderStateMixin
     );
     _buttonWidthAnimation = Tween<double>(begin: 1.0, end: 55 / 350)
         .animate(CurvedAnimation(parent: _buttonController, curve: Curves.easeInOut));
+    _shakeController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 400),
+    );
+
+    _shakeAnimation = Tween<double>(begin: 0, end: 10)
+        .chain(CurveTween(curve: Curves.elasticIn))
+        .animate(_shakeController);
+
   }
 
   @override
@@ -47,13 +61,17 @@ class _LoginScreenState extends State<LoginScreen> with TickerProviderStateMixin
     _passwordController.dispose();
     _fingerprintController.dispose();
     _buttonController.dispose();
+    _shakeController.dispose();
     super.dispose();
   }
 
   Future<void> _signIn() async {
     setState(() {
       _isLoading = true;
+      _loginError = false;
+      _showResultIcon = false;
     });
+
     await _buttonController.forward();
 
     try {
@@ -62,40 +80,73 @@ class _LoginScreenState extends State<LoginScreen> with TickerProviderStateMixin
         password: _passwordController.text.trim(),
       );
 
-      final User? user = res.user;
-      final Session? session = res.session;
-
-      if (user != null && session != null) {
-        await StorageService.saveSession(
-            session.accessToken,
-            session.refreshToken ?? '',
-            user.id
-        );
-      }
-    } on AuthException catch (error) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(translateSupabaseError(error.message)),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
-    } catch (error) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("Errore imprevisto durante il login"), backgroundColor: Colors.red),
-        );
-      }
-    } finally {
-      if (mounted) {
+      if (res.user != null && res.session != null) {
+        // LOGIN OK → Mostra ✔️
         setState(() {
           _isLoading = false;
+          _loginError = false;
+          _showResultIcon = true;
         });
+
+        await Future.delayed(const Duration(milliseconds: 800));
+
+        // Qui fai la navigazione o ciò che serve
+        return;
+      }
+    } on AuthException catch (_) {
+      setState(() {
+        _loginError = true;
+        _showResultIcon = true;
+        _isLoading = false;
+      });
+
+      // Avvia vibrazione
+      _shakeController.forward(from: 0);
+
+      await Future.delayed(const Duration(milliseconds: 1200));
+
+      if (mounted) {
+        setState(() {
+          _showResultIcon = false;  // nascondi X
+          _loginError = false;      // rimuovi stato errore
+        });
+
+        _buttonController.reverse(); // torna bottone normale
+      }
+
+      return;
+    } catch (_) {
+      setState(() {
+        _loginError = true;
+        _showResultIcon = true;
+        _isLoading = false;
+      });
+
+      _shakeController.forward(from: 0);
+
+      await Future.delayed(const Duration(milliseconds: 1200));
+
+      if (mounted) {
+        setState(() {
+          _showResultIcon = false;
+          _loginError = false;
+        });
+
         _buttonController.reverse();
       }
+
+      return;
+    }
+
+    // Torna alla forma originale
+    if (mounted) {
+      setState(() {
+        _showResultIcon = false;
+      });
+      _buttonController.reverse();
     }
   }
+
 
   Future<void> _resetPassword() async {
     final email = _emailController.text.trim();
@@ -165,52 +216,42 @@ class _LoginScreenState extends State<LoginScreen> with TickerProviderStateMixin
 
                 const Align(alignment: Alignment.centerLeft, child: Text("Email", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold))),
                 const SizedBox(height: 8),
-
-                // --- MODIFICA MAESTRO: ID EMAIL ---
-                Semantics(
-                  identifier: 'email_input',
-                  child: TextField(
-                    controller: _emailController,
-                    decoration: InputDecoration(
-                      prefixIcon: const Icon(Icons.email_outlined, color: Colors.grey),
-                      hintText: "tuo@email.com",
-                      filled: true,
-                      fillColor: Colors.white,
-                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(15), borderSide: BorderSide.none),
-                    ),
+                TextField(
+                  controller: _emailController,
+                  decoration: InputDecoration(
+                    prefixIcon: const Icon(Icons.email_outlined, color: Colors.grey),
+                    hintText: "tuo@email.com",
+                    filled: true,
+                    fillColor: Colors.white,
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(15), borderSide: BorderSide.none),
                   ),
                 ),
                 const SizedBox(height: 20),
 
                 const Align(alignment: Alignment.centerLeft, child: Text("Password", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold))),
                 const SizedBox(height: 8),
-
-                // --- MODIFICA MAESTRO: ID PASSWORD ---
-                Semantics(
-                  identifier: 'password_input',
-                  child: TextField(
-                    controller: _passwordController,
-                    obscureText: !_passwordVisible,
-                    decoration: InputDecoration(
-                      prefixIcon: const Icon(Icons.lock_outline, color: Colors.grey),
-                      suffixIcon: IconButton(
-                        icon: Icon(
-                          _passwordVisible ? Icons.visibility : Icons.visibility_off,
-                          color: Colors.grey,
-                        ),
-                        onPressed: () {
-                          setState(() {
-                            _passwordVisible = !_passwordVisible;
-                          });
-                        },
+                TextField(
+                  controller: _passwordController,
+                  obscureText: !_passwordVisible,
+                  decoration: InputDecoration(
+                    prefixIcon: const Icon(Icons.lock_outline, color: Colors.grey),
+                    suffixIcon: IconButton(
+                      icon: Icon(
+                        _passwordVisible ? Icons.visibility : Icons.visibility_off,
+                        color: Colors.grey,
                       ),
-                      hintText: "........",
-                      filled: true,
-                      fillColor: Colors.white,
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(15),
-                        borderSide: BorderSide.none,
-                      ),
+                      onPressed: () {
+                        setState(() {
+                          _passwordVisible = !_passwordVisible;
+                        });
+                      },
+                    ),
+                    hintText: "........",
+                    filled: true,
+                    fillColor: Colors.white,
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(15),
+                      borderSide: BorderSide.none,
                     ),
                   ),
                 ),
@@ -226,70 +267,77 @@ class _LoginScreenState extends State<LoginScreen> with TickerProviderStateMixin
                 const SizedBox(height: 20),
 
                 AnimatedBuilder(
-                  animation: _buttonController,
+                  animation: Listenable.merge([_buttonController, _shakeController]),
                   builder: (context, child) {
-                    return SizedBox(
-                      width: _isLoading
-                          ? 55
-                          : MediaQuery.of(context).size.width * _buttonWidthAnimation.value,
-                      height: 55,
-                      child: _isLoading
-                          ? ScaleTransition(
-                        scale: _fingerprintAnimation,
-                        child: Container(
-                          decoration: BoxDecoration(
+                    final bool isCircle = _isLoading || _showResultIcon;
+
+                    return Transform.translate(
+                        offset: Offset(
+                          _shakeController.isAnimating ? _shakeAnimation.value : 0,
+                          0,
+                        ),
+                        child: AnimatedContainer(
+                          duration: const Duration(milliseconds: 300),
+                          width: isCircle
+                              ? 55
+                              : MediaQuery.of(context).size.width * _buttonWidthAnimation.value,
+                          height: 55,
+                          child: isCircle
+                          ? Container(
+                        decoration: BoxDecoration(
+                          color: _loginError ? Colors.red : Colors.white,
+                          shape: BoxShape.circle,
+                        ),
+                        child: Center(
+                          child: _showResultIcon
+                              ? Icon(
+                            _loginError ? Icons.close : Icons.check,
                             color: Colors.white,
-                            shape: BoxShape.circle,
-                          ),
-                          child: const Center(
-                            child: Icon(Icons.fingerprint, color: Colors.green, size: 30),
+                            size: 30,
+                          )
+                              : const CircularProgressIndicator(
+                            strokeWidth: 3,
+                            color: Colors.green,
                           ),
                         ),
                       )
-                      // --- MODIFICA MAESTRO: ID BOTTONE ACCEDI ---
-                          : Semantics(
-                        identifier: 'login_button',
-                        button: true, // Indica che è un pulsante
-                        child: ElevatedButton(
-                          onPressed: _signIn,
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.white,
-                            foregroundColor: primaryGreen,
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
-                            elevation: 5,
-                          ),
-                          child: const Text("Accedi", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                          : ElevatedButton(
+                        onPressed: _signIn,
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.white,
+                          foregroundColor: Colors.green,
+                          shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(15)),
+                          elevation: 5,
                         ),
+                        child: const Text("Accedi",
+                            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
                       ),
+                    ),
                     );
                   },
                 ),
+
 
                 const SizedBox(height: 30),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     const Text("Non hai un account? ", style: TextStyle(color: Colors.white)),
-
-                    // --- MODIFICA MAESTRO: ID REGISTRATI ---
-                    Semantics(
-                      identifier: 'register_text',
-                      link: true, // Indica che funziona come un link
-                      child: GestureDetector(
-                        onTap: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(builder: (context) => const RegisterScreen()),
-                          );
-                        },
-                        child: const Text(
-                          "Registrati",
-                          style: TextStyle(
-                              color: Colors.white,
-                              fontWeight: FontWeight.bold,
-                              decoration: TextDecoration.underline,
-                              decorationColor: Colors.white
-                          ),
+                    GestureDetector(
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(builder: (context) => const RegisterScreen()),
+                        );
+                      },
+                      child: const Text(
+                        "Registrati",
+                        style: TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
+                            decoration: TextDecoration.underline,
+                            decorationColor: Colors.white
                         ),
                       ),
                     ),
