@@ -22,14 +22,17 @@ class TemporaryGroupController with ChangeNotifier {
     loadGroupDetails();
   }
 
+  void clearError() {
+    _error = null;
+  }
+
   Future<void> _execute(Future<void> Function() operation) async {
     _isLoading = true;
     _error = null;
     notifyListeners();
     try {
       await operation();
-      // Ricarica sempre i dati dopo un'operazione per avere lo stato aggiornato
-      await loadGroupDetails(); 
+      await loadGroupDetails();
     } catch (e) {
       _error = e.toString();
     } finally {
@@ -62,9 +65,24 @@ class TemporaryGroupController with ChangeNotifier {
   }
 
   Future<void> joinGroup(String code) async {
-    await _execute(() => _service.joinGroup(code));
+    _isLoading = true;
+    _error = null;
+    notifyListeners();
+    try {
+      await _service.joinGroup(code);
+      await loadGroupDetails();
+    } catch (e) {
+      if (e.toString().contains('Codice di invito non valido')) {
+        _error = "Il codice che hai inserito non è valido o è scaduto. Riprova!";
+      } else {
+        _error = "Si è verificato un errore inaspettato. Riprova più tardi.";
+      }
+    } finally {
+      _isLoading = false;
+      notifyListeners();
+    }
   }
-  
+
   Future<void> leaveGroup() async {
     await _execute(() => _service.leaveGroup());
   }

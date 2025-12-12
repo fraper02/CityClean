@@ -1,0 +1,44 @@
+# Sostituisci con l'ID della tua applicazione
+appId: com.example.cityclean
+name: Test End-to-End del Modulo IA
+---
+- launchApp
+
+# 1. Naviga alla schermata IA
+- tapOn:
+    id: "nav_ai"
+- assertVisible: "Riconoscimento IA"
+
+# 2. Verifica che la UI sia pronta
+- assertVisible:
+    id: "ia_upload_button"
+- assertVisible:
+    id: "ia_camera_button"
+    delay: 3000 # 3 secondi
+
+
+# 3. Simula il tap per caricare l'immagine.
+# Grazie alla modifica al controller, questo caricherà 'test_image.jpg' dagli asset
+# quando il test è eseguito con la variabile d'ambiente MAESTRO_TEST.
+- tapOn:
+    id: "ia_upload_button"
+    delay: 3000 # 3 secondi
+
+# 4. Attendi che l'immagine venga processata e che il risultato appaia
+# Usiamo un timeout generoso per dare tempo al modello TFLite di lavorare.
+- assertVisible:
+    text: "Rifiuto Riconosciuto!"
+    delay: 8000 # 8 secondi
+
+# 5. Verifica il contenuto del dialogo dei risultati
+- assertVisible: "Confidenza: .*"
+- assertVisible: "Contenitore corretto:"
+- assertVisible:
+    id: "ia_result_ok_button"
+
+# 6. Chiudi il dialogo e verifica che la schermata sia tornata allo stato iniziale
+- tapOn:
+    id: "ia_result_ok_button"
+- assertNotVisible: "Rifiuto Riconosciuto!"
+- assertVisible:
+    id: "ia_upload_button"

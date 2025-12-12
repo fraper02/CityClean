@@ -29,7 +29,6 @@ dependencies:
   http: any
   provider: ^6.1.5+1
 
-
   # Dipendenze aggiunte per la sezione Admin
   csv: ^5.1.1
   path_provider: ^2.1.3
