@@ -77,11 +77,13 @@ class TemporaryGroupDashboardScreen extends StatelessWidget {
                   ),
                   Row(
                     children: [
-                      IconButton(
-                        icon: const Icon(Icons.exit_to_app, color: Colors.redAccent),
-                        onPressed: () => _confirmLeaveGroup(context, controller),
-                        tooltip: 'Lascia gruppo',
-                      ),
+                      // MODIFICA FINALE: Mostra il pulsante solo se non sei il capo, o se sei il capo e sei l'unico membro.
+                      if (!isCreator || (isCreator && group.memberCount == 1))
+                        IconButton(
+                          icon: const Icon(Icons.exit_to_app, color: Colors.redAccent),
+                          onPressed: () => _confirmLeaveGroup(context, controller),
+                          tooltip: 'Lascia gruppo',
+                        ),
                       IconButton(
                         icon: const Icon(Icons.refresh, color: Colors.white, size: 28),
                         onPressed: () => controller.loadGroupDetails(),
@@ -129,7 +131,6 @@ class TemporaryGroupDashboardScreen extends StatelessWidget {
               ),
             ],
           ),
-          // RIPRISTINATO: Visualizzazione codice di invito
           const Divider(height: 24, thickness: 1, indent: 10, endIndent: 10),
           const Text("Invita con questo codice", style: TextStyle(color: Colors.grey, fontSize: 14)),
           const SizedBox(height: 8),
