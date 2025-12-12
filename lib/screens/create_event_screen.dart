@@ -134,7 +134,9 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
             const SizedBox(height: 20),
 
             // Titolo
-            TextField(
+        Semantics(
+          identifier: 'titleField',
+            child:TextField(
               controller: _titleController,
               decoration: const InputDecoration(
                 labelText: "Titolo Evento",
@@ -142,10 +144,13 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
                 prefixIcon: Icon(Icons.title),
               ),
             ),
+        ),
             const SizedBox(height: 15),
 
             // Descrizione
-            TextField(
+            Semantics(
+              identifier: 'Description',
+              child:TextField(
               controller: _descController,
               decoration: const InputDecoration(
                 labelText: "Descrizione",
@@ -153,11 +158,14 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
                 prefixIcon: Icon(Icons.description),
               ),
               maxLines: 3,
+              ),
             ),
             const SizedBox(height: 15),
 
             // Tipologia Rifiuti
-            TextField(
+        Semantics(
+          identifier: 'wasteTypeField',
+          child:TextField(
               controller: _wasteTypeController,
               decoration: const InputDecoration(
                 labelText: "Tipologia Rifiuti Prevista",
@@ -165,12 +173,15 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
                 prefixIcon: Icon(Icons.category),
               ),
             ),
+        ),
             const SizedBox(height: 20),
 
             // Data
             const Text("Data Evento", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
             const SizedBox(height: 10),
-            InkWell(
+        Semantics(
+          identifier: 'datePickerButton', // IDENTIFICATORE AGGIUNTO
+          child:InkWell(
               onTap: _pickDate,
               child: Container(
                 padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 15),
@@ -187,16 +198,21 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
                 ),
               ),
             ),
+        ),
             const SizedBox(height: 20),
 
             // Posizione
             const Text("Posizione", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
             const SizedBox(height: 5),
-            Text(_locationStatus, style: TextStyle(color: _eventLocation != null ? Colors.green : Colors.grey)),
-            const SizedBox(height: 10),
+        Semantics(
+          identifier: 'locationStatusText', // IDENTIFICATORE AGGIUNTO
+          child:Text(_locationStatus, style: TextStyle(color: _eventLocation != null ? Colors.green : Colors.grey),key: const Key('createEventScreen_locationStatusText')),
+        ),const SizedBox(height: 10),
             Row(
               children: [
                 Expanded(
+                  child: Semantics(
+                    identifier: 'useGpsButton',
                   child: ElevatedButton.icon(
                     onPressed: _useGps,
                     icon: const Icon(Icons.my_location),
@@ -207,9 +223,13 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
                     ),
                   ),
                 ),
+                ),
                 const SizedBox(width: 10),
                 Expanded(
-                  child: ElevatedButton.icon(
+                  child: Semantics(
+                      identifier: 'pickFromMapButton', // IDENTIFICATORE AGGIUNTO
+                      child: ElevatedButton.icon(
+
                     onPressed: _pickFromMap,
                     icon: const Icon(Icons.map),
                     label: const Text("Scegli su Mappa"),
@@ -218,6 +238,7 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
                       foregroundColor: Colors.orange[700],
                     ),
                   ),
+                ),
                 ),
               ],
             ),
@@ -228,6 +249,8 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
             SizedBox(
               width: double.infinity,
               height: 55,
+              child: Semantics(
+                identifier: 'submitButton',
               child: ElevatedButton(
                 onPressed: _isSubmitting ? null : _submitEvent,
                 style: ElevatedButton.styleFrom(
@@ -239,6 +262,7 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
                     ? const CircularProgressIndicator(color: Colors.white)
                     : const Text("INVIA SEGNALAZIONE", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
               ),
+            ),
             ),
           ],
         ),

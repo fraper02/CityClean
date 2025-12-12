@@ -106,14 +106,14 @@ class ReportService {
         'localita': "Lat: $latitude, Lon: $longitude",
         'latitudine': latitude,
         'longitudine': longitude,
-        'immagine': 'https://placehold.co/600x400/orange/white?text=Evento+CityClean',
+        'immagine': null,
       });
 
        //INVIO NOTIFICA LOCALE
       await NotificheService.nuovaNotificaEvento(
         nomeEvento: title,
         descrizione: description,
-        immagineLocale: 'https://placehold.co/600x400/orange/white?text=Evento+CityClean', // Se hai un'immagine locale cambia questo
+        immagineLocale: null, // Se hai un'immagine locale cambia questo
       );
 
     } on PostgrestException catch (e) {

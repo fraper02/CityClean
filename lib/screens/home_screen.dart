@@ -318,10 +318,14 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
         const SizedBox(height: 15),
         Row(
           children: [
-            Expanded(child: _buildOptionCard(Icons.add_circle_outline, "Segnala Evento Futuro", onTap: () {
+
+            Expanded(
+            child: Semantics(
+            identifier: 'createEventButton',child: _buildOptionCard(Icons.add_circle_outline, "Segnala Evento Futuro", onTap: () {
+              identifier: 'password_input';
               Navigator.push(context, MaterialPageRoute(builder: (context) => CreateEventScreen(userId: userId)));
-            })),
-            const SizedBox(width: 15),
+            })),),
+             const SizedBox(width: 15),
             Expanded(child: _buildOptionCard(Icons.flag_outlined, "I Miei Obiettivi", onTap: () {
               Navigator.push(context, MaterialPageRoute(builder: (context) => const ObjectivesScreen()));
             })),
