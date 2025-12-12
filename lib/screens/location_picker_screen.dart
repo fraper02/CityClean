@@ -64,12 +64,15 @@ class _LocationPickerScreenState extends State<LocationPickerScreen> {
         title: const Text("Seleziona Posizione"),
         actions: [
           if (_selectedLocation != null)
-            IconButton(
+      Semantics(
+      identifier: 'confirmButton', // IDENTIFICATORE AGGIUNTO
+      child:IconButton(
               icon: const Icon(Icons.check),
               onPressed: () {
                 Navigator.pop(context, _selectedLocation);
               },
-            )
+            ),
+      )
         ],
       ),
       body: FlutterMap(
