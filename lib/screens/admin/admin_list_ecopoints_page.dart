@@ -4,9 +4,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 
-// ... (Imports e classi invariate fino a _showEditDialog) ...
-// Per brevità rigenero l'intero file corretto per evitare confusione con i diff.
-
 class AdminListEcopointsPage extends StatefulWidget {
   const AdminListEcopointsPage({super.key});
 
@@ -221,8 +218,20 @@ class AdminListEcopointsPageState extends State<AdminListEcopointsPage> {
                     child: Column(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        // Form fields omitted for brevity, same as before...
-                        TextFormField(controller: nomeController, decoration: const InputDecoration(labelText: 'Nome'), validator: (v) => v!.isEmpty ? 'Obbligatorio' : null),
+                        if (!isCreating)
+                          TextFormField(
+                            controller: idController,
+                            decoration: const InputDecoration(labelText: 'ID (Sola Lettura)', filled: true),
+                            readOnly: true,
+                            style: const TextStyle(fontSize: 12, color: Colors.grey),
+                          ),
+                        if (isCreating)
+                          const Padding(
+                            padding: EdgeInsets.only(bottom: 10),
+                            child: Text("ID verrà generato automaticamente: ECO-...", style: TextStyle(fontSize: 12, color: Colors.blueGrey)),
+                          ),
+                        const SizedBox(height: 10),
+                        TextFormField(controller: nomeController, decoration: const InputDecoration(labelText: 'Nome Punto'), validator: (v) => v!.isEmpty ? 'Inserisci un nome' : null),
                         const SizedBox(height: 10),
                         TextFormField(controller: indirizzoController, decoration: const InputDecoration(labelText: 'Indirizzo')),
                         const SizedBox(height: 10),
@@ -231,7 +240,7 @@ class AdminListEcopointsPageState extends State<AdminListEcopointsPage> {
                         ElevatedButton.icon(
                           onPressed: () => pickLocationOnMap(context),
                           icon: const Icon(Icons.map),
-                          label: const Text("Seleziona su Mappa"),
+                          label: const Text("📍 Seleziona su Mappa"),
                         ),
                         const SizedBox(height: 10),
                         Row(
@@ -260,7 +269,7 @@ class AdminListEcopointsPageState extends State<AdminListEcopointsPage> {
                         final double lat = double.parse(latController.text.replaceAll(',', '.'));
                         final double lon = double.parse(lonController.text.replaceAll(',', '.'));
 
-                        // Generazione ID casuale per nuovi punti
+                        // LOGICA DI GENERAZIONE ID
                         String newId = '';
                         if (isCreating) {
                           newId = 'ECO-${DateTime.now().millisecondsSinceEpoch}-${(lat*100).toInt()}';
@@ -281,9 +290,9 @@ class AdminListEcopointsPageState extends State<AdminListEcopointsPage> {
                           await _controller.updateEcopoint(parentContext, ecopointData);
                         }
 
-                        // Check mounted before popping
+                        // FIX DEAD CODE: Verifica se il widget è montato prima di chiudere
                         if (!context.mounted) return;
-                        Navigator.pop(context);
+                        Navigator.of(context).pop();
 
                       } catch (e) {
                         setState(() => isSaving = false);
@@ -312,17 +321,33 @@ class _LocationPickerScreen extends StatefulWidget {
 
 class _LocationPickerScreenState extends State<_LocationPickerScreen> {
   late LatLng _pickedPosition;
+  final MapController _mapController = MapController();
+
   @override
   void initState() { super.initState(); _pickedPosition = widget.initialCenter; }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text("Posizione"), actions: [IconButton(icon: const Icon(Icons.check), onPressed: () => Navigator.pop(context, _pickedPosition))]),
-      body: FlutterMap(
-        options: MapOptions(initialCenter: widget.initialCenter, initialZoom: 15, onTap: (_, p) => setState(() => _pickedPosition = p)),
+      appBar: AppBar(title: const Text("Seleziona Posizione"), actions: [IconButton(icon: const Icon(Icons.check), onPressed: () => Navigator.pop(context, _pickedPosition))]),
+      body: Stack(
         children: [
-          TileLayer(urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png'),
-          MarkerLayer(markers: [Marker(point: _pickedPosition, width: 50, height: 50, child: const Icon(Icons.location_on, color: Colors.red, size: 40))]),
+          FlutterMap(
+            mapController: _mapController,
+            options: MapOptions(initialCenter: widget.initialCenter, initialZoom: 15, onTap: (_, p) => setState(() => _pickedPosition = p)),
+            children: [
+              TileLayer(urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png', userAgentPackageName: 'com.unisa.cityclean'),
+              MarkerLayer(markers: [Marker(point: _pickedPosition, width: 50, height: 50, child: const Icon(Icons.location_on, color: Colors.red, size: 40))]),
+            ],
+          ),
+          Positioned(
+            bottom: 30, left: 20, right: 20,
+            child: ElevatedButton(
+              onPressed: () => Navigator.pop(context, _pickedPosition),
+              style: ElevatedButton.styleFrom(backgroundColor: Colors.green[700], foregroundColor: Colors.white, padding: const EdgeInsets.symmetric(vertical: 15)),
+              child: const Text("CONFERMA POSIZIONE", style: TextStyle(fontWeight: FontWeight.bold)),
+            ),
+          )
         ],
       ),
     );
