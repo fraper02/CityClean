@@ -53,8 +53,7 @@ class RedeemService {
       log("Riscatto OK: ${result?['message']}");
 
       await NotificheService.premioRiscattato(
-        nomePremio: prize.id,
-        //immagineLocale: 'assets/images/spunta.png', // opzionale
+        nomePremio: prize.id
       );
 
     } catch (e) {

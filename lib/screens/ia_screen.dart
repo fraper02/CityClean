@@ -31,9 +31,7 @@ class _IAScreenState extends State<IAScreen> {
   }
 
   void _onControllerUpdate() {
-    // If a result is available, show the dialog
     if (_controller.classificationResult != null && !_controller.isLoading) {
-      // Use a post-frame callback to ensure the build is complete
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (mounted) {
           _showResultDialog(
@@ -43,7 +41,6 @@ class _IAScreenState extends State<IAScreen> {
         }
       });
     } else {
-      // Otherwise, just rebuild the widget tree
       setState(() {});
     }
   }
@@ -82,12 +79,15 @@ class _IAScreenState extends State<IAScreen> {
         ),
         actionsAlignment: MainAxisAlignment.center,
         actions: [
-          TextButton(
-            onPressed: () {
-              Navigator.of(ctx).pop();
-              _controller.reset();
-            },
-            child: const Text("HO CAPITO", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+          Semantics(
+            identifier: 'ia_result_ok_button',
+            child: TextButton(
+              onPressed: () {
+                Navigator.of(ctx).pop();
+                _controller.reset();
+              },
+              child: const Text("HO CAPITO", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+            ),
           ),
         ],
       ),
@@ -97,6 +97,9 @@ class _IAScreenState extends State<IAScreen> {
   @override
   Widget build(BuildContext context) {
     final Color primaryGreen = Colors.green[700]!;
+    // MODIFICA: Leggiamo il valore della variabile d'ambiente
+    const bool isMaestroTest = bool.fromEnvironment('MAESTRO_TEST');
+
     return Scaffold(
         backgroundColor: Colors.grey[100],
         bottomNavigationBar: const CityCleanBottomNavBar(currentIndex: 4),
@@ -114,14 +117,25 @@ class _IAScreenState extends State<IAScreen> {
               child: SingleChildScrollView(
                 child: Column(
                   children: [
-                    const Padding(
-                      padding: EdgeInsets.fromLTRB(20, 20, 20, 25),
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(20, 20, 20, 10),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text("Riconoscimento IA", style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: Colors.white)),
-                          SizedBox(height: 5),
-                          Text("Identifica i rifiuti con l'intelligenza artificiale", style: TextStyle(fontSize: 16, color: Colors.white70)),
+                          const Text("Riconoscimento IA", style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: Colors.white)),
+                          const SizedBox(height: 5),
+                          const Text("Identifica i rifiuti con l'intelligenza artificiale", style: TextStyle(fontSize: 16, color: Colors.white70)),
+                          // MODIFICA: Mostra il valore della variabile a schermo
+                          if (isMaestroTest)
+                            Container(
+                              margin: const EdgeInsets.only(top: 8),
+                              padding: const EdgeInsets.all(4),
+                              color: Colors.black,
+                              child: const Text(
+                                'MAESTRO TEST MODE: ACTIVE',
+                                style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                              ),
+                            ),
                         ],
                       ),
                     ),
@@ -158,13 +172,16 @@ class _IAScreenState extends State<IAScreen> {
                           SizedBox(
                             width: double.infinity,
                             height: 55,
-                            child: ElevatedButton.icon(
-                              onPressed: (_controller.isLoading || !_controller.isModelLoaded)
-                                  ? null
-                                  : () => _controller.pickAndClassifyImage(ImageSource.camera),
-                              icon: const Icon(Icons.camera_alt_outlined, size: 24),
-                              label: const Text("Usa la fotocamera", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-                              style: ElevatedButton.styleFrom(backgroundColor: primaryGreen, foregroundColor: Colors.white, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)), elevation: 2),
+                            child: Semantics(
+                              identifier: 'ia_camera_button',
+                              child: ElevatedButton.icon(
+                                onPressed: (_controller.isLoading || !_controller.isModelLoaded)
+                                    ? null
+                                    : () => _controller.pickAndClassifyImage(ImageSource.camera),
+                                icon: const Icon(Icons.camera_alt_outlined, size: 24),
+                                label: const Text("Usa la fotocamera", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                                style: ElevatedButton.styleFrom(backgroundColor: primaryGreen, foregroundColor: Colors.white, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)), elevation: 2),
+                              ),
                             ),
                           ),
                         ],
@@ -201,17 +218,20 @@ class _IAScreenState extends State<IAScreen> {
         ],
       );
     } else {
-      return GestureDetector(
-        onTap: () => _controller.pickAndClassifyImage(ImageSource.gallery),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(Icons.upload_file, size: 50, color: primaryGreen),
-            const SizedBox(height: 15),
-            Text("Carica un'immagine", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.green[800])),
-            const SizedBox(height: 5),
-            const Text("Clicca per selezionare dalla galleria", style: TextStyle(color: Colors.grey), textAlign: TextAlign.center),
-          ],
+      return Semantics(
+        identifier: 'ia_upload_button',
+        child: GestureDetector(
+          onTap: () => _controller.pickAndClassifyImage(ImageSource.gallery),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(Icons.upload_file, size: 50, color: primaryGreen),
+              const SizedBox(height: 15),
+              Text("Carica un'immagine", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.green[800])),
+              const SizedBox(height: 5),
+              const Text("Clicca per selezionare dalla galleria", style: TextStyle(color: Colors.grey), textAlign: TextAlign.center),
+            ],
+          ),
         ),
       );
     }

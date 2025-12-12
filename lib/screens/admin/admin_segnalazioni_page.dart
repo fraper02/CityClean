@@ -44,6 +44,42 @@ class AdminSegnalazioniPageState extends State<AdminSegnalazioniPage> {
     }
   }
 
+  // Dialogo di conferma eliminazione
+  Future<void> _confirmDelete(BuildContext context, String segnalazioneId) async {
+    return showDialog<void>(
+      context: context,
+      barrierDismissible: false,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text('Elimina Segnalazione'),
+          content: const SingleChildScrollView(
+            child: ListBody(
+              children: <Widget>[
+                Text('Sei sicuro di voler eliminare questa segnalazione?'),
+                Text('Questa azione non può essere annullata.'),
+              ],
+            ),
+          ),
+          actions: <Widget>[
+            TextButton(
+              child: const Text('Annulla'),
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+            ),
+            TextButton(
+              child: const Text('Elimina', style: TextStyle(color: Colors.red)),
+              onPressed: () {
+                Navigator.of(context).pop();
+                _controller.deleteSegnalazione(segnalazioneId);
+              },
+            ),
+          ],
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return ValueListenableBuilder<SegnalazioniState>(
@@ -74,6 +110,8 @@ class AdminSegnalazioniPageState extends State<AdminSegnalazioniPage> {
 
   Widget _buildSegnalazioneCard(Segnalazione segnalazione) {
     final bool isPending = segnalazione.accettata == null;
+    final bool isApproved = segnalazione.accettata == true;
+    final bool isRejected = segnalazione.accettata == false;
 
     return Card(
       margin: const EdgeInsets.symmetric(vertical: 8),
@@ -100,6 +138,8 @@ class AdminSegnalazioniPageState extends State<AdminSegnalazioniPage> {
             if (segnalazione.lastUpdated != null)
               _buildInfoRow(Icons.date_range, 'Data', DateFormat('dd/MM/yyyy HH:mm').format(segnalazione.lastUpdated!)),
             const SizedBox(height: 16),
+
+            // Pulsanti di azione
             Row(
               mainAxisAlignment: MainAxisAlignment.end,
               children: [
@@ -110,19 +150,46 @@ class AdminSegnalazioniPageState extends State<AdminSegnalazioniPage> {
                     onPressed: () => _launchMaps(segnalazione.latitude!, segnalazione.longitude!),
                   ),
                 const Spacer(),
-                if (isPending)
-                  ...[
-                    TextButton(
-                      child: const Text('Rifiuta', style: TextStyle(color: Colors.red)),
+
+                // CASO 1: IN ATTESA
+                if (isPending) ...[
+                  TextButton(
+                    child: const Text('Rifiuta', style: TextStyle(color: Colors.red)),
+                    onPressed: () => _controller.updateStatus(segnalazione.id, false),
+                  ),
+                  const SizedBox(width: 8),
+                  ElevatedButton(
+                    style: ElevatedButton.styleFrom(backgroundColor: adminPrimaryColor, foregroundColor: Colors.white),
+                    child: const Text('Approva'),
+                    onPressed: () => _controller.updateStatus(segnalazione.id, true),
+                  ),
+                ]
+
+                // CASO 2: GIA' GESTITA (APPROVATA O RIFIUTATA)
+                else ...[
+                  // Pulsante di modifica (inverti stato)
+                  if (isApproved)
+                    TextButton.icon(
+                      icon: const Icon(Icons.close, size: 18, color: Colors.orange),
+                      label: const Text('Rifiuta', style: TextStyle(color: Colors.orange)),
                       onPressed: () => _controller.updateStatus(segnalazione.id, false),
                     ),
-                    const SizedBox(width: 8),
-                    ElevatedButton(
-                      style: ElevatedButton.styleFrom(backgroundColor: adminPrimaryColor, foregroundColor: Colors.white),
-                      child: const Text('Approva'),
+                  if (isRejected)
+                    TextButton.icon(
+                      icon: const Icon(Icons.check, size: 18, color: adminPrimaryColor),
+                      label: const Text('Approva', style: TextStyle(color: adminPrimaryColor)),
                       onPressed: () => _controller.updateStatus(segnalazione.id, true),
                     ),
-                  ]
+
+                  const SizedBox(width: 8),
+
+                  // Pulsante Elimina (Cestino)
+                  IconButton(
+                    icon: const Icon(Icons.delete_outline, color: Colors.red),
+                    tooltip: 'Elimina Segnalazione',
+                    onPressed: () => _confirmDelete(context, segnalazione.id),
+                  ),
+                ]
               ],
             )
           ],

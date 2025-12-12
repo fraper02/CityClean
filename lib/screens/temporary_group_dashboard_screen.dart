@@ -77,7 +77,8 @@ class TemporaryGroupDashboardScreen extends StatelessWidget {
                   ),
                   Row(
                     children: [
-                      if (!isCreator)
+                      // MODIFICA FINALE: Mostra il pulsante solo se non sei il capo, o se sei il capo e sei l'unico membro.
+                      if (!isCreator || (isCreator && group.memberCount == 1))
                         IconButton(
                           icon: const Icon(Icons.exit_to_app, color: Colors.redAccent),
                           onPressed: () => _confirmLeaveGroup(context, controller),
@@ -131,7 +132,7 @@ class TemporaryGroupDashboardScreen extends StatelessWidget {
             ],
           ),
           const Divider(height: 24, thickness: 1, indent: 10, endIndent: 10),
-          const Text("Invita altri membri con questo codice", style: TextStyle(color: Colors.grey, fontSize: 14)),
+          const Text("Invita con questo codice", style: TextStyle(color: Colors.grey, fontSize: 14)),
           const SizedBox(height: 8),
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
@@ -177,10 +178,10 @@ class TemporaryGroupDashboardScreen extends StatelessWidget {
           child: (member.profilePictureUrl == null || member.profilePictureUrl!.isEmpty) ? Text(member.name.isNotEmpty ? member.name[0] : '?') : null,
         ),
         title: Text(fullName, style: const TextStyle(fontWeight: FontWeight.bold)),
-        subtitle: isThisMemberTheCreator ? const Text('Creatore', style: TextStyle(color: Colors.amber, fontWeight: FontWeight.bold)) : null,
+        subtitle: isThisMemberTheCreator ? const Text('Capo', style: TextStyle(color: Colors.amber, fontWeight: FontWeight.bold)) : null,
         trailing: canPerformActions
             ? Row(mainAxisSize: MainAxisSize.min, children: [
-                IconButton(icon: const Icon(Icons.workspace_premium_outlined, color: Colors.amber), tooltip: 'Nomina creatore', onPressed: () => _confirmTransferOwnership(context, controller, member)),
+                IconButton(icon: const Icon(Icons.workspace_premium_outlined, color: Colors.amber), tooltip: 'Nomina Capo', onPressed: () => _confirmTransferOwnership(context, controller, member)),
                 IconButton(icon: const Icon(Icons.person_remove, color: Colors.red), tooltip: 'Espelli', onPressed: () => _confirmKick(context, controller, member)),
               ])
             : null,
@@ -207,7 +208,7 @@ void _confirmKick(BuildContext context, TemporaryGroupController controller, Tem
 void _confirmTransferOwnership(BuildContext context, TemporaryGroupController controller, TemporaryGroupMember member) {
   showDialog(context: context, builder: (ctx) => AlertDialog(
     title: const Text('Trasferisci Proprietà'),
-    content: Text('Sei sicuro di voler nominare ${member.name} come nuovo creatore?'),
+    content: Text('Sei sicuro di voler nominare ${member.name} come nuovo Capo?'),
     actions: [
       TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Annulla')),
       ElevatedButton(

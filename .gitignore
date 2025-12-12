@@ -95,3 +95,7 @@ $RECYCLE.BIN/
 
 # Web
 /build/web/
+
+# Test
+/maestro/
+/test/

@@ -21,7 +21,17 @@ class ReportService {
       final fileName = '${DateTime.now().millisecondsSinceEpoch}.jpg';
       final storagePath = 'segnalazioni/$fileName';
       
-      await supabase.storage.from('immagini').upload(storagePath, imageFile);
+      // FIX: Leggiamo i byte del file e usiamo uploadBinary per maggiore compatibilità
+      final imageBytes = await imageFile.readAsBytes();
+      await supabase.storage.from('immagini').uploadBinary(
+        storagePath, 
+        imageBytes,
+        fileOptions: const FileOptions(
+          cacheControl: '3600',
+          contentType: 'image/jpeg',
+        ),
+      );
+      
       final imageUrl = supabase.storage.from('immagini').getPublicUrl(storagePath);
 
       final newImageId = _generateId(prefix: 'img');

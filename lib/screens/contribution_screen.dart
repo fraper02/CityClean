@@ -1,8 +1,12 @@
-import 'package:cityclean/services/contribution_service.dart'; // Importa il service (dal vecchio file)
-import 'package:cityclean/models/valore_rifiuto.dart';
+import 'package:cityclean/models/sessione_raccolta.dart';
+import 'package:cityclean/screens/home_screen.dart';
+import 'package:cityclean/services/contribution_service.dart';
+import 'package:cityclean/models/aggiungi_punti.dart';
+import 'package:cityclean/services/session_service.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:uuid/uuid.dart';
 
 class ContributionScreen extends StatefulWidget {
   final String ecopointId;
@@ -15,47 +19,57 @@ class ContributionScreen extends StatefulWidget {
 
 class _ContributionScreenState extends State<ContributionScreen> {
   final supabase = Supabase.instance.client;
+  final RecyclingService _recyclingService = RecyclingService();
+  final Uuid _uuid = const Uuid();
 
   // Stato per i dati dinamici
   List<ValoreRifiuto> _valoriRifiuti = [];
-  bool _isLoading = true; // Gestisce sia il caricamento iniziale che il salvataggio
+  bool _isLoading = true;
   String? _errorMessage;
 
   // Controllers per gli input
-  final _cartaController = TextEditingController();
   final _plasticaController = TextEditingController();
   final _vetroController = TextEditingController();
   final _alluminioController = TextEditingController();
+  final _cartaController = TextEditingController();
 
-  double _totalePunti = 0; // Double per gestire i valori dal DB
+  double _totalePunti = 0;
+  double _totaleCo2 = 0;
 
   @override
   void initState() {
     super.initState();
     _fetchWasteValues();
-    _cartaController.addListener(_calcolaTotale);
+
+    // Listener: ricalcola ogni volta che l'utente scrive qualcosa
     _plasticaController.addListener(_calcolaTotale);
     _vetroController.addListener(_calcolaTotale);
     _alluminioController.addListener(_calcolaTotale);
+    _cartaController.addListener(_calcolaTotale);
+  }
+
+  @override
+  void dispose() {
+    _plasticaController.dispose();
+    _vetroController.dispose();
+    _alluminioController.dispose();
+    _cartaController.dispose();
+    super.dispose();
   }
 
   Future<void> _fetchWasteValues() async {
     try {
-      final response = await supabase
-          .from('valore_rifiuto')
-          .select();
+      final response = await supabase.from('valore_rifiuto').select();
 
       if (!mounted) return;
 
       setState(() {
-        _valoriRifiuti = List<ValoreRifiuto>.from(
-            response.map((item) => ValoreRifiuto.fromJson(item)));
+        _valoriRifiuti =
+            List<ValoreRifiuto>.from(response.map((item) => ValoreRifiuto.fromJson(item)));
         _isLoading = false;
       });
 
-      // Ricalcola subito nel caso ci siano valori precompilati
       _calcolaTotale();
-
     } catch (e) {
       if (!mounted) return;
       setState(() {
@@ -65,49 +79,45 @@ class _ContributionScreenState extends State<ContributionScreen> {
     }
   }
 
-  // Helper per ottenere il valore dal DB in base al nome
-  double _getValorePerTipo(String tipo) {
-    if (_valoriRifiuti.isEmpty) return 0;
-
-    final valore = _valoriRifiuti.firstWhere(
-          (element) => element.tipoRifiuto.toLowerCase() == tipo.toLowerCase(),
-      orElse: () => ValoreRifiuto(id: 0, tipoRifiuto: '', valoreRifiuto: 0),
-    );
-    return valore.valoreRifiuto;
+  ValoreRifiuto? _getRifiutoPerTipo(String tipo) {
+    if (_valoriRifiuti.isEmpty) return null;
+    try {
+      return _valoriRifiuti.firstWhere(
+        (element) => element.tipoRifiuto.toLowerCase() == tipo.toLowerCase(),
+      );
+    } catch (e) {
+      return null;
+    }
   }
 
   void _calcolaTotale() {
     if (_valoriRifiuti.isEmpty) return;
-    final int qtaCarta = int.tryParse(_cartaController.text) ?? 0;
+
     final int qtaPlastica = int.tryParse(_plasticaController.text) ?? 0;
     final int qtaVetro = int.tryParse(_vetroController.text) ?? 0;
     final int qtaAlluminio = int.tryParse(_alluminioController.text) ?? 0;
+    final int qtaCarta = int.tryParse(_cartaController.text) ?? 0;
 
-    // CORREZIONE: Recupera anche il valore della carta
-    double valCarta = _getValorePerTipo('Carta');
-    double valPlastica = _getValorePerTipo('Plastica');
-    double valVetro = _getValorePerTipo('Vetro');
-    double valAlluminio = _getValorePerTipo('Alluminio');
+    final plastica = _getRifiutoPerTipo('Plastica');
+    final vetro = _getRifiutoPerTipo('Vetro');
+    final alluminio = _getRifiutoPerTipo('Alluminio');
+    final carta = _getRifiutoPerTipo('Carta');
 
     setState(() {
-      // CORREZIONE: Aggiunge la carta al calcolo totale
-      _totalePunti = (qtaCarta * valCarta) +
-          (qtaPlastica * valPlastica) +
-          (qtaVetro * valVetro) +
-          (qtaAlluminio * valAlluminio);
+      _totalePunti =
+          (qtaPlastica * (plastica?.valoreRifiuto ?? 0.0)) +
+              (qtaVetro * (vetro?.valoreRifiuto ?? 0.0)) +
+              (qtaAlluminio * (alluminio?.valoreRifiuto ?? 0.0)) +
+              (qtaCarta * (carta?.valoreRifiuto ?? 0.0));
+
+      _totaleCo2 =
+          (qtaPlastica * (plastica?.pesoCo2 ?? 0.0)) +
+              (qtaVetro * (vetro?.pesoCo2 ?? 0.0)) +
+              (qtaAlluminio * (alluminio?.pesoCo2 ?? 0.0)) +
+              (qtaCarta * (carta?.pesoCo2 ?? 0.0));
     });
   }
 
-  @override
-  void dispose() {
-    _cartaController.dispose();
-    _plasticaController.dispose();
-    _vetroController.dispose();
-    _alluminioController.dispose();
-    super.dispose();
-  }
-
-  // LOGICA MERGIATA: Logica del vecchio file adattata al nuovo contesto
   Future<void> _confermaOperazione() async {
     if (_totalePunti == 0) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -116,14 +126,33 @@ class _ContributionScreenState extends State<ContributionScreen> {
       return;
     }
 
-    // Mostra Dialog di Conferma
     final conferma = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text("Conferma Conferimento"),
-        content: Text(
-            "Stai per guadagnare ${_totalePunti.toStringAsFixed(0)} punti!\n\n"
-                "Ecopoint: ${widget.ecopointId}"
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: const Text("Conferma Conferimento", textAlign: TextAlign.center),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Text("Guadagnerai:", style: TextStyle(color: Colors.grey)),
+            Text(
+              "${_totalePunti.toStringAsFixed(0)} Punti",
+              style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Colors.green),
+            ),
+            const SizedBox(height: 15),
+            const Text("Impatto Ambientale:", style: TextStyle(color: Colors.grey)),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const Icon(Icons.cloud_off, color: Colors.blueGrey, size: 20),
+                const SizedBox(width: 5),
+                Text(
+                  "- ${_totaleCo2.toStringAsFixed(2)} Kg CO₂",
+                  style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.blueGrey),
+                ),
+              ],
+            ),
+          ],
         ),
         actions: [
           TextButton(
@@ -131,9 +160,9 @@ class _ContributionScreenState extends State<ContributionScreen> {
             child: const Text("Annulla"),
           ),
           ElevatedButton(
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.green),
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.green, foregroundColor: Colors.white),
             onPressed: () => Navigator.pop(ctx, true),
-            child: const Text("Conferma"),
+            child: const Text("CONFERMA"),
           ),
         ],
       ),
@@ -142,37 +171,81 @@ class _ContributionScreenState extends State<ContributionScreen> {
     if (conferma == true) {
       setState(() => _isLoading = true);
 
-      // Chiamata al Service (preso dal vecchio file)
-      // Nota: Convertiamo _totalePunti in int per compatibilità col vecchio service
       final result = await ContributionService.submitContribution(
           widget.ecopointId,
-          _totalePunti.toInt()
+          _totalePunti.toInt(),
+          _totaleCo2
       );
 
-      if (!mounted) return;
-
-      setState(() => _isLoading = false);
-
       if (result['success'] == true) {
-        // SUCCESSO
-        Navigator.pop(context); // Torna alla home
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(result['message']),
-            backgroundColor: Colors.green,
-            duration: const Duration(seconds: 4),
-          ),
+        String userId = supabase.auth.currentUser!.id;
+        Duration sessionDuration = await _recyclingService.stopRecycling();
+
+        final sessione = SessioneRaccolta(
+          idsessione: _uuid.v4(),
+          idutente: userId,
+          idpuntoraccolta: widget.ecopointId,
+          timestamp: DateTime.now(),
+          puntiguadagnati: _totalePunti.toInt(),
+          dettaglirifiuto: _buildWasteDetails(),
+          durataSessione: sessionDuration,
         );
+
+        try {
+          await _recyclingService.createSessioneRaccolta(sessione);
+          if (!mounted) return;
+
+          // Clear the navigation stack and navigate to a new HomeScreen instance
+          Navigator.of(context).pushAndRemoveUntil(
+            MaterialPageRoute(builder: (context) => const HomeScreen()),
+            (route) => false,
+          );
+
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(result['message']!),
+              backgroundColor: Colors.green,
+            ),
+          );
+        } catch (e) {
+          if (!mounted) return;
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text("Errore nel salvataggio della sessione: $e"),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
       } else {
-        // ERRORE
+        if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text("Errore: ${result['message']}"),
+            content: Text(result['message']!),
             backgroundColor: Colors.red,
           ),
         );
       }
+
+      if (!mounted) return;
+      setState(() => _isLoading = false);
     }
+  }
+
+  String _buildWasteDetails() {
+    List<String> details = [];
+    if (_plasticaController.text.isNotEmpty && _plasticaController.text != '0') {
+      details.add("Plastica: ${_plasticaController.text}");
+    }
+    if (_vetroController.text.isNotEmpty && _vetroController.text != '0') {
+      details.add("Vetro: ${_vetroController.text}");
+    }
+    if (_alluminioController.text.isNotEmpty && _alluminioController.text != '0') {
+      details.add("Alluminio: ${_alluminioController.text}");
+    }
+    if (_cartaController.text.isNotEmpty && _cartaController.text != '0') {
+      details.add("Carta: ${_cartaController.text}");
+    }
+    return details.join(', ');
   }
 
   @override
@@ -192,7 +265,6 @@ class _ContributionScreenState extends State<ContributionScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            // --- Info Ecopoint ---
             Container(
               padding: const EdgeInsets.all(15),
               decoration: BoxDecoration(
@@ -204,117 +276,69 @@ class _ContributionScreenState extends State<ContributionScreen> {
                 children: [
                   const Icon(Icons.location_on, color: Colors.green),
                   const SizedBox(width: 10),
-                  Expanded(
-                    child: Text(
-                      "Ecopoint Rilevato:\n${widget.ecopointId}",
-                      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-                    ),
-                  ),
+                  Expanded(child: Text("Ecopoint: ${widget.ecopointId}", style: const TextStyle(fontWeight: FontWeight.bold))),
                 ],
               ),
             ),
-
-            const SizedBox(height: 30),
-            const Text("Cosa stai riciclando?", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
             const SizedBox(height: 20),
 
-            // --- Input Dinamici ---
-            _buildInputRow(
-                "Carta",
-                "Fogli, giornale...",
-                Icons.newspaper,
-                _getValorePerTipo('Carta'),
-                _cartaController,
-                Colors.blue
-            ),
+            _buildInputRow("Plastica", Icons.local_drink, 'Plastica', _plasticaController, Colors.blue),
             const SizedBox(height: 15),
-            _buildInputRow(
-                "Plastica",
-                "Bottiglie, flaconi...",
-                Icons.local_drink,
-                _getValorePerTipo('Plastica'),
-                _plasticaController,
-                Colors.blue
-            ),
+            _buildInputRow("Vetro", Icons.wine_bar, 'Vetro', _vetroController, Colors.green),
             const SizedBox(height: 15),
-
-            _buildInputRow(
-                "Vetro",
-                "Bottiglie, vasetti...",
-                Icons.wine_bar,
-                _getValorePerTipo('Vetro'),
-                _vetroController,
-                Colors.green
-            ),
+            _buildInputRow("Alluminio", Icons.takeout_dining, 'Alluminio', _alluminioController, Colors.grey),
             const SizedBox(height: 15),
+            _buildInputRow("Carta", Icons.newspaper, 'Carta', _cartaController, Colors.amber[800]!),
 
-            _buildInputRow(
-                "Alluminio",
-                "Lattine, fogli...",
-                Icons.takeout_dining,
-                _getValorePerTipo('Alluminio'),
-                _alluminioController,
-                Colors.grey
-            ),
+            const SizedBox(height: 30),
 
-            const SizedBox(height: 40),
-
-            // --- Card Totale ---
             Card(
-              elevation: 4,
-              color: Colors.green[700],
+              color: Colors.green[800],
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
               child: Padding(
                 padding: const EdgeInsets.all(20),
                 child: Column(
                   children: [
-                    const Text("TOTALE PUNTI STIMATI", style: TextStyle(color: Colors.white70, fontSize: 14, letterSpacing: 1.2)),
-                    const SizedBox(height: 5),
-                    Text(
-                      _totalePunti.toStringAsFixed(0),
-                      style: const TextStyle(color: Colors.white, fontSize: 42, fontWeight: FontWeight.bold),
-                    ),
+                    const Text("STIMA GUADAGNO", style: TextStyle(color: Colors.white70)),
+                    Text("${_totalePunti.toStringAsFixed(0)} PUNTI", style: const TextStyle(color: Colors.white, fontSize: 32, fontWeight: FontWeight.bold)),
+                    const Divider(color: Colors.white24),
+                    Text("CO₂ Risparmiata: ${_totaleCo2.toStringAsFixed(2)} Kg", style: const TextStyle(color: Colors.white, fontSize: 16)),
                   ],
                 ),
               ),
             ),
 
             const SizedBox(height: 20),
-
             ElevatedButton(
-              onPressed: _confermaOperazione, // Chiama la funzione mergiata
+              onPressed: _confermaOperazione,
               style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.green[800],
-                foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(vertical: 16),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  backgroundColor: Colors.green[700],
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.all(16)
               ),
-              child: const Text("CALCOLA E CONFERMA", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-            ),
+              child: const Text("CALCOLA E CONFERMA", style: TextStyle(fontSize: 18)),
+            )
           ],
         ),
       ),
     );
   }
 
-  Widget _buildInputRow(String label, String sub, IconData icon, double multiplier, TextEditingController controller, Color color) {
+  Widget _buildInputRow(String label, IconData icon, String tipoKey, TextEditingController controller, Color color) {
+    final item = _getRifiutoPerTipo(tipoKey);
+    final pti = item?.valoreRifiuto ?? 0;
+    final co2 = item?.pesoCo2 ?? 0;
+
     return Row(
       children: [
-        Container(
-          padding: const EdgeInsets.all(12),
-          decoration: BoxDecoration(color: color.withOpacity(0.1), borderRadius: BorderRadius.circular(12)),
-          child: Icon(icon, color: color, size: 30),
-        ),
+        Icon(icon, color: color, size: 30),
         const SizedBox(width: 15),
         Expanded(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(label, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-              Text(
-                  "Valore: ${multiplier.toStringAsFixed(1)} pti/pz",
-                  style: TextStyle(fontSize: 12, color: Colors.grey[600])
-              ),
+              Text("$pti pti/pz | -$co2 kg CO₂", style: TextStyle(fontSize: 12, color: Colors.grey[600])),
             ],
           ),
         ),
@@ -333,6 +357,26 @@ class _ContributionScreenState extends State<ContributionScreen> {
           ),
         ),
       ],
+    );
+  }
+}
+
+class ValoreRifiuto {
+  final String tipoRifiuto;
+  final double valoreRifiuto;
+  final double pesoCo2;
+
+  ValoreRifiuto({
+    required this.tipoRifiuto,
+    required this.valoreRifiuto,
+    required this.pesoCo2,
+  });
+
+  factory ValoreRifiuto.fromJson(Map<String, dynamic> json) {
+    return ValoreRifiuto(
+      tipoRifiuto: json['tipo_rifiuto'] ?? '',
+      valoreRifiuto: (json['valore_rifiuto'] ?? 0).toDouble(),
+      pesoCo2: (json['peso_co2'] ?? 0).toDouble(),
     );
   }
 }

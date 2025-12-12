@@ -1,4 +1,4 @@
-import 'package:cityclean/models/ecopoint.dart';
+import 'package:cityclean/models/eco_point_model.dart';
 import 'package:cityclean/services/admin/ecopoints_service.dart';
 import 'package:flutter/material.dart';
 

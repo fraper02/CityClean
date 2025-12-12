@@ -1,10 +1,48 @@
 import 'package:cityclean/controllers/temporary_group_controller.dart';
 import 'package:flutter/material.dart';
 
-class TemporaryGroupLobbyScreen extends StatelessWidget {
+class TemporaryGroupLobbyScreen extends StatefulWidget {
   final TemporaryGroupController controller;
 
   const TemporaryGroupLobbyScreen({super.key, required this.controller});
+
+  @override
+  State<TemporaryGroupLobbyScreen> createState() =>
+      _TemporaryGroupLobbyScreenState();
+}
+
+class _TemporaryGroupLobbyScreenState extends State<TemporaryGroupLobbyScreen> {
+  @override
+  void initState() {
+    super.initState();
+    widget.controller.addListener(_handleControllerChanges);
+  }
+
+  @override
+  void dispose() {
+    widget.controller.removeListener(_handleControllerChanges);
+    super.dispose();
+  }
+
+  void _handleControllerChanges() {
+    if (widget.controller.error != null) {
+      showDialog(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          title: const Text('Attenzione'),
+          content: Text(widget.controller.error!),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+          actions: [
+            TextButton(
+              child: const Text('OK'),
+              onPressed: () => Navigator.of(ctx).pop(),
+            ),
+          ],
+        ),
+      );
+      widget.controller.clearError();
+    }
+  }
 
   void _showCreateGroupDialog(BuildContext context) {
     final textController = TextEditingController();
@@ -12,6 +50,7 @@ class TemporaryGroupLobbyScreen extends StatelessWidget {
       context: context,
       builder: (ctx) => AlertDialog(
         title: const Text('Crea Nuovo Gruppo'),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
         content: TextField(
           controller: textController,
           decoration: const InputDecoration(labelText: 'Nome del gruppo'),
@@ -24,7 +63,7 @@ class TemporaryGroupLobbyScreen extends StatelessWidget {
             onPressed: () {
               if (textController.text.trim().isNotEmpty) {
                 Navigator.pop(ctx);
-                controller.createGroup(textController.text.trim());
+                widget.controller.createGroup(textController.text.trim());
               }
             },
           ),
@@ -39,6 +78,7 @@ class TemporaryGroupLobbyScreen extends StatelessWidget {
       context: context,
       builder: (ctx) => AlertDialog(
         title: const Text('Unisciti a un Gruppo'),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
         content: TextField(
           controller: textController,
           decoration: const InputDecoration(labelText: 'Codice di invito'),
@@ -51,7 +91,7 @@ class TemporaryGroupLobbyScreen extends StatelessWidget {
             onPressed: () {
               if (textController.text.trim().isNotEmpty) {
                 Navigator.pop(ctx);
-                controller.joinGroup(textController.text.trim());
+                widget.controller.joinGroup(textController.text.trim());
               }
             },
           ),
