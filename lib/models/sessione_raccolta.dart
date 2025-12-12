@@ -5,7 +5,7 @@ class SessioneRaccolta {
   final DateTime timestamp;
   final int puntiguadagnati;
   final String dettaglirifiuto;
-  final Duration durata_sessione;
+  final Duration durataSessione;
 
   SessioneRaccolta({
     required this.idsessione,
@@ -14,15 +14,15 @@ class SessioneRaccolta {
     required this.timestamp,
     required this.puntiguadagnati,
     required this.dettaglirifiuto,
-    required this.durata_sessione,
+    required this.durataSessione,
   });
 
   Map<String, dynamic> toJson() {
     String twoDigits(int n) => n.toString().padLeft(2, '0');
-    String twoDigitMinutes = twoDigits(durata_sessione.inMinutes.remainder(60));
-    String twoDigitSeconds = twoDigits(durata_sessione.inSeconds.remainder(60));
+    String twoDigitMinutes = twoDigits(durataSessione.inMinutes.remainder(60));
+    String twoDigitSeconds = twoDigits(durataSessione.inSeconds.remainder(60));
     String formattedDuration =
-        "${twoDigits(durata_sessione.inHours)}:$twoDigitMinutes:$twoDigitSeconds";
+        "${twoDigits(durataSessione.inHours)}:$twoDigitMinutes:$twoDigitSeconds";
 
     return {
       'idsessione': idsessione,

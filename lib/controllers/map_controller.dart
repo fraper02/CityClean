@@ -1,5 +1,5 @@
 import 'dart:io';
-import 'package:cityclean/models/partner.dart'; // Assicurati di importare il modello Partner
+import 'package:cityclean/models/partner.dart';
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:latlong2/latlong.dart';
@@ -21,7 +21,7 @@ class MapController extends ChangeNotifier {
 
   List<MapReportModel> _reports = [];
   List<Ecopoint> _ecoPoints = [];
-  List<Partner> _partners = []; // Lista per i partner
+  List<Partner> _partners = [];
 
   // --- GETTERS ---
   LatLng get currentCenter => _currentCenter;
@@ -29,7 +29,7 @@ class MapController extends ChangeNotifier {
   bool get isLoading => _isLoading;
   List<MapReportModel> get reports => _reports;
   List<Ecopoint> get ecoPoints => _ecoPoints;
-  List<Partner> get partners => _partners; // Getter per i partner
+  List<Partner> get partners => _partners;
 
   // --- INIZIALIZZAZIONE ---
   Future<void> initializeLocation() async {
@@ -64,30 +64,27 @@ class MapController extends ChangeNotifier {
     try {
       debugPrint("Controller: Caricamento dati completi...");
 
-      final results = await Future.wait([
+      // Tipizziamo Future.wait per evitare cast inutili dopo
+      final results = await Future.wait<List<Map<String, dynamic>>>([
         _reportService.getReports(),      // index 0
         _recyclingService.getEcoPoints(), // index 1
-        _recyclingService.getPartners(),  // index 2 (NUOVO)
+        _recyclingService.getPartners(),  // index 2
       ]);
 
-      // 1. REPORT
-      final rawReports = results[0] as List<Map<String, dynamic>>;
-      _reports = rawReports
+      // 1. REPORT (results[0] è già List<Map<String, dynamic>>)
+      _reports = results[0]
           .map((data) => MapReportModel.fromMap(data))
           .where((report) => report.isAccepted == true)
           .toList();
 
       // 2. ECOPOINTS
-      final rawEcoPoints = results[1] as List<Map<String, dynamic>>;
-      _ecoPoints = rawEcoPoints
+      _ecoPoints = results[1]
           .map((data) => Ecopoint.fromJson(data))
           .toList();
 
-      // 3. PARTNERS (NUOVO)
-      final rawPartners = results[2] as List<Map<String, dynamic>>;
-      _partners = rawPartners
+      // 3. PARTNERS
+      _partners = results[2]
           .map((data) => Partner.fromMap(data))
-      // Filtriamo solo i partner che hanno coordinate valide
           .where((p) => p.latitudine != null && p.longitudine != null)
           .toList();
 

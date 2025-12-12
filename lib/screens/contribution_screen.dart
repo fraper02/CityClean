@@ -188,7 +188,7 @@ class _ContributionScreenState extends State<ContributionScreen> {
           timestamp: DateTime.now(),
           puntiguadagnati: _totalePunti.toInt(),
           dettaglirifiuto: _buildWasteDetails(),
-          durata_sessione: sessionDuration,
+          durataSessione: sessionDuration,
         );
 
         try {
