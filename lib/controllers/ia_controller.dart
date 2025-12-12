@@ -60,7 +60,7 @@ class IAController with ChangeNotifier {
     try {
       XFile? pickedFile;
       // Legge la variabile d'ambiente di compilazione
-      const bool isMaestroTest = false;
+      const bool isMaestroTest = bool.fromEnvironment('MAESTRO_TEST');
 
       if (isMaestroTest) {
         // --- LOGICA DI BYPASS PER MAESTRO ---
