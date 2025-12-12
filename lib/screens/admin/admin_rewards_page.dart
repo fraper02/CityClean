@@ -3,14 +3,16 @@ import 'package:cityclean/models/partner.dart';
 import 'package:cityclean/models/prizes.dart';
 import 'package:flutter/material.dart';
 
+const Color adminPrimaryColor = Color(0xFF2E7D32);
+
 class AdminRewardsPage extends StatefulWidget {
   const AdminRewardsPage({super.key});
 
   @override
-  State<AdminRewardsPage> createState() => _AdminRewardsPageState();
+  AdminRewardsPageState createState() => AdminRewardsPageState();
 }
 
-class _AdminRewardsPageState extends State<AdminRewardsPage> with SingleTickerProviderStateMixin {
+class AdminRewardsPageState extends State<AdminRewardsPage> with SingleTickerProviderStateMixin {
   late final AdminPrizesController _controller;
   late final TabController _tabController;
 
@@ -29,25 +31,22 @@ class _AdminRewardsPageState extends State<AdminRewardsPage> with SingleTickerPr
     super.dispose();
   }
 
+  void refreshRewards() {
+    _controller.loadAll();
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text("Gestione Premi e Partner"),
-        bottom: TabBar(
+      appBar: PreferredSize(
+        preferredSize: const Size.fromHeight(kToolbarHeight),
+        child: TabBar(
           controller: _tabController,
           tabs: const [
             Tab(icon: Icon(Icons.card_giftcard), text: "Premi"),
             Tab(icon: Icon(Icons.business), text: "Partner"),
           ],
         ),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.refresh),
-            tooltip: "Ricarica Dati",
-            onPressed: _controller.loadAll,
-          ),
-        ],
       ),
       body: ValueListenableBuilder<AdminPrizesState>(
         valueListenable: _controller.state,
@@ -70,7 +69,6 @@ class _AdminRewardsPageState extends State<AdminRewardsPage> with SingleTickerPr
     );
   }
 
-  // --- WIDGET PER IL TAB DEI PREMI ---
   Widget _buildPrizesTab() {
     return Scaffold(
       body: ValueListenableBuilder<List<Prize>>(
@@ -80,7 +78,7 @@ class _AdminRewardsPageState extends State<AdminRewardsPage> with SingleTickerPr
             return const Center(child: Text("Nessun premio trovato."));
           }
           return ListView.builder(
-            padding: const EdgeInsets.all(12),
+            padding: const EdgeInsets.fromLTRB(12, 12, 12, 80),
             itemCount: prizes.length,
             itemBuilder: (context, index) => _buildPrizeCard(prizes[index]),
           );
@@ -88,14 +86,13 @@ class _AdminRewardsPageState extends State<AdminRewardsPage> with SingleTickerPr
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: () => _showPrizeDialog(null),
-        backgroundColor: Colors.blue[700],
+        backgroundColor: adminPrimaryColor,
         tooltip: 'Aggiungi Premio',
         child: const Icon(Icons.add, color: Colors.white),
       ),
     );
   }
 
-  // --- WIDGET PER IL TAB DEI PARTNER ---
   Widget _buildPartnersTab() {
     return Scaffold(
       body: ValueListenableBuilder<List<Partner>>(
@@ -105,7 +102,7 @@ class _AdminRewardsPageState extends State<AdminRewardsPage> with SingleTickerPr
             return const Center(child: Text("Nessun partner trovato."));
           }
           return ListView.builder(
-            padding: const EdgeInsets.all(12),
+            padding: const EdgeInsets.fromLTRB(12, 12, 12, 80),
             itemCount: partners.length,
             itemBuilder: (context, index) => _buildPartnerCard(partners[index]),
           );
@@ -113,14 +110,13 @@ class _AdminRewardsPageState extends State<AdminRewardsPage> with SingleTickerPr
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: () => _showPartnerDialog(null),
-        backgroundColor: Colors.purple[700],
+        backgroundColor: adminPrimaryColor,
         tooltip: 'Aggiungi Partner',
         child: const Icon(Icons.add, color: Colors.white),
       ),
     );
   }
 
-  // --- CARD UI ---
   Widget _buildPrizeCard(Prize prize) {
     return Card(
       margin: const EdgeInsets.symmetric(vertical: 8),
@@ -156,7 +152,6 @@ class _AdminRewardsPageState extends State<AdminRewardsPage> with SingleTickerPr
     );
   }
 
-  // --- DIALOGHI ---
 
   void _showPrizeDialog(Prize? prize) {
     final isCreating = prize == null;

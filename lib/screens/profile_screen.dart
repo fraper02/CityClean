@@ -4,6 +4,7 @@ import 'package:cityclean/screens/objectives_screen.dart';
 import 'package:cityclean/services/report_service.dart';
 import 'package:flutter/material.dart';
 import '../components/bottom_nav_bar.dart';
+import 'home_screen.dart';
 import 'redeemed_rewards_screen.dart';
 import 'guilds_list_screen.dart';
 import 'badge_screen.dart';
@@ -219,12 +220,26 @@ class _ProfileScreenState extends State<ProfileScreen> {
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+          Row(
             children: [
-              Text(title, style: const TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: Colors.white)),
-              const SizedBox(height: 5),
-              Text(subtitle, style: const TextStyle(fontSize: 16, color: Colors.white70)),
+              IconButton(
+                icon: const Icon(Icons.arrow_back, color: Colors.white),
+                onPressed: () {
+                  Navigator.pushReplacement(
+                    context,
+                    MaterialPageRoute(builder: (context) => const HomeScreen()),
+                  );
+                },
+              ),
+              const SizedBox(width: 10),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(title, style: const TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: Colors.white)),
+                  const SizedBox(height: 5),
+                  Text(subtitle, style: const TextStyle(fontSize: 16, color: Colors.white70)),
+                ],
+              ),
             ],
           ),
         ],

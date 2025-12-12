@@ -1,3 +1,4 @@
+import 'package:cityclean/screens/guild_dashboard_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../controllers/guild_controller.dart';
@@ -26,12 +27,23 @@ class _GuildsListScreenState extends State<GuildsListScreen> {
   }
 
   void _handleControllerChanges() {
-    if (_controller.error != null && mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(_controller.error!), backgroundColor: Colors.red),
-      );
+    if (mounted) {
+      if (_controller.error != null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(_controller.error!), backgroundColor: Colors.red),
+        );
+      }
+      // MODIFICA: Controlla se ci siamo appena uniti a una gilda.
+      if (_controller.justJoinedGuildId != null) {
+        final guildId = _controller.justJoinedGuildId!;
+        _controller.clearJustJoinedState(); // Resetta lo stato subito dopo averlo letto.
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (context) => GuildDashboardScreen(guildId: guildId)),
+        );
+      }
+      setState(() {});
     }
-    setState(() {});
   }
 
   @override
@@ -138,17 +150,15 @@ class _GuildsListScreenState extends State<GuildsListScreen> {
     final bool userIsInAGuild = controller.userGuildId != null;
     
     bool isCreator = currentUserId == guild.creatorId;
-    // CORREZIONE: La logica ora controlla se l'utente è membro di QUESTA gilda specifica.
     bool isMemberOfThisGuild = controller.userGuildId == guild.id;
     bool isFull = guild.membersCount >= guild.maxCapacity;
 
-    // Logica per determinare lo stato del pulsante
     String buttonText;
     Color buttonColor;
     VoidCallback? onPressed;
 
     if (isCreator) {
-      buttonText = "Creatore";
+      buttonText = "Capo";
       buttonColor = Colors.grey;
       onPressed = null;
     } else if (isMemberOfThisGuild) {
@@ -160,12 +170,10 @@ class _GuildsListScreenState extends State<GuildsListScreen> {
       buttonColor = Colors.orange;
       onPressed = null;
     } else if (userIsInAGuild) {
-      // L'utente è in un'altra gilda, quindi non può unirsi
       buttonText = "Unisciti";
       buttonColor = Colors.grey;
       onPressed = null;
     } else {
-      // L'utente è libero di unirsi
       buttonText = "Unisciti";
       buttonColor = Colors.green[700]!;
       onPressed = () => controller.joinGuild(guild.id);
@@ -201,7 +209,7 @@ class _GuildsListScreenState extends State<GuildsListScreen> {
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
             padding: const EdgeInsets.symmetric(horizontal: 16),
           ),
-          child: controller.isJoining && onPressed != null // Mostra il loader solo se questo è il pulsante attivo
+          child: controller.isJoining && onPressed != null 
               ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
               : Text(buttonText),
         ),

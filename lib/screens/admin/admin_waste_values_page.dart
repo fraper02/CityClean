@@ -7,13 +7,12 @@ class AdminWasteValuesPage extends StatefulWidget {
   const AdminWasteValuesPage({super.key});
 
   @override
-  State<AdminWasteValuesPage> createState() => _AdminWasteValuesPageState();
+  AdminWasteValuesPageState createState() => AdminWasteValuesPageState();
 }
 
-class _AdminWasteValuesPageState extends State<AdminWasteValuesPage> {
+class AdminWasteValuesPageState extends State<AdminWasteValuesPage> {
   final supabase = Supabase.instance.client;
 
-  // Stato
   bool _isLoading = true;
   String? _errorMessage;
   List<ValoreRifiuto> _wasteValues = [];
@@ -34,7 +33,7 @@ class _AdminWasteValuesPageState extends State<AdminWasteValuesPage> {
       final response = await supabase
           .from('valore_rifiuto')
           .select()
-          .order('tipo_rifiuto', ascending: true); // Ordina per nome
+          .order('tipo_rifiuto', ascending: true); 
 
       if (!mounted) return;
 
@@ -52,7 +51,13 @@ class _AdminWasteValuesPageState extends State<AdminWasteValuesPage> {
     }
   }
 
-  // --- CRUD OPERATIONS ---
+  void refreshWasteValues(){
+    _loadData();
+  }
+
+  void createNewWasteValue(){
+    _showEditDialog(null);
+  }
 
   Future<void> _deleteValue(BuildContext context, int id) async {
     final confirm = await showDialog<bool>(
@@ -74,7 +79,7 @@ class _AdminWasteValuesPageState extends State<AdminWasteValuesPage> {
     if (confirm == true) {
       try {
         await supabase.from('valore_rifiuto').delete().eq('id', id);
-        _loadData(); // Ricarica la lista
+        _loadData(); 
         if (context.mounted) {
           ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Elemento eliminato")));
         }
@@ -89,13 +94,11 @@ class _AdminWasteValuesPageState extends State<AdminWasteValuesPage> {
   Future<void> _saveValue(BuildContext context, ValoreRifiuto? original, String nome, double valore) async {
     try {
       if (original == null) {
-        // CREATE
         await supabase.from('valore_rifiuto').insert({
           'tipo_rifiuto': nome,
           'valore_rifiuto': valore,
         });
       } else {
-        // UPDATE
         await supabase.from('valore_rifiuto').update({
           'tipo_rifiuto': nome,
           'valore_rifiuto': valore,
@@ -103,8 +106,8 @@ class _AdminWasteValuesPageState extends State<AdminWasteValuesPage> {
       }
 
       if (context.mounted) {
-        Navigator.pop(context); // Chiude il dialog
-        _loadData(); // Ricarica
+        Navigator.pop(context); 
+        _loadData(); 
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text("Operazione completata con successo"), backgroundColor: Colors.green),
         );
@@ -118,31 +121,19 @@ class _AdminWasteValuesPageState extends State<AdminWasteValuesPage> {
     }
   }
 
-  // --- UI ---
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text("Gestione Valori Rifiuti"),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.refresh),
-            tooltip: "Ricarica Dati",
-            onPressed: _loadData,
-          ),
-        ],
-      ),
-      body: _isLoading
+       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
           : _errorMessage != null
           ? Center(child: Text(_errorMessage!, style: const TextStyle(color: Colors.red)))
           : _wasteValues.isEmpty
           ? const Center(child: Text("Nessun tipo di rifiuto configurato."))
           : ListView.builder(
-        padding: const EdgeInsets.all(12),
-        itemCount: _wasteValues.length,
-        itemBuilder: (context, index) => _buildWasteCard(_wasteValues[index]),
+              padding: const EdgeInsets.fromLTRB(12, 12, 12, 80),
+              itemCount: _wasteValues.length,
+              itemBuilder: (context, index) => _buildWasteCard(_wasteValues[index]),
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: () => _showEditDialog(null),
@@ -167,7 +158,7 @@ class _AdminWasteValuesPageState extends State<AdminWasteValuesPage> {
           mainAxisSize: MainAxisSize.min,
           children: [
             IconButton(
-              icon: const Icon(Icons.edit, color: Colors.blue),
+              icon: const Icon(Icons.edit, color: Colors.black),
               onPressed: () => _showEditDialog(item),
             ),
             IconButton(
@@ -180,7 +171,6 @@ class _AdminWasteValuesPageState extends State<AdminWasteValuesPage> {
     );
   }
 
-  // Helper semplice per le icone (opzionale, solo estetico)
   IconData _getIconForType(String type) {
     final t = type.toLowerCase();
     if (t.contains('plastica')) return Icons.local_drink;
@@ -189,8 +179,6 @@ class _AdminWasteValuesPageState extends State<AdminWasteValuesPage> {
     if (t.contains('carta') || t.contains('cartone')) return Icons.newspaper;
     return Icons.delete_outline;
   }
-
-  // --- DIALOGS ---
 
   void _showEditDialog(ValoreRifiuto? item) {
     final isCreating = item == null;
@@ -246,7 +234,7 @@ class _AdminWasteValuesPageState extends State<AdminWasteValuesPage> {
               onPressed: () {
                 if (formKey.currentState!.validate()) {
                   _saveValue(
-                    context, // Passiamo il context originale (non quello del dialog) se necessario, ma qui ctx va bene per chiudere
+                    context, 
                     item,
                     nomeController.text.trim(),
                     double.parse(valoreController.text),

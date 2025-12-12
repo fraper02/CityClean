@@ -1,9 +1,9 @@
+import 'package:cityclean/screens/home_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../controllers/guild_dashboard_controller.dart';
 import '../models/guild_details.dart';
 import '../models/guild_member.dart';
-import 'group_screen.dart';
 
 class GuildDashboardScreen extends StatelessWidget {
   final String guildId;
@@ -123,7 +123,7 @@ class GuildDashboardScreen extends StatelessWidget {
             ),
           ),
           isCreator
-            ? const Chip(label: Text('Creatore'), backgroundColor: Color(0xFFFFF3E0), visualDensity: VisualDensity.compact)
+            ? const Chip(label: Text('Capo'), backgroundColor: Color(0xFFFFF3E0), visualDensity: VisualDensity.compact)
             : ElevatedButton.icon(
                 onPressed: () => _confirmLeaveGuild(context, controller),
                 style: ElevatedButton.styleFrom(
@@ -168,7 +168,7 @@ class GuildDashboardScreen extends StatelessWidget {
                 IconButton(icon: const Icon(Icons.person_remove, color: Colors.red), onPressed: () => _confirmKickMember(context, controller, member)),
               ])
             : (isThisMemberTheCreator)
-                ? const Chip(label: Text('Creatore'), backgroundColor: Color(0xFFFFF3E0), visualDensity: VisualDensity.compact)
+                ? const Chip(label: Text('Capo'), backgroundColor: Color(0xFFFFF3E0), visualDensity: VisualDensity.compact)
                 : null,
       ),
     );
@@ -189,7 +189,7 @@ void _confirmKickMember(BuildContext context, GuildDashboardController controlle
 void _confirmTransferOwnership(BuildContext context, GuildDashboardController controller, GuildMember member) {
   showDialog(context: context, builder: (ctx) => AlertDialog(
     title: const Text('Trasferisci Proprietà'),
-    content: Text('Sei sicuro di voler nominare ${member.name} come nuovo creatore?'),
+    content: Text('Sei sicuro di voler nominare ${member.name} come nuovo capo?'),
     actions: [
       TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Annulla')),
       ElevatedButton(onPressed: () { Navigator.pop(ctx); controller.transferOwnership(member.id); }, style: ElevatedButton.styleFrom(backgroundColor: Colors.amber, foregroundColor: Colors.black), child: const Text('Conferma')),
@@ -207,7 +207,7 @@ void _confirmLeaveGuild(BuildContext context, GuildDashboardController controlle
         Navigator.pop(ctx);
         await controller.leaveGuild();
         if (context.mounted) {
-          Navigator.of(context).pushAndRemoveUntil(MaterialPageRoute(builder: (_) => const GroupScreen()), (route) => false);
+          Navigator.of(context).pushAndRemoveUntil(MaterialPageRoute(builder: (_) => const HomeScreen()), (route) => false);
         }
       }, style: ElevatedButton.styleFrom(backgroundColor: Colors.red, foregroundColor: Colors.white), child: const Text('Lascia')),
     ],
