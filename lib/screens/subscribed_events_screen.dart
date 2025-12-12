@@ -32,28 +32,37 @@ class _SubscribedEventsScreenState extends State<SubscribedEventsScreen> {
       context: context,
       builder: (ctx) => AlertDialog(
         title: const Text('Annulla Iscrizione'),
-        content: Text('Sei sicuro di voler annullare l\'iscrizione a "${event.titolo}"?'),
+        // CORREZIONE DEFINITIVA: Parentesi corrette
+        content: SingleChildScrollView(
+          child: Text('Sei sicuro di voler annullare l\'iscrizione a "${event.titolo}"?'),
+        ),
         actions: [
-          TextButton(child: const Text('Chiudi'), onPressed: () => Navigator.pop(ctx)),
-          TextButton(
-            child: const Text('Conferma', style: TextStyle(color: Colors.red)),
-            onPressed: () async {
-              Navigator.pop(ctx);
-              try {
-                await _controller.unsubscribeFromEvent(event.id);
-                if (mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text('Hai annullato l\'iscrizione a: ${event.titolo}'), backgroundColor: Colors.orange),
-                  );
-                }
-              } catch (e) {
-                if (mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text(e.toString()), backgroundColor: Colors.red),
-                  );
-                }
-              }
-            },
+          Wrap(
+            alignment: WrapAlignment.end,
+            spacing: 8.0,
+            children: [
+              TextButton(child: const Text('Chiudi'), onPressed: () => Navigator.pop(ctx)),
+              TextButton(
+                child: const Text('Conferma', style: TextStyle(color: Colors.red)),
+                onPressed: () async {
+                  Navigator.pop(ctx);
+                  try {
+                    await _controller.unsubscribeFromEvent(event.id);
+                    if (mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(content: Text('Hai annullato l\'iscrizione a: ${event.titolo}'), backgroundColor: Colors.orange),
+                      );
+                    }
+                  } catch (e) {
+                    if (mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(content: Text(e.toString()), backgroundColor: Colors.red),
+                      );
+                    }
+                  }
+                },
+              ),
+            ],
           ),
         ],
       ),
@@ -89,7 +98,7 @@ class _SubscribedEventsScreenState extends State<SubscribedEventsScreen> {
                     final event = events[index];
                     return EventCard(
                       event: event,
-                      isSubscribed: true, // L'utente è sempre iscritto in questa schermata
+                      isSubscribed: true,
                       onSubscribeToggle: () => _handleUnsubscribe(event),
                     );
                   },

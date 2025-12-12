@@ -6,10 +6,10 @@ class AdminListEcopointsPage extends StatefulWidget {
   const AdminListEcopointsPage({super.key});
 
   @override
-  State<AdminListEcopointsPage> createState() => _AdminListEcopointsPageState();
+  AdminListEcopointsPageState createState() => AdminListEcopointsPageState();
 }
 
-class _AdminListEcopointsPageState extends State<AdminListEcopointsPage> {
+class AdminListEcopointsPageState extends State<AdminListEcopointsPage> {
   late final EcopointsController _controller;
 
   @override
@@ -25,14 +25,17 @@ class _AdminListEcopointsPageState extends State<AdminListEcopointsPage> {
     super.dispose();
   }
 
+  void createNewEcopoint() {
+    _showEditDialog(context, null);
+  }
+
+  void refreshEcopoints() {
+    _controller.loadEcopoints();
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text("Gestione Punti di Raccolta"),
-        backgroundColor: Colors.white,
-        elevation: 1,
-      ),
       backgroundColor: Colors.grey[100],
       body: ValueListenableBuilder<EcopointsState>(
         valueListenable: _controller.state,
@@ -56,7 +59,7 @@ class _AdminListEcopointsPageState extends State<AdminListEcopointsPage> {
                 return const Center(child: Text("Nessun ecopunto trovato."));
               }
               return ListView.builder(
-                padding: const EdgeInsets.all(12),
+                padding: const EdgeInsets.fromLTRB(12, 12, 12, 80),
                 itemCount: ecopoints.length,
                 itemBuilder: (context, index) {
                   return _buildEcopointCard(ecopoints[index]);
@@ -67,7 +70,7 @@ class _AdminListEcopointsPageState extends State<AdminListEcopointsPage> {
         },
       ),
       floatingActionButton: FloatingActionButton(
-        onPressed: () => _showEditDialog(context, null),
+        onPressed: createNewEcopoint,
         backgroundColor: Colors.green[700],
         tooltip: 'Aggiungi Ecopunto',
         child: const Icon(Icons.add, color: Colors.white),
@@ -101,7 +104,7 @@ class _AdminListEcopointsPageState extends State<AdminListEcopointsPage> {
                   mainAxisAlignment: MainAxisAlignment.end,
                   children: [
                     IconButton(
-                      icon: const Icon(Icons.edit, color: Colors.blue), 
+                      icon: const Icon(Icons.edit, color: Colors.black), 
                       tooltip: 'Modifica',
                       onPressed: () => _showEditDialog(context, ecopoint)
                     ),
@@ -136,7 +139,6 @@ class _AdminListEcopointsPageState extends State<AdminListEcopointsPage> {
     );
   }
 
-
   void _showDeleteDialog(BuildContext context, Ecopoint ecopoint) {
     showDialog(
       context: context,
@@ -162,7 +164,6 @@ class _AdminListEcopointsPageState extends State<AdminListEcopointsPage> {
     final isCreating = ecopoint == null;
     final formKey = GlobalKey<FormState>();
     
-    // CORREZIONE: Rimosso il `!` da `ecopoint!.id` perché la logica `isCreating` già garantisce che non sia null in questo ramo.
     final idController = TextEditingController(text: isCreating ? 'ECO-${DateTime.now().millisecondsSinceEpoch}' : ecopoint.id);
     final nomeController = TextEditingController(text: ecopoint?.name ?? '');
     final indirizzoController = TextEditingController(text: ecopoint?.address ?? '');
