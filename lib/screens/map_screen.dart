@@ -36,7 +36,6 @@ class _MapScreenState extends State<MapScreen> {
     super.dispose();
   }
 
-  // Helpers grafici
   double _getRadiusByLevel(String level) {
     switch (level.toLowerCase()) {
       case 'basso': return 20.0;
@@ -69,7 +68,6 @@ class _MapScreenState extends State<MapScreen> {
           bottomNavigationBar: const CityCleanBottomNavBar(currentIndex: 0),
           body: Stack(
             children: [
-              // --- MAPPA ---
               FlutterMap(
                 mapController: _mapLibController,
                 options: MapOptions(
@@ -81,7 +79,6 @@ class _MapScreenState extends State<MapScreen> {
                     urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
                     userAgentPackageName: 'com.unisa.cityclean',
                   ),
-                  // LAYER 1: ZONE ROSSE (Segnalazioni)
                   CircleLayer(
                     circles: _controller.reports.map((report) {
                       return CircleMarker(
@@ -94,7 +91,6 @@ class _MapScreenState extends State<MapScreen> {
                       );
                     }).toList(),
                   ),
-                  // LAYER 2: MARKER REPORT (Rossi)
                   MarkerLayer(
                     markers: _controller.reports.map((report) {
                       return Marker(
@@ -115,7 +111,6 @@ class _MapScreenState extends State<MapScreen> {
                       );
                     }).toList(),
                   ),
-                  // LAYER 3: ECOPOINTS (Verdi)
                   MarkerLayer(
                     markers: _controller.ecoPoints.map((point) {
                       return Marker(
@@ -143,7 +138,6 @@ class _MapScreenState extends State<MapScreen> {
                       );
                     }).toList(),
                   ),
-                  // LAYER 4: PARTNERS (Viola)
                   MarkerLayer(
                     markers: _controller.partners.map((partner) {
                       final location = LatLng(partner.latitudine!, partner.longitudine!);
@@ -172,7 +166,6 @@ class _MapScreenState extends State<MapScreen> {
                       );
                     }).toList(),
                   ),
-                  // LAYER 5: UTENTE
                   if (_controller.isLocationLoaded)
                     MarkerLayer(
                       markers: [
@@ -188,7 +181,6 @@ class _MapScreenState extends State<MapScreen> {
                     ),
                 ],
               ),
-              // --- HUD SUPERIORE (Fix Overflow) ---
               Positioned(
                 top: 0, left: 0, right: 0,
                 child: Container(
@@ -222,7 +214,6 @@ class _MapScreenState extends State<MapScreen> {
                   ),
                 ),
               ),
-              // --- BOTTONI LATERALI ---
               Positioned(
                 top: 150, right: 20,
                 child: ElevatedButton.icon(
@@ -274,8 +265,6 @@ class _MapScreenState extends State<MapScreen> {
       ],
     );
   }
-
-  // --- DIALOGHI ---
 
   void _showPartnerDetails(BuildContext context, Partner partner) {
     showDialog(
@@ -444,7 +433,7 @@ class _MapScreenState extends State<MapScreen> {
                       if (reportDescController.text.isEmpty) return;
                       setState(() => isDialogUploading = true);
 
-                      // Catturiamo lo ScaffoldMessenger prima dell'await
+                      // Best Practice: Catturare il messenger del parent PRIMA dell'await
                       final scaffoldMessenger = ScaffoldMessenger.of(parentContext);
 
                       bool success = await _controller.submitReport(
@@ -454,11 +443,11 @@ class _MapScreenState extends State<MapScreen> {
                           imageFile: selectedImage
                       );
 
-                      // Controllo mounted prima di usare il context
+                      // FIX: Controllo esplicito su mounted
                       if (!context.mounted) return;
                       Navigator.of(context).pop();
 
-                      // Usa lo scaffoldMessenger catturato
+                      // Usa il messenger catturato
                       if (success) {
                         scaffoldMessenger.showSnackBar(const SnackBar(content: Text("Inviata!")));
                       } else {

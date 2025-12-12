@@ -269,7 +269,7 @@ class AdminListEcopointsPageState extends State<AdminListEcopointsPage> {
                         final double lat = double.parse(latController.text.replaceAll(',', '.'));
                         final double lon = double.parse(lonController.text.replaceAll(',', '.'));
 
-                        // LOGICA DI GENERAZIONE ID
+                        // GENERAZIONE ID
                         String newId = '';
                         if (isCreating) {
                           newId = 'ECO-${DateTime.now().millisecondsSinceEpoch}-${(lat*100).toInt()}';
@@ -290,15 +290,13 @@ class AdminListEcopointsPageState extends State<AdminListEcopointsPage> {
                           await _controller.updateEcopoint(parentContext, ecopointData);
                         }
 
-                        // FIX DEAD CODE: Verifica se il widget è montato prima di chiudere
                         if (!context.mounted) return;
                         Navigator.of(context).pop();
 
                       } catch (e) {
+                        if (!context.mounted) return; // Controllo extra per sicurezza
                         setState(() => isSaving = false);
-                        if (context.mounted) {
-                          ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Errore: $e")));
-                        }
+                        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Errore: $e")));
                       }
                     },
                     child: isSaving ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator()) : Text(isCreating ? 'Crea' : 'Salva'),
