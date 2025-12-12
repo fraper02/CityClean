@@ -48,7 +48,7 @@ class AdminPrizesService {
   Future<List<Partner>> getPartners() async {
     try {
       final response = await _supabase.from('partner').select();
-      return (response as List).map((item) => Partner.fromJson(item)).toList();
+      return (response as List).map((item) => Partner.fromMap(item)).toList();
     } catch (e) {
       throw Exception("Impossibile caricare i partner: $e");
     }
@@ -64,7 +64,7 @@ class AdminPrizesService {
 
   Future<void> updatePartner(Partner partner) async {
     try {
-      await _supabase.from('partner').update(partner.toJson()).eq('idpartner', partner.id);
+      await _supabase.from('partner').update(partner.toJson()).eq('idpartner', partner.idpartner);
     } catch (e) {
       throw Exception("Impossibile aggiornare il partner: $e");
     }

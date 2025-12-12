@@ -1,12 +1,9 @@
-// lib/services/notifiche.dart
-
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 
 class NotificheService {
   static final FlutterLocalNotificationsPlugin _notificationsPlugin =
   FlutterLocalNotificationsPlugin();
 
-  // Inizializzazione del plugin
   static Future<void> init() async {
     const AndroidInitializationSettings androidSettings =
     AndroidInitializationSettings('@mipmap/ic_launcher');
@@ -22,7 +19,6 @@ class NotificheService {
     );
   }
 
-  /// 1) Notifica nuovo evento
   static Future<void> nuovaNotificaEvento({
     required String nomeEvento,
     String? descrizione,
@@ -34,7 +30,9 @@ class NotificheService {
       channelDescription: 'Notifiche per nuovi eventi',
       importance: Importance.max,
       priority: Priority.high,
-      largeIcon: immagineLocale != null ? DrawableResourceAndroidBitmap(immagineLocale) : null,
+      largeIcon: immagineLocale != null
+          ? const DrawableResourceAndroidBitmap('spunta') // CORRETTO
+          : null,
     );
 
     final details = NotificationDetails(android: androidDetails);
@@ -47,7 +45,6 @@ class NotificheService {
     );
   }
 
-  /// 2) Notifica premio riscattato
   static Future<void> premioRiscattato({
     required String nomePremio,
     String? descrizione,
@@ -59,7 +56,9 @@ class NotificheService {
       channelDescription: 'Notifiche per premi riscattati',
       importance: Importance.max,
       priority: Priority.high,
-      largeIcon: immagineLocale != null ? DrawableResourceAndroidBitmap(immagineLocale) : null,
+      largeIcon: immagineLocale != null
+          ? const DrawableResourceAndroidBitmap('spunta') // CORRETTO
+          : null,
     );
 
     final details = NotificationDetails(android: androidDetails);
@@ -72,13 +71,12 @@ class NotificheService {
     );
   }
 
-  /// 3) Notifica codice cambio password
   static Future<void> notificaCodicePassword({
     required String codice,
     String titolo = 'Cambio password',
     String descrizione = '',
   }) async {
-    final androidDetails = AndroidNotificationDetails(
+    const androidDetails = AndroidNotificationDetails(
       'password_channel',
       'Password',
       channelDescription: 'Notifiche per cambio password',
@@ -86,7 +84,7 @@ class NotificheService {
       priority: Priority.high,
     );
 
-    final details = NotificationDetails(android: androidDetails);
+    const details = NotificationDetails(android: androidDetails);
 
     await _notificationsPlugin.show(
       2,

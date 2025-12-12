@@ -1,4 +1,4 @@
-import 'package:cityclean/models/ecopoint.dart';
+import 'package:cityclean/models/eco_point_model.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 class EcopointsService {
@@ -8,8 +8,7 @@ class EcopointsService {
 
   Future<List<Ecopoint>> getEcopoints() async {
     try {
-      // CORREZIONE DEFINITIVA: Rimosso il prefisso dello schema. Il client Supabase lo aggiunge già.
-      final response = await _supabase.rpc('get_ecopoints_with_stats');
+      final response = await _supabase.from('punto_raccolta').select();
       return (response as List).map((item) => Ecopoint.fromJson(item)).toList();
     } catch (e) {
       print("Errore RPC get_ecopoints_with_stats: $e");
