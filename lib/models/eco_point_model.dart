@@ -8,7 +8,7 @@ class Ecopoint {
   final double longitude;
   final String type;
 
-  // Campi statistici (solo lettura)
+  // Campi statistici (solo lettura da DB)
   final int monthlyConferimentiCount;
   final int monthlyUniqueUsers;
   final int monthlyTotalPunti;
@@ -28,6 +28,7 @@ class Ecopoint {
   LatLng get location => LatLng(latitude, longitude);
 
   factory Ecopoint.fromJson(Map<String, dynamic> json) {
+    // Helper per gestire numeri che potrebbero arrivare come stringhe o null
     double parseCoord(dynamic value) {
       if (value == null) return 0.0;
       if (value is num) return value.toDouble();
@@ -43,16 +44,19 @@ class Ecopoint {
       longitude: parseCoord(json['longitudine']),
       type: json['tipologia'] as String? ?? 'Generico',
 
+      // MAPPING STATISTICHE:
+      // Questi campi arrivano dalla funzione RPC 'get_ecopoints_with_stats'
       monthlyConferimentiCount: (json['monthly_conferimenti_count'] as num?)?.toInt() ?? 0,
       monthlyUniqueUsers: (json['monthly_unique_users'] as num?)?.toInt() ?? 0,
       monthlyTotalPunti: (json['monthly_total_punti'] as num?)?.toInt() ?? 0,
     );
   }
 
-  // --- MODIFICA CRUCIALE QUI ---
+  /// Converte l'oggetto in JSON per il salvataggio su Supabase.
+  /// NOTA: Escludiamo i campi 'monthly*' perché non esistono nella tabella fisica,
+  /// ma sono solo calcolati in lettura.
   Map<String, dynamic> toJson() {
     final Map<String, dynamic> data = {
-      // Includiamo SEMPRE l'ID perché ora lo generiamo noi lato client
       'idpuntoraccolta': id,
       'nome': name,
       'indirizzo': address,
@@ -64,7 +68,9 @@ class Ecopoint {
   }
 }
 
-// Classe alias per compatibilità
+// NOTA: Questa classe sembra essere un residuo legacy.
+// Attenzione: se gli ID diventano stringhe (es. "ECO-123"), questa classe smetterà di funzionare
+// perché richiede un 'int id'. Se possibile, migra tutto su 'Ecopoint'.
 class EcoPointModel extends Ecopoint {
   EcoPointModel({
     required int id,
@@ -81,6 +87,7 @@ class EcoPointModel extends Ecopoint {
   factory EcoPointModel.fromMap(Map<String, dynamic> map) {
     final ecopoint = Ecopoint.fromJson(map);
     return EcoPointModel(
+      // Questo fallirà se l'ID contiene lettere (es. "ECO-...")
       id: int.tryParse(ecopoint.id) ?? 0,
       name: ecopoint.name,
       address: ecopoint.address,
