@@ -1,6 +1,9 @@
+import 'dart:math';
 import 'package:cityclean/controllers/admin/ecopoints_controller.dart';
 import 'package:cityclean/models/eco_point_model.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_map/flutter_map.dart';
+import 'package:latlong2/latlong.dart';
 
 class AdminListEcopointsPage extends StatefulWidget {
   const AdminListEcopointsPage({super.key});
@@ -29,14 +32,24 @@ class AdminListEcopointsPageState extends State<AdminListEcopointsPage> {
     _showEditDialog(context, null);
   }
 
-  void refreshEcopoints() {
-    _controller.loadEcopoints();
+  // --- FUNZIONE GENERAZIONE ID ---
+  // Genera stringhe tipo: ECO-171562938492-123
+  String _generateEcoId() {
+    final timestamp = DateTime.now().millisecondsSinceEpoch;
+    final randomNum = Random().nextInt(900) + 100; // Numero tra 100 e 999
+    return 'ECO-$timestamp-$randomNum';
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.grey[100],
+      appBar: AppBar(
+        title: const Text("Gestione Ecopunti"),
+        actions: [
+          IconButton(onPressed: _controller.loadEcopoints, icon: const Icon(Icons.refresh))
+        ],
+      ),
       body: ValueListenableBuilder<EcopointsState>(
         valueListenable: _controller.state,
         builder: (context, state, _) {
@@ -45,9 +58,14 @@ class AdminListEcopointsPageState extends State<AdminListEcopointsPage> {
           }
           if (state == EcopointsState.error) {
             return Center(
-              child: Padding(
-                padding: const EdgeInsets.all(16.0),
-                child: Text(_controller.errorMessage.value, textAlign: TextAlign.center),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Icon(Icons.error_outline, size: 48, color: Colors.red),
+                  const SizedBox(height: 10),
+                  Text(_controller.errorMessage.value, textAlign: TextAlign.center),
+                  ElevatedButton(onPressed: _controller.loadEcopoints, child: const Text("Riprova"))
+                ],
               ),
             );
           }
@@ -69,11 +87,11 @@ class AdminListEcopointsPageState extends State<AdminListEcopointsPage> {
           );
         },
       ),
-      floatingActionButton: FloatingActionButton(
+      floatingActionButton: FloatingActionButton.extended(
         onPressed: createNewEcopoint,
         backgroundColor: Colors.green[700],
-        tooltip: 'Aggiungi Ecopunto',
-        child: const Icon(Icons.add, color: Colors.white),
+        icon: const Icon(Icons.add_location_alt, color: Colors.white),
+        label: const Text("Nuovo Ecopunto", style: TextStyle(color: Colors.white)),
       ),
     );
   }
@@ -81,38 +99,45 @@ class AdminListEcopointsPageState extends State<AdminListEcopointsPage> {
   Widget _buildEcopointCard(Ecopoint ecopoint) {
     return Card(
       margin: const EdgeInsets.symmetric(vertical: 8),
-      elevation: 2,
+      elevation: 3,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      clipBehavior: Clip.antiAlias,
       child: ExpansionTile(
+        tilePadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        leading: Container(
+          padding: const EdgeInsets.all(8),
+          decoration: BoxDecoration(color: Colors.green[50], shape: BoxShape.circle),
+          child: Icon(Icons.recycling, color: Colors.green[700]),
+        ),
         title: Text(ecopoint.name, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
         subtitle: Text(ecopoint.address, maxLines: 1, overflow: TextOverflow.ellipsis),
-        leading: Icon(Icons.location_on, color: Colors.green[700]),
         children: [
           Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            padding: const EdgeInsets.all(16),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text("Statistiche (Ultimi 30 giorni)", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
-                const Divider(height: 16),
-                _buildStatRow(Icons.recycling, "Totale Conferimenti", ecopoint.monthlyConferimentiCount.toString()),
-                _buildStatRow(Icons.person, "Utenti Unici", ecopoint.monthlyUniqueUsers.toString()),
-                _buildStatRow(Icons.star, "Punti Generati", ecopoint.monthlyTotalPunti.toString()),
-                const Divider(height: 24),
+                const Divider(),
+                _buildStatRow(Icons.vpn_key, "ID", ecopoint.id), // Mostriamo l'ID per debug
+                _buildStatRow(Icons.map, "Coordinate", "${ecopoint.latitude.toStringAsFixed(4)}, ${ecopoint.longitude.toStringAsFixed(4)}"),
+                _buildStatRow(Icons.category, "Tipologia", ecopoint.type),
+                const SizedBox(height: 10),
+                const Text("Statistiche Mensili", style: TextStyle(fontWeight: FontWeight.bold, color: Colors.grey)),
+                _buildStatRow(Icons.delete_outline, "Conferimenti", ecopoint.monthlyConferimentiCount.toString()),
+                _buildStatRow(Icons.group, "Utenti", ecopoint.monthlyUniqueUsers.toString()),
+                const SizedBox(height: 15),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.end,
                   children: [
-                    IconButton(
-                      icon: const Icon(Icons.edit, color: Colors.black), 
-                      tooltip: 'Modifica',
-                      onPressed: () => _showEditDialog(context, ecopoint)
+                    TextButton.icon(
+                      icon: const Icon(Icons.edit, size: 18),
+                      label: const Text("Modifica"),
+                      onPressed: () => _showEditDialog(context, ecopoint),
                     ),
                     const SizedBox(width: 8),
-                    IconButton(
-                      icon: const Icon(Icons.delete, color: Colors.red), 
-                      tooltip: 'Elimina',
-                      onPressed: () => _showDeleteDialog(context, ecopoint)
+                    TextButton.icon(
+                      icon: const Icon(Icons.delete, size: 18, color: Colors.red),
+                      label: const Text("Elimina", style: TextStyle(color: Colors.red)),
+                      onPressed: () => _showDeleteDialog(context, ecopoint),
                     ),
                   ],
                 )
@@ -129,100 +154,295 @@ class AdminListEcopointsPageState extends State<AdminListEcopointsPage> {
       padding: const EdgeInsets.symmetric(vertical: 4.0),
       child: Row(
         children: [
-          Icon(icon, color: Colors.grey[600], size: 18),
-          const SizedBox(width: 12),
-          Text("$label:", style: TextStyle(color: Colors.grey[700])),
-          const Spacer(),
-          Text(value, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
+          Icon(icon, color: Colors.grey[500], size: 16),
+          const SizedBox(width: 8),
+          Text("$label: ", style: const TextStyle(color: Colors.grey)),
+          Expanded(child: Text(value, style: const TextStyle(fontWeight: FontWeight.w500))),
         ],
       ),
     );
   }
+
+  // --- DIALOGHI ---
 
   void _showDeleteDialog(BuildContext context, Ecopoint ecopoint) {
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text("Conferma Eliminazione"),
-        content: Text("Sei sicuro di voler eliminare l'ecopunto '${ecopoint.name}'? L'azione è irreversibile."),
+      builder: (ctx) => AlertDialog(
+        title: const Text("Elimina Ecopunto"),
+        content: Text("Sei sicuro di voler eliminare '${ecopoint.name}'?"),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Annulla')),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Annulla')),
+          TextButton(
+            style: TextButton.styleFrom(foregroundColor: Colors.red),
             onPressed: () {
+              Navigator.pop(ctx);
               _controller.deleteEcopoint(context, ecopoint.id);
-              Navigator.pop(context);
             },
-            child: const Text('Elimina', style: TextStyle(color: Colors.white)),
+            child: const Text('Elimina'),
           ),
         ],
       ),
     );
   }
 
-  void _showEditDialog(BuildContext context, Ecopoint? ecopoint) {
+  void _showEditDialog(BuildContext parentContext, Ecopoint? ecopoint) {
     final isCreating = ecopoint == null;
     final formKey = GlobalKey<FormState>();
-    
-    final idController = TextEditingController(text: isCreating ? 'ECO-${DateTime.now().millisecondsSinceEpoch}' : ecopoint.id);
+
+    // Se stiamo creando, generiamo subito un ID per visualizzarlo (opzionale) o lo lasciamo vuoto in UI
+    final idController = TextEditingController(text: isCreating ? 'Generato al salvataggio' : ecopoint.id);
     final nomeController = TextEditingController(text: ecopoint?.name ?? '');
     final indirizzoController = TextEditingController(text: ecopoint?.address ?? '');
-    final tipologiaController = TextEditingController(text: ecopoint?.type ?? '');
+    final tipologiaController = TextEditingController(text: ecopoint?.type ?? 'Generico');
     final latController = TextEditingController(text: ecopoint?.latitude.toString() ?? '');
     final lonController = TextEditingController(text: ecopoint?.longitude.toString() ?? '');
 
-    showDialog(
-      context: context,
-      builder: (context) {
-        return AlertDialog(
-          title: Text(isCreating ? "Nuovo Ecopunto" : "Modifica Ecopunto"),
-          content: Form(
-            key: formKey,
-            child: SingleChildScrollView(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  TextFormField(
-                    controller: idController,
-                    decoration: const InputDecoration(labelText: 'ID'),
-                    readOnly: true,
-                  ),
-                  TextFormField(controller: nomeController, decoration: const InputDecoration(labelText: 'Nome'), validator: (v) => v!.isEmpty ? 'Campo obbligatorio' : null),
-                  TextFormField(controller: indirizzoController, decoration: const InputDecoration(labelText: 'Indirizzo')),
-                  TextFormField(controller: tipologiaController, decoration: const InputDecoration(labelText: 'Tipologia')),
-                  TextFormField(controller: latController, decoration: const InputDecoration(labelText: 'Latitudine'), keyboardType: TextInputType.number, validator: (v) => (v == null || v.isEmpty || double.tryParse(v) == null) ? 'Valore non valido' : null),
-                  TextFormField(controller: lonController, decoration: const InputDecoration(labelText: 'Longitudine'), keyboardType: TextInputType.number, validator: (v) => (v == null || v.isEmpty || double.tryParse(v) == null) ? 'Valore non valido' : null),
-                ],
-              ),
-            ),
-          ),
-          actions: [
-            TextButton(onPressed: () => Navigator.pop(context), child: const Text('Annulla')),
-            ElevatedButton(
-              onPressed: () {
-                if (formKey.currentState!.validate()) {
-                  final ecopointData = Ecopoint(
-                    id: idController.text,
-                    name: nomeController.text,
-                    address: indirizzoController.text,
-                    type: tipologiaController.text,
-                    latitude: double.parse(latController.text),
-                    longitude: double.parse(lonController.text),
-                  );
+    void pickLocationOnMap(BuildContext dialogContext) async {
+      double startLat = double.tryParse(latController.text.replaceAll(',', '.')) ?? 40.6824;
+      double startLng = double.tryParse(lonController.text.replaceAll(',', '.')) ?? 14.7681;
 
-                  if (isCreating) {
-                    _controller.createEcopoint(context, ecopointData);
-                  } else {
-                    _controller.updateEcopoint(context, ecopointData);
-                  }
-                  Navigator.pop(context);
-                }
-              },
-              child: const Text('Salva'),
-            ),
-          ],
+      final LatLng? pickedLocation = await Navigator.push(
+        parentContext,
+        MaterialPageRoute(
+          builder: (ctx) => _LocationPickerScreen(initialCenter: LatLng(startLat, startLng)),
+        ),
+      );
+
+      if (pickedLocation != null) {
+        latController.text = pickedLocation.latitude.toStringAsFixed(6);
+        lonController.text = pickedLocation.longitude.toStringAsFixed(6);
+      }
+    }
+
+    showDialog(
+      context: parentContext,
+      barrierDismissible: false,
+      builder: (dialogContext) {
+        return StatefulBuilder(
+            builder: (context, setState) {
+              bool isSaving = false;
+
+              return AlertDialog(
+                title: Text(isCreating ? "Nuovo Ecopunto" : "Modifica Ecopunto"),
+                content: Form(
+                  key: formKey,
+                  child: SingleChildScrollView(
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        if (!isCreating)
+                          TextFormField(
+                            controller: idController,
+                            decoration: const InputDecoration(labelText: 'ID', filled: true),
+                            readOnly: true,
+                            style: const TextStyle(fontSize: 12, color: Colors.grey),
+                          ),
+                        if (isCreating)
+                          const Padding(
+                            padding: EdgeInsets.only(bottom: 10),
+                            child: Text("ID verrà generato automaticamente: ECO-...", style: TextStyle(fontSize: 12, color: Colors.blueGrey)),
+                          ),
+                        const SizedBox(height: 10),
+                        TextFormField(
+                          controller: nomeController,
+                          decoration: const InputDecoration(labelText: 'Nome Punto', border: OutlineInputBorder()),
+                          validator: (v) => v!.isEmpty ? 'Inserisci un nome' : null,
+                        ),
+                        const SizedBox(height: 10),
+                        TextFormField(
+                          controller: indirizzoController,
+                          decoration: const InputDecoration(labelText: 'Indirizzo', border: OutlineInputBorder()),
+                        ),
+                        const SizedBox(height: 10),
+                        TextFormField(
+                          controller: tipologiaController,
+                          decoration: const InputDecoration(labelText: 'Tipologia (es. Vetro, Plastica)', border: OutlineInputBorder()),
+                        ),
+                        const SizedBox(height: 20),
+
+                        const Text("Posizione Geografica", style: TextStyle(fontWeight: FontWeight.bold)),
+                        const SizedBox(height: 8),
+                        ElevatedButton.icon(
+                          onPressed: () => pickLocationOnMap(context),
+                          icon: const Icon(Icons.map),
+                          label: const Text("📍 Seleziona su Mappa"),
+                          style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.blue[100],
+                              foregroundColor: Colors.blue[900],
+                              minimumSize: const Size(double.infinity, 45)
+                          ),
+                        ),
+                        const SizedBox(height: 10),
+                        Row(
+                          children: [
+                            Expanded(
+                              child: TextFormField(
+                                controller: latController,
+                                decoration: const InputDecoration(labelText: 'Lat', border: OutlineInputBorder()),
+                                keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                                validator: (v) {
+                                  if (v == null || v.isEmpty) return 'Manca';
+                                  if (double.tryParse(v.replaceAll(',', '.')) == null) return 'Errata';
+                                  return null;
+                                },
+                              ),
+                            ),
+                            const SizedBox(width: 10),
+                            Expanded(
+                              child: TextFormField(
+                                controller: lonController,
+                                decoration: const InputDecoration(labelText: 'Lon', border: OutlineInputBorder()),
+                                keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                                validator: (v) {
+                                  if (v == null || v.isEmpty) return 'Manca';
+                                  if (double.tryParse(v.replaceAll(',', '.')) == null) return 'Errata';
+                                  return null;
+                                },
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                actions: [
+                  TextButton(
+                      onPressed: isSaving ? null : () => Navigator.pop(context),
+                      child: const Text('Annulla')
+                  ),
+                  ElevatedButton(
+                    onPressed: isSaving ? null : () async {
+                      if (formKey.currentState!.validate()) {
+                        setState(() => isSaving = true);
+
+                        try {
+                          final double lat = double.parse(latController.text.replaceAll(',', '.'));
+                          final double lon = double.parse(lonController.text.replaceAll(',', '.'));
+
+                          // LOGICA DI GENERAZIONE ID
+                          // Se è nuovo (isCreating), generiamo l'ID qui.
+                          // Se è modifica, usiamo l'ID esistente.
+                          final String finalId = isCreating ? _generateEcoId() : idController.text;
+
+                          final ecopointData = Ecopoint(
+                            id: finalId,
+                            name: nomeController.text,
+                            address: indirizzoController.text,
+                            type: tipologiaController.text,
+                            latitude: lat,
+                            longitude: lon,
+                          );
+
+                          if (isCreating) {
+                            await _controller.createEcopoint(parentContext, ecopointData);
+                          } else {
+                            await _controller.updateEcopoint(parentContext, ecopointData);
+                          }
+
+                          if (context.mounted) Navigator.pop(context);
+
+                        } catch (e) {
+                          setState(() => isSaving = false);
+                          if (context.mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(content: Text("Errore: $e"), backgroundColor: Colors.red)
+                            );
+                          }
+                        }
+                      }
+                    },
+                    style: ElevatedButton.styleFrom(backgroundColor: Colors.green[700], foregroundColor: Colors.white),
+                    child: isSaving
+                        ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+                        : Text(isCreating ? 'Crea' : 'Salva'),
+                  ),
+                ],
+              );
+            }
         );
       },
+    );
+  }
+}
+
+class _LocationPickerScreen extends StatefulWidget {
+  final LatLng initialCenter;
+  const _LocationPickerScreen({required this.initialCenter});
+
+  @override
+  State<_LocationPickerScreen> createState() => _LocationPickerScreenState();
+}
+
+class _LocationPickerScreenState extends State<_LocationPickerScreen> {
+  late LatLng _pickedPosition;
+  final MapController _mapController = MapController();
+
+  @override
+  void initState() {
+    super.initState();
+    _pickedPosition = widget.initialCenter;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text("Seleziona Posizione"),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.check),
+            onPressed: () => Navigator.pop(context, _pickedPosition),
+          )
+        ],
+      ),
+      body: Stack(
+        children: [
+          FlutterMap(
+            mapController: _mapController,
+            options: MapOptions(
+              initialCenter: widget.initialCenter,
+              initialZoom: 15.0,
+              onTap: (tapPosition, point) {
+                setState(() {
+                  _pickedPosition = point;
+                });
+              },
+            ),
+            children: [
+              TileLayer(
+                urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                userAgentPackageName: 'com.unisa.cityclean',
+              ),
+              MarkerLayer(
+                markers: [
+                  Marker(
+                    point: _pickedPosition,
+                    width: 50,
+                    height: 50,
+                    child: const Icon(Icons.location_on, color: Colors.red, size: 40),
+                  ),
+                ],
+              ),
+            ],
+          ),
+          Positioned(
+            bottom: 30,
+            left: 20,
+            right: 20,
+            child: ElevatedButton(
+              onPressed: () => Navigator.pop(context, _pickedPosition),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.green[700],
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(vertical: 15),
+              ),
+              child: const Text("CONFERMA POSIZIONE", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+            ),
+          )
+        ],
+      ),
     );
   }
 }

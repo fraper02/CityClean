@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'package:cityclean/models/partner.dart'; // Import per il modello Partner
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart' hide Path;
@@ -6,7 +7,7 @@ import 'package:image_picker/image_picker.dart';
 import '../components/bottom_nav_bar.dart';
 import '../controllers/map_controller.dart' as logic;
 import '../models/map_report_model.dart';
-import '../models/eco_point_model.dart'; // Contiene la classe Ecopoint
+import '../models/eco_point_model.dart';
 
 class MapScreen extends StatefulWidget {
   const MapScreen({super.key});
@@ -81,7 +82,7 @@ class _MapScreenState extends State<MapScreen> {
                     userAgentPackageName: 'com.unisa.cityclean',
                   ),
 
-                  // LAYER 1: ZONE ROSSE
+                  // LAYER 1: ZONE ROSSE (Segnalazioni)
                   CircleLayer(
                     circles: _controller.reports.map((report) {
                       return CircleMarker(
@@ -95,13 +96,12 @@ class _MapScreenState extends State<MapScreen> {
                     }).toList(),
                   ),
 
-                  // LAYER 2: MARKER REPORT
+                  // LAYER 2: MARKER REPORT (Rossi)
                   MarkerLayer(
                     markers: _controller.reports.map((report) {
                       return Marker(
                         point: report.location,
-                        width: 30,
-                        height: 30,
+                        width: 30, height: 30,
                         child: GestureDetector(
                           onTap: () => _showReportDetails(context, report),
                           child: Container(
@@ -118,13 +118,12 @@ class _MapScreenState extends State<MapScreen> {
                     }).toList(),
                   ),
 
-                  // LAYER 3: ECOPOINTS (Usa la classe Ecopoint)
+                  // LAYER 3: ECOPOINTS (Verdi)
                   MarkerLayer(
                     markers: _controller.ecoPoints.map((point) {
                       return Marker(
-                        point: point.location, // Usa il getter che abbiamo aggiunto
-                        width: 45,
-                        height: 45,
+                        point: point.location,
+                        width: 45, height: 45,
                         child: GestureDetector(
                           onTap: () => _showEcoPointDetails(context, point),
                           child: Column(
@@ -140,10 +139,7 @@ class _MapScreenState extends State<MapScreen> {
                                 ),
                                 child: const Icon(Icons.recycling, color: Colors.white, size: 20),
                               ),
-                              ClipPath(
-                                clipper: _PinClipper(),
-                                child: Container(width: 10, height: 6, color: Colors.green[600]),
-                              ),
+                              ClipPath(clipper: _PinClipper(), child: Container(width: 10, height: 6, color: Colors.green[600])),
                             ],
                           ),
                         ),
@@ -151,7 +147,38 @@ class _MapScreenState extends State<MapScreen> {
                     }).toList(),
                   ),
 
-                  // LAYER 4: UTENTE
+                  // LAYER 4: PARTNERS (Viola - NUOVO)
+                  MarkerLayer(
+                    markers: _controller.partners.map((partner) {
+                      // Costruiamo LatLng dalle coordinate nullable
+                      final location = LatLng(partner.latitudine!, partner.longitudine!);
+                      return Marker(
+                        point: location,
+                        width: 45, height: 45,
+                        child: GestureDetector(
+                          onTap: () => _showPartnerDetails(context, partner),
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.end,
+                            children: [
+                              Container(
+                                padding: const EdgeInsets.all(6),
+                                decoration: BoxDecoration(
+                                  color: Colors.deepPurple[400], // Colore distintivo per i partner
+                                  shape: BoxShape.circle,
+                                  border: Border.all(color: Colors.white, width: 2),
+                                  boxShadow: const [BoxShadow(color: Colors.black26, blurRadius: 3, offset: Offset(0, 2))],
+                                ),
+                                child: const Icon(Icons.storefront, color: Colors.white, size: 20),
+                              ),
+                              ClipPath(clipper: _PinClipper(), child: Container(width: 10, height: 6, color: Colors.deepPurple[400])),
+                            ],
+                          ),
+                        ),
+                      );
+                    }).toList(),
+                  ),
+
+                  // LAYER 5: UTENTE
                   if (_controller.isLocationLoaded)
                     MarkerLayer(
                       markers: [
@@ -187,15 +214,13 @@ class _MapScreenState extends State<MapScreen> {
                         children: [
                           const Text("Mappa Green", style: TextStyle(fontSize: 26, fontWeight: FontWeight.bold, color: Colors.white)),
                           const SizedBox(height: 5),
-                          Row(
+                          Wrap( // Wrap per evitare overflow se ci sono troppi elementi
+                            spacing: 12,
+                            runSpacing: 4,
                             children: [
-                              const Icon(Icons.warning, size: 14, color: Colors.redAccent),
-                              const SizedBox(width: 4),
-                              Text("Segnalazioni: ${_controller.reports.length}", style: const TextStyle(fontSize: 14, color: Colors.white70)),
-                              const SizedBox(width: 15),
-                              const Icon(Icons.recycling, size: 14, color: Colors.lightGreenAccent),
-                              const SizedBox(width: 4),
-                              Text("Eco Points: ${_controller.ecoPoints.length}", style: const TextStyle(fontSize: 14, color: Colors.white70)),
+                              _buildHudCounter(Icons.warning, "${_controller.reports.length}", Colors.redAccent),
+                              _buildHudCounter(Icons.recycling, "${_controller.ecoPoints.length}", Colors.lightGreenAccent),
+                              _buildHudCounter(Icons.storefront, "${_controller.partners.length}", Colors.purpleAccent),
                             ],
                           ),
                         ],
@@ -247,9 +272,72 @@ class _MapScreenState extends State<MapScreen> {
     );
   }
 
+  Widget _buildHudCounter(IconData icon, String count, Color color) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Icon(icon, size: 14, color: color),
+        const SizedBox(width: 4),
+        Text(count, style: const TextStyle(fontSize: 14, color: Colors.white70)),
+      ],
+    );
+  }
+
   // --- DIALOGHI ---
 
-  // Dialog aggiornato per usare Ecopoint
+  // Dialog Partner (NUOVO)
+  void _showPartnerDetails(BuildContext context, Partner partner) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+        title: Row(
+          children: [
+            const Icon(Icons.storefront, color: Colors.deepPurple),
+            const SizedBox(width: 10),
+            Expanded(child: Text(partner.nome, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold))),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Divider(),
+            if (partner.indirizzo != null) ...[
+              const SizedBox(height: 8),
+              Row(children: [
+                const Icon(Icons.location_on_outlined, size: 20, color: Colors.grey),
+                const SizedBox(width: 8),
+                Expanded(child: Text(partner.indirizzo!, style: const TextStyle(fontSize: 16))),
+              ]),
+            ],
+            const SizedBox(height: 12),
+            Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              const Icon(Icons.description_outlined, size: 20, color: Colors.grey),
+              const SizedBox(width: 8),
+              Expanded(child: Text(partner.descrizione ?? "Nessuna descrizione disponibile", style: const TextStyle(fontSize: 14, color: Colors.black87))),
+            ]),
+            if (partner.link != null) ...[
+              const SizedBox(height: 12),
+              Row(children: [
+                const Icon(Icons.link, size: 20, color: Colors.blue),
+                const SizedBox(width: 8),
+                Expanded(child: Text(partner.link!, style: const TextStyle(fontSize: 14, color: Colors.blue, decoration: TextDecoration.underline))),
+              ]),
+            ]
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            style: TextButton.styleFrom(foregroundColor: Colors.deepPurple),
+            child: const Text("Chiudi"),
+          )
+        ],
+      ),
+    );
+  }
+
   void _showEcoPointDetails(BuildContext context, Ecopoint point) {
     showDialog(
       context: context,

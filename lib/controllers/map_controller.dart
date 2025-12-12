@@ -1,9 +1,10 @@
 import 'dart:io';
+import 'package:cityclean/models/partner.dart'; // Assicurati di importare il modello Partner
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:latlong2/latlong.dart';
 import '../models/map_report_model.dart';
-import '../models/eco_point_model.dart'; // Contiene ora la classe Ecopoint
+import '../models/eco_point_model.dart';
 import '../services/report_service.dart';
 import '../services/recycling_service.dart';
 import '../services/storage_service.dart';
@@ -19,14 +20,16 @@ class MapController extends ChangeNotifier {
   bool _isLoading = false;
 
   List<MapReportModel> _reports = [];
-  List<Ecopoint> _ecoPoints = []; // Aggiornato a List<Ecopoint>
+  List<Ecopoint> _ecoPoints = [];
+  List<Partner> _partners = []; // Lista per i partner
 
   // --- GETTERS ---
   LatLng get currentCenter => _currentCenter;
   bool get isLocationLoaded => _isLocationLoaded;
   bool get isLoading => _isLoading;
   List<MapReportModel> get reports => _reports;
-  List<Ecopoint> get ecoPoints => _ecoPoints; // Aggiornato getter
+  List<Ecopoint> get ecoPoints => _ecoPoints;
+  List<Partner> get partners => _partners; // Getter per i partner
 
   // --- INIZIALIZZAZIONE ---
   Future<void> initializeLocation() async {
@@ -64,6 +67,7 @@ class MapController extends ChangeNotifier {
       final results = await Future.wait([
         _reportService.getReports(),      // index 0
         _recyclingService.getEcoPoints(), // index 1
+        _recyclingService.getPartners(),  // index 2 (NUOVO)
       ]);
 
       // 1. REPORT
@@ -73,13 +77,21 @@ class MapController extends ChangeNotifier {
           .where((report) => report.isAccepted == true)
           .toList();
 
-      // 2. ECOPOINTS (Aggiornato)
+      // 2. ECOPOINTS
       final rawEcoPoints = results[1] as List<Map<String, dynamic>>;
       _ecoPoints = rawEcoPoints
-          .map((data) => Ecopoint.fromJson(data)) // Uso il metodo fromJson della tua classe
+          .map((data) => Ecopoint.fromJson(data))
           .toList();
 
-      debugPrint("Dati caricati: ${_reports.length} report, ${_ecoPoints.length} eco points.");
+      // 3. PARTNERS (NUOVO)
+      final rawPartners = results[2] as List<Map<String, dynamic>>;
+      _partners = rawPartners
+          .map((data) => Partner.fromMap(data))
+      // Filtriamo solo i partner che hanno coordinate valide
+          .where((p) => p.latitudine != null && p.longitudine != null)
+          .toList();
+
+      debugPrint("Dati caricati: ${_reports.length} report, ${_ecoPoints.length} eco points, ${_partners.length} partner.");
 
     } catch (e) {
       debugPrint("Controller Error: $e");
@@ -89,10 +101,9 @@ class MapController extends ChangeNotifier {
     }
   }
 
-  // Alias per loadData
   Future<void> loadReports() => loadData();
 
-  // --- INVIO REPORT (Invariato) ---
+  // --- INVIO REPORT ---
   Future<bool> submitReport({required String description, required String pollutionLevel, required LatLng location, File? imageFile}) async {
     _isLoading = true;
     notifyListeners();

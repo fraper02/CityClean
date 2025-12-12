@@ -144,6 +144,11 @@ class _AdminDashboardState extends State<AdminDashboard> {
   }
 }
 
+extension on AdminListEcopointsPageState? {
+  void refreshEcopoints() {}
+
+}
+
 class AdminMenu extends StatelessWidget {
   final int selectedIndex;
   final ValueChanged<int> onDestinationSelected;
