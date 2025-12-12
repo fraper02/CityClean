@@ -1,5 +1,4 @@
 import 'dart:math';
-
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../services/notifiche.dart';
@@ -24,6 +23,7 @@ class _LoginScreenState extends State<LoginScreen> with TickerProviderStateMixin
   late Animation<double> _buttonWidthAnimation;
   late AnimationController _shakeController;
   late Animation<double> _shakeAnimation;
+
   bool _isLoading = false;
   bool _loginError = false;
   bool _showResultIcon = false;
@@ -31,6 +31,7 @@ class _LoginScreenState extends State<LoginScreen> with TickerProviderStateMixin
   @override
   void initState() {
     super.initState();
+
     _fingerprintController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 800),
@@ -48,11 +49,9 @@ class _LoginScreenState extends State<LoginScreen> with TickerProviderStateMixin
       vsync: this,
       duration: const Duration(milliseconds: 400),
     );
-
     _shakeAnimation = Tween<double>(begin: 0, end: 10)
         .chain(CurveTween(curve: Curves.elasticIn))
         .animate(_shakeController);
-
   }
 
   @override
@@ -81,7 +80,6 @@ class _LoginScreenState extends State<LoginScreen> with TickerProviderStateMixin
       );
 
       if (res.user != null && res.session != null) {
-        // LOGIN OK → Mostra ✔️
         setState(() {
           _isLoading = false;
           _loginError = false;
@@ -89,8 +87,6 @@ class _LoginScreenState extends State<LoginScreen> with TickerProviderStateMixin
         });
 
         await Future.delayed(const Duration(milliseconds: 800));
-
-        // Qui fai la navigazione o ciò che serve
         return;
       }
     } on AuthException catch (_) {
@@ -99,21 +95,15 @@ class _LoginScreenState extends State<LoginScreen> with TickerProviderStateMixin
         _showResultIcon = true;
         _isLoading = false;
       });
-
-      // Avvia vibrazione
       _shakeController.forward(from: 0);
-
       await Future.delayed(const Duration(milliseconds: 1200));
-
       if (mounted) {
         setState(() {
-          _showResultIcon = false;  // nascondi X
-          _loginError = false;      // rimuovi stato errore
+          _showResultIcon = false;
+          _loginError = false;
         });
-
-        _buttonController.reverse(); // torna bottone normale
+        _buttonController.reverse();
       }
-
       return;
     } catch (_) {
       setState(() {
@@ -121,24 +111,18 @@ class _LoginScreenState extends State<LoginScreen> with TickerProviderStateMixin
         _showResultIcon = true;
         _isLoading = false;
       });
-
       _shakeController.forward(from: 0);
-
       await Future.delayed(const Duration(milliseconds: 1200));
-
       if (mounted) {
         setState(() {
           _showResultIcon = false;
           _loginError = false;
         });
-
         _buttonController.reverse();
       }
-
       return;
     }
 
-    // Torna alla forma originale
     if (mounted) {
       setState(() {
         _showResultIcon = false;
@@ -147,35 +131,8 @@ class _LoginScreenState extends State<LoginScreen> with TickerProviderStateMixin
     }
   }
 
-
-  Future<void> _resetPassword() async {
-    final email = _emailController.text.trim();
-    if (email.isEmpty) return;
-
-    // 1. Genera codice casuale
-    final codiceGenerato = (100000 + (Random().nextInt(900000))).toString();
-
-    // 2. Salvalo nel server o supabase
-    await supabase.from('password_reset').insert({
-      'email': email,
-      'codice': codiceGenerato,
-      'scadenza': DateTime.now().add(const Duration(minutes: 10)).toIso8601String(),
-    });
-
-    // 3. Invia notifica
-    await NotificheService.notificaCodicePassword(
-      codice: codiceGenerato,
-    );
-
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text("Codice inviato alla tua email!")),
-    );
-  }
-
-
   @override
   Widget build(BuildContext context) {
-    final Color primaryGreen = Colors.green[600]!;
     final Gradient bgGradient = LinearGradient(
       begin: Alignment.topCenter,
       end: Alignment.bottomCenter,
@@ -213,7 +170,6 @@ class _LoginScreenState extends State<LoginScreen> with TickerProviderStateMixin
                 const Text("La tua app per l'ambiente",
                     style: TextStyle(fontSize: 16, color: Colors.white70)),
                 const SizedBox(height: 50),
-
                 const Align(alignment: Alignment.centerLeft, child: Text("Email", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold))),
                 const SizedBox(height: 8),
                 TextField(
@@ -227,7 +183,6 @@ class _LoginScreenState extends State<LoginScreen> with TickerProviderStateMixin
                   ),
                 ),
                 const SizedBox(height: 20),
-
                 const Align(alignment: Alignment.centerLeft, child: Text("Password", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold))),
                 const SizedBox(height: 8),
                 TextField(
@@ -255,70 +210,57 @@ class _LoginScreenState extends State<LoginScreen> with TickerProviderStateMixin
                     ),
                   ),
                 ),
-
-                Align(
-                  alignment: Alignment.centerRight,
-                  child: TextButton(
-                    onPressed: _resetPassword,
-                    child: const Text("Password dimenticata?", style: TextStyle(color: Colors.white)),
-                  ),
-                ),
-
                 const SizedBox(height: 20),
-
                 AnimatedBuilder(
                   animation: Listenable.merge([_buttonController, _shakeController]),
                   builder: (context, child) {
                     final bool isCircle = _isLoading || _showResultIcon;
-
                     return Transform.translate(
-                        offset: Offset(
-                          _shakeController.isAnimating ? _shakeAnimation.value : 0,
-                          0,
-                        ),
-                        child: AnimatedContainer(
-                          duration: const Duration(milliseconds: 300),
-                          width: isCircle
-                              ? 55
-                              : MediaQuery.of(context).size.width * _buttonWidthAnimation.value,
-                          height: 55,
-                          child: isCircle
-                          ? Container(
-                        decoration: BoxDecoration(
-                          color: _loginError ? Colors.red : Colors.white,
-                          shape: BoxShape.circle,
-                        ),
-                        child: Center(
-                          child: _showResultIcon
-                              ? Icon(
-                            _loginError ? Icons.close : Icons.check,
-                            color: Colors.white,
-                            size: 30,
-                          )
-                              : const CircularProgressIndicator(
-                            strokeWidth: 3,
-                            color: Colors.green,
-                          ),
-                        ),
-                      )
-                          : ElevatedButton(
-                        onPressed: _signIn,
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.white,
-                          foregroundColor: Colors.green,
-                          shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(15)),
-                          elevation: 5,
-                        ),
-                        child: const Text("Accedi",
-                            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                      offset: Offset(
+                        _shakeController.isAnimating ? _shakeAnimation.value : 0,
+                        0,
                       ),
-                    ),
+                      child: AnimatedContainer(
+                        duration: const Duration(milliseconds: 300),
+                        width: isCircle
+                            ? 55
+                            : MediaQuery.of(context).size.width * _buttonWidthAnimation.value,
+                        height: 55,
+                        child: isCircle
+                            ? Container(
+                          decoration: BoxDecoration(
+                            color: _loginError ? Colors.red : Colors.white,
+                            shape: BoxShape.circle,
+                          ),
+                          child: Center(
+                            child: _showResultIcon
+                                ? Icon(
+                              _loginError ? Icons.close : Icons.check,
+                              color: Colors.white,
+                              size: 30,
+                            )
+                                : const CircularProgressIndicator(
+                              strokeWidth: 3,
+                              color: Colors.green,
+                            ),
+                          ),
+                        )
+                            : ElevatedButton(
+                          onPressed: _signIn,
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.white,
+                            foregroundColor: Colors.green,
+                            shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(15)),
+                            elevation: 5,
+                          ),
+                          child: const Text("Accedi",
+                              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                        ),
+                      ),
                     );
                   },
                 ),
-
-
                 const SizedBox(height: 30),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
@@ -337,8 +279,7 @@ class _LoginScreenState extends State<LoginScreen> with TickerProviderStateMixin
                             color: Colors.white,
                             fontWeight: FontWeight.bold,
                             decoration: TextDecoration.underline,
-                            decorationColor: Colors.white
-                        ),
+                            decorationColor: Colors.white),
                       ),
                     ),
                   ],
