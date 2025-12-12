@@ -94,7 +94,7 @@ class IAController with ChangeNotifier {
         pickedFile = await _picker.pickImage(source: source);
       }
 
-      _selectedImage = File(pickedFile.path);
+      _selectedImage = File(pickedFile!.path);
       notifyListeners(); // Mostra l'immagine immediatamente
 
       // CLASSIFICAZIONE
