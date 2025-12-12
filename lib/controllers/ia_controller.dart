@@ -60,7 +60,7 @@ class IAController with ChangeNotifier {
     try {
       XFile? pickedFile;
       // Legge la variabile d'ambiente di compilazione
-      const bool isMaestroTest = true;
+      const bool isMaestroTest = false;
 
       if (isMaestroTest) {
         // --- LOGICA DI BYPASS PER MAESTRO ---
@@ -92,12 +92,6 @@ class IAController with ChangeNotifier {
       } else {
         // --- LOGICA NORMALE (Galleria/Fotocamera) ---
         pickedFile = await _picker.pickImage(source: source);
-      }
-
-      if (pickedFile == null) {
-        _isLoading = false;
-        notifyListeners();
-        return;
       }
 
       _selectedImage = File(pickedFile.path);
