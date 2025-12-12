@@ -24,7 +24,7 @@ class _MapScreenState extends State<MapScreen> {
   void initState() {
     super.initState();
     _controller.initializeLocation().then((_) {
-      if(_controller.isLocationLoaded && mounted) {
+      if (_controller.isLocationLoaded && mounted) {
         _mapLibController.move(_controller.currentCenter, 15.0);
       }
     });
@@ -54,6 +54,18 @@ class _MapScreenState extends State<MapScreen> {
       case 'basso': return Colors.yellow.withOpacity(0.4);
       default: return Colors.red.withOpacity(0.3);
     }
+  }
+
+  // Ristrutturato: Apre il dialog dedicato invece di definirlo inline
+  void _openQuickReportDialog() {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) => _QuickReportDialog(
+        controller: _controller,
+        initialLocation: _controller.currentCenter,
+      ),
+    );
   }
 
   @override
@@ -217,7 +229,7 @@ class _MapScreenState extends State<MapScreen> {
               Positioned(
                 top: 150, right: 20,
                 child: ElevatedButton.icon(
-                  onPressed: () => _showQuickReportDialog(context),
+                  onPressed: _openQuickReportDialog,
                   icon: const Icon(Icons.add_alert, size: 20, color: Colors.white),
                   label: const Text("Segnala", style: TextStyle(color: Colors.white)),
                   style: ElevatedButton.styleFrom(backgroundColor: Colors.red[600], shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)), elevation: 4),
@@ -241,7 +253,7 @@ class _MapScreenState extends State<MapScreen> {
                     if (_controller.isLocationLoaded) {
                       _mapLibController.move(_controller.currentCenter, 15.0);
                     } else {
-                      if(context.mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("GPS non disponibile")));
+                      if (context.mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("GPS non disponibile")));
                     }
                   },
                   backgroundColor: primaryGreen,
@@ -380,87 +392,103 @@ class _MapScreenState extends State<MapScreen> {
       ),
     );
   }
+}
 
-  void _showQuickReportDialog(BuildContext parentContext) async {
-    final reportDescController = TextEditingController();
-    LatLng reportLocation = _controller.currentCenter;
-    File? selectedImage;
-    String selectedPollutionLevel = 'Medio';
-    final List<String> pollutionOptions = ['Basso', 'Medio', 'Alto', 'Critico'];
-    final ImagePicker picker = ImagePicker();
+// --------------------------------------------------------------------------
+// NUOVO WIDGET DIALOG: Isola lo stato e risolve il problema "Dead Code"
+// --------------------------------------------------------------------------
+class _QuickReportDialog extends StatefulWidget {
+  final logic.MapController controller;
+  final LatLng initialLocation;
 
-    showDialog(
-      context: parentContext,
-      builder: (ctx) {
-        return StatefulBuilder(
-            builder: (context, setState) {
-              Future<void> pickImage(ImageSource source) async {
-                final XFile? photo = await picker.pickImage(source: source, imageQuality: 50);
-                if (photo != null) setState(() => selectedImage = File(photo.path));
-              }
-              bool isDialogUploading = false;
+  const _QuickReportDialog({required this.controller, required this.initialLocation});
 
-              return AlertDialog(
-                title: const Row(children: [Icon(Icons.warning_amber, color: Colors.orange), SizedBox(width: 10), Text("Nuova Segnalazione")]),
-                content: SingleChildScrollView(
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      GestureDetector(
-                        onTap: () => pickImage(ImageSource.camera),
-                        child: Container(
-                          height: 120, width: double.infinity,
-                          decoration: BoxDecoration(color: Colors.grey[200], borderRadius: BorderRadius.circular(10), image: selectedImage != null ? DecorationImage(image: FileImage(selectedImage!), fit: BoxFit.cover) : null),
-                          child: selectedImage == null ? const Icon(Icons.camera_alt, size: 40, color: Colors.grey) : null,
-                        ),
-                      ),
-                      const SizedBox(height: 15),
-                      TextField(controller: reportDescController, decoration: const InputDecoration(labelText: "Descrizione", border: OutlineInputBorder()), maxLines: 2),
-                      const SizedBox(height: 15),
-                      DropdownButtonFormField<String>(
-                        value: selectedPollutionLevel,
-                        decoration: const InputDecoration(labelText: "Livello", border: OutlineInputBorder()),
-                        items: pollutionOptions.map((val) => DropdownMenuItem(value: val, child: Text(val))).toList(),
-                        onChanged: (val) => setState(() => selectedPollutionLevel = val!),
-                      ),
-                    ],
-                  ),
-                ),
-                actions: [
-                  TextButton(onPressed: () => Navigator.pop(context), child: const Text("Annulla")),
-                  ElevatedButton(
-                    onPressed: isDialogUploading ? null : () async {
-                      if (reportDescController.text.isEmpty) return;
-                      setState(() => isDialogUploading = true);
+  @override
+  State<_QuickReportDialog> createState() => _QuickReportDialogState();
+}
 
-                      // FIX: Catturiamo navigator e messenger PRIMA dell'await
-                      final navigator = Navigator.of(context);
-                      final messenger = ScaffoldMessenger.of(context);
+class _QuickReportDialogState extends State<_QuickReportDialog> {
+  final TextEditingController _reportDescController = TextEditingController();
+  final ImagePicker _picker = ImagePicker();
+  File? _selectedImage;
+  String _selectedPollutionLevel = 'Medio';
+  final List<String> _pollutionOptions = ['Basso', 'Medio', 'Alto', 'Critico'];
+  bool _isDialogUploading = false;
 
-                      bool success = await _controller.submitReport(
-                          description: reportDescController.text,
-                          pollutionLevel: selectedPollutionLevel,
-                          location: reportLocation,
-                          imageFile: selectedImage
-                      );
+  @override
+  void dispose() {
+    _reportDescController.dispose();
+    super.dispose();
+  }
 
-                      // LOGICA CAMBIATA: Usiamo l'istanza catturata, rimuovendo la dipendenza dal context
-                      // e il relativo controllo mounted (causa del dead code).
-                      navigator.pop();
+  Future<void> _pickImage(ImageSource source) async {
+    final XFile? photo = await _picker.pickImage(source: source, imageQuality: 50);
+    if (photo != null && mounted) {
+      setState(() => _selectedImage = File(photo.path));
+    }
+  }
 
-                      if (success) {
-                        messenger.showSnackBar(const SnackBar(content: Text("Inviata!")));
-                      } else {
-                        messenger.showSnackBar(const SnackBar(content: Text("Errore invio."), backgroundColor: Colors.red));
-                      }
-                    },
-                    child: Text(isDialogUploading ? "..." : "Invia"),
-                  ),
-                ],
-              );
-            }
-        );
-      },
+  Future<void> _handleSubmit() async {
+    if (_reportDescController.text.isEmpty) return;
+
+    setState(() => _isDialogUploading = true);
+
+    // REFERENCE CAPTURE: Catturiamo i riferimenti PRIMA dell'operazione asincrona
+    final navigator = Navigator.of(context);
+    final scaffoldMessenger = ScaffoldMessenger.of(context);
+
+    bool success = await widget.controller.submitReport(
+        description: _reportDescController.text,
+        pollutionLevel: _selectedPollutionLevel,
+        location: widget.initialLocation,
+        imageFile: _selectedImage
+    );
+
+    // USO SICURO: Navighiamo usando il riferimento catturato, senza controlli su 'mounted'
+    navigator.pop();
+
+    if (success) {
+      scaffoldMessenger.showSnackBar(const SnackBar(content: Text("Inviata!")));
+    } else {
+      scaffoldMessenger.showSnackBar(const SnackBar(content: Text("Errore invio."), backgroundColor: Colors.red));
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: const Row(children: [Icon(Icons.warning_amber, color: Colors.orange), SizedBox(width: 10), Text("Nuova Segnalazione")]),
+      content: SingleChildScrollView(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            GestureDetector(
+              onTap: () => _pickImage(ImageSource.camera),
+              child: Container(
+                height: 120, width: double.infinity,
+                decoration: BoxDecoration(color: Colors.grey[200], borderRadius: BorderRadius.circular(10), image: _selectedImage != null ? DecorationImage(image: FileImage(_selectedImage!), fit: BoxFit.cover) : null),
+                child: _selectedImage == null ? const Icon(Icons.camera_alt, size: 40, color: Colors.grey) : null,
+              ),
+            ),
+            const SizedBox(height: 15),
+            TextField(controller: _reportDescController, decoration: const InputDecoration(labelText: "Descrizione", border: OutlineInputBorder()), maxLines: 2),
+            const SizedBox(height: 15),
+            DropdownButtonFormField<String>(
+              value: _selectedPollutionLevel,
+              decoration: const InputDecoration(labelText: "Livello", border: OutlineInputBorder()),
+              items: _pollutionOptions.map((val) => DropdownMenuItem(value: val, child: Text(val))).toList(),
+              onChanged: (val) => setState(() => _selectedPollutionLevel = val!),
+            ),
+          ],
+        ),
+      ),
+      actions: [
+        TextButton(onPressed: () => Navigator.pop(context), child: const Text("Annulla")),
+        ElevatedButton(
+          onPressed: _isDialogUploading ? null : _handleSubmit,
+          child: Text(_isDialogUploading ? "..." : "Invia"),
+        ),
+      ],
     );
   }
 }
