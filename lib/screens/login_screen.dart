@@ -1,4 +1,5 @@
 import 'dart:math';
+import 'package:cityclean/screens/reset_password_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../services/notifiche.dart';
@@ -114,6 +115,7 @@ class _LoginScreenState extends State<LoginScreen> with TickerProviderStateMixin
     // 3. Invia notifica
     await NotificheService.notificaCodicePassword(
       codice: codiceGenerato,
+      email: email,
     );
 
     ScaffoldMessenger.of(context).showSnackBar(
@@ -218,7 +220,23 @@ class _LoginScreenState extends State<LoginScreen> with TickerProviderStateMixin
                 Align(
                   alignment: Alignment.centerRight,
                   child: TextButton(
-                    onPressed: _resetPassword,
+                    onPressed: () {
+                      final email = _emailController.text.trim();
+
+                      if (email.isEmpty) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text("Inserisci la tua email prima"), backgroundColor: Colors.red),
+                        );
+                        return;
+                      }
+
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => ResetPasswordScreen(email: email),
+                        ),
+                      );
+                    },
                     child: const Text("Password dimenticata?", style: TextStyle(color: Colors.white)),
                   ),
                 ),

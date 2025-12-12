@@ -1,3 +1,4 @@
+import 'package:cityclean/screens/login_screen.dart';
 import 'package:cityclean/services/supabase_service.dart';
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -9,6 +10,7 @@ import 'package:cityclean/services/notifiche.dart';
 
 // Variabile globale per accedere al client Supabase in modo semplice
 final supabase = Supabase.instance.client;
+final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -63,14 +65,23 @@ class _MyAppState extends State<MyApp> {
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'CityClean',
+      navigatorKey: navigatorKey,
       debugShowCheckedModeBanner: false,
+
+      // 👇 Home principale dell’app
+      home: const AuthGate(),
+
+      // 👇 Route globali
+      routes: {
+        '/login': (_) => const LoginScreen(),
+      },
+
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.green),
         useMaterial3: true,
-        fontFamily: 'Poppins', // Assicurati che il font sia definito in pubspec.yaml
+        fontFamily: 'Poppins',
       ),
-      // Usa AuthGate come schermata principale come da configurazione precedente
-      home: const AuthGate(),
     );
   }
+
 }

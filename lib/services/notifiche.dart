@@ -1,105 +1,95 @@
 import 'dart:io';
+import 'package:flutter/material.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
-import 'package:permission_handler/permission_handler.dart';
+import 'package:cityclean/main.dart';
+import 'package:cityclean/screens/reset_password_screen.dart';
 
 class NotificheService {
   static final FlutterLocalNotificationsPlugin _notificationsPlugin =
   FlutterLocalNotificationsPlugin();
 
-  /// Inizializzazione del plugin
+  // -----------------------------------------------------------
+  // INIT
+  // -----------------------------------------------------------
   static Future<void> init() async {
-    const AndroidInitializationSettings androidSettings =
+    const androidSettings =
     AndroidInitializationSettings('@mipmap/ic_launcher');
 
-    const InitializationSettings settings =
-    InitializationSettings(android: androidSettings);
+    const settings = InitializationSettings(android: androidSettings);
 
     await _notificationsPlugin.initialize(
       settings,
       onDidReceiveNotificationResponse: (response) {
-        // Azione quando l’utente clicca sulla notifica
+        _gestisciClickNotifica(response.payload);
       },
     );
 
-    // Richiesta permesso su Android 13+
+    // Permessi Android 13+
     if (Platform.isAndroid) {
-      final androidImplementation =
+      final androidImpl =
       _notificationsPlugin.resolvePlatformSpecificImplementation<
           AndroidFlutterLocalNotificationsPlugin>();
 
-      if (androidImplementation != null) {
-        // Controlla se siamo su Android 13+
-        if (await Permission.notification.isDenied) {
-          await Permission.notification.request();
-        }
-      }
+      await androidImpl?.requestPermission();
     }
   }
 
-  /// 1) Notifica nuovo evento
-  static Future<void> nuovaNotificaEvento({
-    required String nomeEvento,
-    String? descrizione,
-    String? immagineLocale,
-  }) async {
-    final androidDetails = AndroidNotificationDetails(
-      'event_channel',
-      'Eventi',
-      channelDescription: 'Notifiche per nuovi eventi',
-      importance: Importance.max,
-      priority: Priority.high,
-      largeIcon: immagineLocale != null
-          ? DrawableResourceAndroidBitmap(immagineLocale)
-          : null,
-    );
+  // -----------------------------------------------------------
+  // GESTIONE CLICK NOTIFICA
+  // -----------------------------------------------------------
+  static void _gestisciClickNotifica(String? payload) {
+    if (payload == null) return;
 
-    final details = NotificationDetails(android: androidDetails);
+    // 1️⃣ RECUPERO PASSWORD
+    // payload = "pwd|email"
+    if (payload.startsWith("pwd|")) {
+      final email = payload.split("|")[1];
 
-    await _notificationsPlugin.show(
-      0,
-      nomeEvento,
-      descrizione ?? 'Nuovo evento disponibile!',
-      details,
-    );
+      navigatorKey.currentState?.push(
+        MaterialPageRoute(
+          builder: (_) => ResetPasswordScreen(email: email),
+        ),
+      );
+      return;
+    }
   }
 
-  /// 2) Notifica premio riscattato
-  static Future<void> premioRiscattato({
-    required String nomePremio,
-    String? descrizione,
-    String? immagineLocale,
+  // -----------------------------------------------------------
+  // 1️⃣ NOTIFICA RECUPERO PASSWORD
+  // -----------------------------------------------------------
+  static Future<void> notificaCodicePassword({
+    required String codice,
+    required String email,
   }) async {
     final androidDetails = AndroidNotificationDetails(
-      'reward_channel',
-      'Premi',
-      channelDescription: 'Notifiche per premi riscattati',
+      'password_channel',
+      'Recupero password',
+      channelDescription: 'Notifiche cambio password',
       importance: Importance.max,
       priority: Priority.high,
-      largeIcon: immagineLocale != null
-          ? DrawableResourceAndroidBitmap(immagineLocale)
-          : null,
     );
 
     final details = NotificationDetails(android: androidDetails);
 
     await _notificationsPlugin.show(
       1,
-      nomePremio,
-      descrizione ?? 'Hai riscattato un premio!',
+      "Codice di recupero",
+      "Il tuo codice è: $codice",
       details,
+      payload: "pwd|$email",
     );
   }
 
-  /// 3) Notifica codice cambio password
-  static Future<void> notificaCodicePassword({
-    required String codice,
-    String titolo = 'Cambio password',
-    String descrizione = '',
+  // -----------------------------------------------------------
+  // 2️⃣ NOTIFICA PREMIO RISCATTATO
+  // -----------------------------------------------------------
+  static Future<void> premioRiscattato({
+    required String nomePremio,
   }) async {
     final androidDetails = AndroidNotificationDetails(
-      'password_channel',
-      'Password',
-      channelDescription: 'Notifiche per cambio password',
+      'reward_channel',
+      'Premi',
+      channelDescription: 'Premi riscattati dall’utente',
       importance: Importance.max,
       priority: Priority.high,
     );
@@ -108,9 +98,36 @@ class NotificheService {
 
     await _notificationsPlugin.show(
       2,
-      titolo,
-      descrizione.isNotEmpty ? descrizione : 'Il tuo codice è: $codice',
+      "Premio riscattato!",
+      "Hai riscattato: $nomePremio",
       details,
+      payload: "reward|$nomePremio",
+    );
+  }
+
+
+  // -----------------------------------------------------------
+  // 3️⃣ NOTIFICA NUOVO REPORT
+  // -----------------------------------------------------------
+  static Future<void> reportCreato({
+    required String descrizione,
+  }) async {
+    final androidDetails = AndroidNotificationDetails(
+      'report_channel',
+      'Segnalazioni',
+      channelDescription: 'Notifiche nuove segnalazioni',
+      importance: Importance.max,
+      priority: Priority.high,
+    );
+
+    final details = NotificationDetails(android: androidDetails);
+
+    await _notificationsPlugin.show(
+      3,
+      "Segnalazione inviata",
+      descrizione,
+      details,
+      payload: "report|$descrizione",
     );
   }
 }
