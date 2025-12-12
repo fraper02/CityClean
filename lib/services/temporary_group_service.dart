@@ -21,16 +21,11 @@ class TemporaryGroupService {
     });
   }
 
-  /// Permette a un utente di lasciare il gruppo a cui appartiene.
+  /// Permette a un utente di lasciare il gruppo a cui appartiene, con logica gestita da RPC.
   Future<void> leaveGroup() async {
     if (_userId == null) throw Exception("Utente non autenticato.");
-
-    final canLeaveResult = await _client.rpc('can_user_leave_temp_group');
-    if (canLeaveResult['can_leave'] == false) {
-      throw Exception(canLeaveResult['message'] ?? "Non puoi lasciare il gruppo.");
-    }
-
-    await _client.from('temporary_group_members').delete().eq('user_id', _userId!);
+    // Tutta la logica (controllo creatore, conteggio membri, eliminazione) è ora gestita dalla funzione RPC.
+    await _client.rpc('leave_temporary_group');
   }
 
   /// Espelle un membro da un gruppo (solo per il creatore).
@@ -43,11 +38,14 @@ class TemporaryGroupService {
     });
   }
 
-  /// Trasferisce la proprietà di un gruppo a un nuovo membro.
+  /// Trasferisce la proprietà di un gruppo a un nuovo membro tramite RPC.
   Future<void> transferOwnership({required String groupId, required String newOwnerId}) async {
     if (_userId == null) throw Exception("Utente non autenticato.");
-    // La policy RLS garantisce che solo il creatore possa eseguire questa azione.
-    await _client.from('temporary_groups').update({'creator_id': newOwnerId}).eq('id', groupId);
+    
+    await _client.rpc('transfer_temp_group_ownership', params: {
+      'p_group_id': groupId,
+      'p_new_owner_id': newOwnerId,
+    });
   }
 
   /// Crea un gruppo temporaneo con tutti i membri di un evento specifico.
