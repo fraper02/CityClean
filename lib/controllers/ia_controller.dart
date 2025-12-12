@@ -13,7 +13,6 @@ class IAController with ChangeNotifier {
   final WasteBinService _wasteBinService = WasteBinService();
   final ImagePicker _picker = ImagePicker();
 
-  // ... (Variabili e Getter) ...
   File? _selectedImage;
   ClassificationResult? _classificationResult;
   BinInfo? _binInfo;
@@ -27,13 +26,16 @@ class IAController with ChangeNotifier {
   bool get isLoading => _isLoading;
   bool get isModelLoaded => _isModelLoaded;
   String? get error => _error;
-  // ... (Fine Variabili e Getter) ...
 
   IAController() {
     _loadModel();
   }
 
-  // ... (Metodo _loadModel) ...
+  void clearError() {
+    _error = null;
+    notifyListeners();
+  }
+
   Future<void> _loadModel() async {
     _isLoading = true;
     _error = null;
@@ -48,72 +50,78 @@ class IAController with ChangeNotifier {
       notifyListeners();
     }
   }
-  // ... (Fine _loadModel) ...
-
 
   Future<void> pickAndClassifyImage(ImageSource source) async {
     _isLoading = true;
     _error = null;
     _classificationResult = null;
+    _binInfo = null;
     notifyListeners();
 
     try {
       XFile? pickedFile;
-      // Legge la variabile d'ambiente di compilazione
       const bool isMaestroTest = bool.fromEnvironment('MAESTRO_TEST');
 
       if (isMaestroTest) {
-        // --- LOGICA DI BYPASS PER MAESTRO ---
         try {
-          // 1. Carica i dati dell'immagine dall'asset
           const String assetPath = 'assets/images/test_image.png';
           final byteData = await rootBundle.load(assetPath);
-
-          // 2. Crea un file temporaneo per simulare un'immagine selezionata
           final tempDir = await getTemporaryDirectory();
-          final file = File('${tempDir.path}/test_image_maestro.png'); // Nome file univoco
-
-          // 3. Scrivi i dati nel file temporaneo
+          final file = File('${tempDir.path}/test_image_maestro.png');
           await file.writeAsBytes(
               byteData.buffer.asUint8List(byteData.offsetInBytes, byteData.lengthInBytes)
           );
-
-          // 4. Utilizza il percorso del file temporaneo come se fosse stato selezionato
           pickedFile = XFile(file.path);
-
         } on FlutterError {
-          // Cattura l'errore se l'asset non è presente
           _error = "IMMAGINE DI TEST MANCANTE: Assicurati che esista e sia nel pubspec.yaml.";
-          _isLoading = false;
-          notifyListeners();
-          return;
         }
-        // ------------------------------------
       } else {
-        // --- LOGICA NORMALE (Galleria/Fotocamera) ---
         pickedFile = await _picker.pickImage(source: source);
       }
 
-      _selectedImage = File(pickedFile!.path);
-      notifyListeners(); // Mostra l'immagine immediatamente
-
-      // CLASSIFICAZIONE
-      final result = await _tfliteService.classifyImage(_selectedImage!);
-      if (result != null) {
-        _classificationResult = result;
-        _binInfo = await _wasteBinService.getBinInfoForLabel(result.label);
-      } else {
-        _error = "Impossibile classificare l'immagine.";
+      if (pickedFile == null) {
+        // L'utente ha annullato la selezione, ripristiniamo lo stato di loading
+        _isLoading = false;
+        notifyListeners();
+        return;
       }
+
+      _selectedImage = File(pickedFile.path);
+      notifyListeners();
+
+      final result = await _tfliteService.classifyImage(_selectedImage!);
+
+      if (result != null) {
+        // CORREZIONE LOGICA CONFIDENZA
+        // Se il modello restituisce valori su scala 0-100 (es. 38.0), usiamo 55.0 come soglia.
+        // Se il modello restituisce valori su scala 0-1 (es. 0.38), usiamo 0.55 come soglia.
+        bool isConfident = false;
+        if (result.confidence > 1.0) {
+          isConfident = result.confidence > 45.0; // Scala percentuale
+        } else {
+          isConfident = result.confidence > 0.45; // Scala decimale
+        }
+
+        if (isConfident) {
+          _classificationResult = result;
+          _binInfo = await _wasteBinService.getBinInfoForLabel(result.label);
+        } else {
+          _error = "Rifiuto non riconosciuto. Prova con un'altra immagine!";
+          _classificationResult = null;
+          _binInfo = null;
+        }
+      } else {
+        _error = "Impossibile classificare l'immagine. Riprova.";
+      }
+
     } catch (e) {
-      _error = "Si è verificato un errore: ${e.toString()}";
+      _error = "Si è verificato un errore inaspettato: ${e.toString()}";
     } finally {
       _isLoading = false;
       notifyListeners();
     }
   }
 
-  // ... (Metodi reset e dispose) ...
   void reset() {
     _selectedImage = null;
     _classificationResult = null;
