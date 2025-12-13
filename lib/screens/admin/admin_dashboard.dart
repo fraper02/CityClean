@@ -6,7 +6,9 @@ import 'package:cityclean/screens/admin/admin_rewards_page.dart';
 import 'package:cityclean/screens/admin/admin_segnalazioni_page.dart';
 import 'package:cityclean/screens/admin/admin_users_page.dart';
 import 'package:cityclean/screens/admin/admin_waste_values_page.dart';
+import 'package:cityclean/screens/login_screen.dart';
 import 'package:cityclean/services/admin/dashboard_service.dart';
+import 'package:cityclean/services/user_service.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
@@ -99,10 +101,10 @@ class _AdminDashboardState extends State<AdminDashboard> {
           IconButton(icon: const Icon(Icons.add, color: adminPrimaryColor), onPressed: () => _eventsKey.currentState?.createNewEvent(), tooltip: 'Crea Evento'),
           IconButton(icon: const Icon(Icons.refresh, color: adminPrimaryColor), onPressed: () => _eventsKey.currentState?.refreshEvents(), tooltip: 'Aggiorna Eventi'),
         ];
-       case 4: // Ecopunti
+      case 4: // Ecopunti
         return [IconButton(icon: const Icon(Icons.refresh, color: adminPrimaryColor), onPressed: () => _ecopointsKey.currentState?.refreshEcopoints(), tooltip: 'Aggiorna Ecopunti')];
       case 5: // Utenti
-         return [IconButton(icon: const Icon(Icons.refresh, color: adminPrimaryColor), onPressed: () => _usersKey.currentState?.refreshUsers(), tooltip: 'Aggiorna Utenti')];
+        return [IconButton(icon: const Icon(Icons.refresh, color: adminPrimaryColor), onPressed: () => _usersKey.currentState?.refreshUsers(), tooltip: 'Aggiorna Utenti')];
       case 6: // Premi
         return [IconButton(icon: const Icon(Icons.refresh, color: adminPrimaryColor), onPressed: () => _rewardsKey.currentState?.refreshRewards(), tooltip: 'Aggiorna Premi')];
       case 7: // Valori Rifiuto
@@ -144,16 +146,12 @@ class _AdminDashboardState extends State<AdminDashboard> {
   }
 }
 
-extension on AdminListEcopointsPageState? {
-  void refreshEcopoints() {}
-
-}
-
 class AdminMenu extends StatelessWidget {
   final int selectedIndex;
   final ValueChanged<int> onDestinationSelected;
+  final UserService _userService = UserService();
 
-  const AdminMenu({
+  AdminMenu({
     super.key,
     required this.selectedIndex,
     required this.onDestinationSelected,
@@ -170,6 +168,34 @@ class AdminMenu extends StatelessWidget {
     {'icon': Icons.settings_outlined, 'selectedIcon': Icons.settings, 'label': 'Valori Rifiuto'},
   ];
 
+  void _handleLogout(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text("Logout"),
+        content: const Text("Vuoi davvero uscire dalla dashboard admin?"),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text("Annulla"),
+          ),
+          TextButton(
+            style: TextButton.styleFrom(foregroundColor: Colors.red),
+            onPressed: () async {
+              await _userService.signOut();
+              Navigator.pop(ctx); // Chiudi dialog
+              Navigator.of(context).pushAndRemoveUntil(
+                MaterialPageRoute(builder: (context) => const LoginScreen()),
+                (route) => false, 
+              );
+            },
+            child: const Text("Esci"),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final isWideScreen = MediaQuery.of(context).size.width > 800;
@@ -179,7 +205,7 @@ class AdminMenu extends StatelessWidget {
       padding: EdgeInsets.zero,
       children: [
         if (isWideScreen)
-           SizedBox(
+          SizedBox(
             height: 80,
             child: Center(
               child: Text(
@@ -207,6 +233,23 @@ class AdminMenu extends StatelessWidget {
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
             contentPadding: const EdgeInsets.symmetric(horizontal: 24),
           ),
+
+        // --- SEZIONE LOGOUT AGGIUNTA ---
+        const Padding(
+          padding: EdgeInsets.symmetric(vertical: 8.0, horizontal: 16.0),
+          child: Divider(),
+        ),
+        ListTile(
+          leading: const Icon(Icons.logout, color: Colors.red),
+          title: const Text(
+            'Logout',
+            style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold),
+          ),
+          onTap: () => _handleLogout(context),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+          contentPadding: const EdgeInsets.symmetric(horizontal: 24),
+        ),
+        const SizedBox(height: 20), // Spazio extra in fondo
       ],
     );
 
