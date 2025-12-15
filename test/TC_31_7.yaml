@@ -1,0 +1,59 @@
+appId: com.example.cityclean 
+---
+- launchApp
+- tapOn:
+    id: "gruppi_card"
+# --- PRE-CONDIZIONI ---
+# Assumiamo che U1 sia autenticato come CAPO GRUPPO.
+# Assumiamo che ci sia almeno un altro membro (U2) nel gruppo.
+# Siamo nella Dashboard.
+
+- assertVisible:
+    id: "btn_copy_code"
+
+# Verifica stato iniziale (U1 = Capo):
+# Verifichiamo di essere il capo tramite il ruolo o il fatto che possiamo vedere i menu degli altri.
+- assertVisible:
+    id: "lbl_role_creator" # Verifica che U1 sia visualizzato come "Capo Gruppo"
+- assertVisible:
+    id: "btn_menu_member_.*" # U1 vede i menu sui membri (privilegio di admin)
+
+# --- FLUSSO DI EVENTI (TC_RFU31_7) ---
+
+# 1. U1 apre il menu di U2 (primo membro della lista)
+- tapOn:
+    id: "btn_menu_member_.*"
+    index: 0
+
+# 2. U1 seleziona "Cedi Comando" [Trasferisci]
+- tapOn:
+    id: "menu_item_promote"
+
+# Verifica che il dialog sia apparso
+- assertVisible: "Passaggio di Consegne"
+
+# 3. U1 seleziona [Annulla]
+- tapOn:
+    id: "btn_promote_cancel"
+
+# --- ORACLE ---
+# Il popup si chiude. La proprietà del gruppo rimane a U1.
+
+# 1. Verifica che il dialog sia chiuso
+- assertNotVisible: "Passaggio di Consegne"
+
+# 2. Verifica che U1 sia ancora il Capo
+# Deve ancora vedere il proprio ruolo come "Capo Gruppo"
+- assertVisible:
+    id: "lbl_role_creator"
+
+# 3. Verifica che i privilegi siano intatti
+# Deve ancora poter vedere/aprire i menu degli altri membri
+- assertVisible:
+    id: "btn_menu_member_.*"
+
+# 4. Verifica di stabilità (Opzionale)
+# Il tasto "Lascia il Gruppo" deve rimanere invisibile (se ci sono membri)
+# o comunque lo stato non deve essere mutato in "Partecipante".
+- assertNotVisible:
+    id: "btn_leave_group"

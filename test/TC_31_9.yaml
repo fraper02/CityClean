@@ -1,0 +1,59 @@
+appId: com.example.cityclean # SOSTITUISCI CON IL TUO PACKAGE NAME
+---
+- launchApp
+- tapOn:
+    id: "gruppi_card"
+
+# --- PRE-CONDIZIONI ---
+# Utente autenticato, schermata Lobby.
+
+- assertVisible:
+    id: "card_create_group"
+
+# --- FLUSSO DI EVENTI (TC_RFU31_9) ---
+
+# 1. Naviga area "Crea Gruppo"
+- tapOn:
+    id: "card_create_group"
+
+# Verifica apertura dialog
+- assertVisible: "Nuovo Gruppo"
+
+# 2. Tenta conferma [Crea] con campo VUOTO
+# Non eseguiamo inputText, lasciando il campo vuoto di default.
+- tapOn:
+    id: "btn_confirm_create"
+
+# --- ORACLE (Parte 1: Validazione Silenziosa) ---
+# Poiché il campo è vuoto, il pulsante non fa nulla.
+# Il test passa se il dialog è ANCORA lì e non siamo andati avanti.
+
+# Verifica che il dialog sia ANCORA visibile (non si è chiuso)
+- assertVisible: "Nuovo Gruppo"
+
+# Verifica che NON siamo finiti nella Dashboard
+# (Se fossimo passati, vedremmo il tasto copia codice o il titolo della dashboard)
+- assertNotVisible:
+    id: "btn_copy_code"
+
+# --- FLUSSO DI EVENTI (Parte 2: Correzione e Successo) ---
+# Inseriamo ora un dato valido per sbloccare la situazione
+
+# 3. Inserisce un nome valido
+- tapOn:
+    id: "input_group_name"
+- inputText: "Gruppo Valido"
+- hideKeyboard
+
+# 4. Tenta conferma di nuovo
+- tapOn:
+    id: "btn_confirm_create"
+
+# --- ORACLE (Parte 2: Successo) ---
+# Ora il gruppo deve essere creato e il dialog chiuso.
+
+# Verifica che siamo nella Dashboard
+- assertVisible:
+    id: "btn_copy_code"
+- assertVisible:
+    id: "lbl_role_creator"

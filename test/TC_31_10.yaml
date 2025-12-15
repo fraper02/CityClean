@@ -1,0 +1,47 @@
+appId: com.example.cityclean # SOSTITUISCI CON IL TUO PACKAGE NAME
+---
+- launchApp
+- tapOn:
+    id: "gruppi_card"
+# --- PRE-CONDIZIONI ---
+# Assumiamo che l'utente sia autenticato come MEMBRO SEMPLICE (non Capo).
+# Siamo nella Dashboard del gruppo.
+
+- assertVisible:
+    id: "btn_copy_code" # Verifica di essere nella Dashboard
+
+# Verifica specifica del ruolo:
+# Per un membro semplice, il tasto "Lascia il Gruppo" è sempre visibile.
+# (A differenza del Capo che lo vede solo se è solo).
+- assertVisible:
+    id: "btn_leave_group"
+
+# Verifica (opzionale) di essere un "Partecipante" e non "Capo Gruppo"
+- assertVisible:
+    id: "lbl_role_participant"
+
+# --- FLUSSO DI EVENTI (TC_RFU31_10) ---
+
+# 1. Clicca "Lascia Gruppo" [Abbandona]
+- tapOn:
+    id: "btn_leave_group"
+
+# Verifica che il dialog di conferma sia apparso
+- assertVisible: "Lasciare il Gruppo?"
+
+# 2. Conferma nel popup [Conferma]
+- tapOn:
+    id: "btn_leave_confirm"
+
+# --- ORACLE ---
+# Utente rimosso dal gruppo. Redirect alla Home dei gruppi (Lobby).
+
+# 1. Verifica che non siamo più nella Dashboard
+- assertNotVisible:
+    id: "btn_leave_group"
+
+# 2. Verifica che siamo atterrati nella Lobby
+# Cerchiamo elementi unici della Lobby come le card di creazione/unione
+- assertVisible:
+    id: "card_create_group"
+- assertVisible: "Gruppi Temporanei"

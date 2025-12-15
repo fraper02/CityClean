@@ -1,0 +1,39 @@
+appId: com.example.cityclean # SOSTITUISCI CON IL TUO PACKAGE NAME
+---
+- launchApp
+- tapOn:
+    id: "gruppi_card"
+# --- PRE-CONDIZIONI ---
+# Assumiamo che l'utente sia autenticato e si trovi nella schermata "Lobby" (TemporaryGroupLobbyScreen).
+# Se il flusso parte dalla Home, aggiungi qui i passaggi per arrivare alla Lobby.
+
+- assertVisible:
+    id: "card_join_group" # Verifica di essere nella Lobby
+
+# --- FLUSSO DI EVENTI (TC_RFU31_5) ---
+
+# 1. Tappa su "Unisciti con codice"
+- tapOn:
+    id: "card_join_group"
+
+# Verifica che il dialog di inserimento si sia aperto
+- assertVisible: "Unisciti al Gruppo"
+
+# 2. L'utente inserisce il codice errato
+- tapOn:
+    id: "input_invite_code" # ID del campo di testo nel dialog
+- inputText: "CODICE_ERRATO_123"
+- hideKeyboard
+
+# 3. L'utente conferma (Click su "Entra")
+- tapOn:
+    id: "btn_confirm_join"
+
+# --- ORACLE ---
+# Il sistema rileva che il gruppo non esiste e mostra un errore.
+# Nel codice Dart, l'errore scatena un AlertDialog con titolo "Attenzione" e tasto OK.
+
+- assertVisible: "Errore" # Titolo del dialog di errore
+- tapOn: "Back"
+- assertVisible:
+    id: "gruppi_card" # Verifica presenza bottone OK del dialog di errore

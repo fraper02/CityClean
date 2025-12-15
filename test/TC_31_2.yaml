@@ -1,0 +1,45 @@
+appId: com.example.cityclean # SOSTITUISCI CON IL TUO PACKAGE NAME
+---
+- launchApp
+- tapOn:
+    id: "gruppi_card"
+# --- PRE-CONDIZIONI ---
+# Assumiamo che l'utente sia già loggato, sia Admin del gruppo
+# e si trovi nella schermata "TemporaryGroupDashboardScreen".
+
+- assertVisible:
+    id: "btn_copy_code" # Verifica che siamo nella dashboard
+
+# --- FLUSSO DI EVENTI (TC_RFU31_2) ---
+
+# 1. Seleziona il membro target (Menu)
+- tapOn:
+    id: "btn_menu_member_.*"
+    index: 0 # Prende il primo membro della lista
+
+# 2. Clicca su [Rimuovi] (Espelli)
+- tapOn:
+    id: "menu_item_kick"
+
+# Verifica che il popup sia apparso
+- assertVisible: "Espelli Partecipante"
+
+# 3. Clicca su [Annulla]
+- tapOn:
+    id: "btn_kick_cancel"
+
+# --- ORACLE ---
+# Il popup deve sparire e il membro deve essere ancora lì.
+
+# 1. Il dialog non deve più essere visibile
+- assertNotVisible: "Espelli Partecipante"
+
+- assertVisible:
+    id: "btn_copy_code" # Verifica che siamo nella dashboard
+
+# 3. Verifichiamo che il membro (il suo menu) sia ancora cliccabile/visibile
+# Se fosse stato rimosso, l'indice 0 potrebbe riferirsi a un altro membro o non esistere
+# se era l'unico, ma in questo test verifichiamo solo la persistenza dell'elemento UI.
+- assertVisible:
+    id: "btn_menu_member_.*"
+    index: 0

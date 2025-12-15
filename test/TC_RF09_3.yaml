@@ -1,0 +1,46 @@
+appId: com.example.cityclean
+---
+- runFlow:
+
+    file: login.yaml
+    env:
+        EMAIL: "test2@test.com"
+        Pass: "Password123"
+
+- tapOn: Segnala Evento Futuro
+
+- tapOn:
+    id: titleField
+- inputText: "Fiera dei fiori"
+
+- tapOn:
+    id: descField
+- inputText: "Fiera con molti fiori"
+- hideKeyboard
+- tapOn:
+    id: catField
+- inputText: "Plastica"
+- hideKeyboard
+- tapOn:
+    id: dateButton
+
+
+- tapOn: 30, Tuesday, December 30, 2025
+
+- tapOn: OK
+
+
+
+- hideKeyboard
+
+- scrollUntilVisible:
+    element:
+      id: submitButton
+
+- tapOn:
+    id: submitButton
+
+
+- assertVisible: |-
+    Evento creato con successo!
+
