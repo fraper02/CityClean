@@ -1,0 +1,43 @@
+appId: com.example.cityclean
+---
+- runFlow:
+    file: login.yaml
+    env:
+        EMAIL: "test2@test.com"
+        PASS : "Password123"
+
+# 1. Navigazione
+- tapOn:
+    id: "nav_rewards" 
+
+# 2. Scorrimento
+- scrollUntilVisible:
+    element:
+      id: "VacanzaItem"
+    direction: DOWN
+
+# 3. VERIFICA STATO: Il bottone deve essere visibile ma disabilitato (grigio)
+- assertVisible:
+    id: "VacanzaBottoneRiscatta"
+    enabled: false
+# verifica che sia terminato ma prova Comunque a cliccare
+- assertVisible:
+    id: "ValigiaBottoneRiscatta"
+    text: "Terminato"
+
+- tapOn:
+    id: "ValigiaBottoneRiscatta"
+
+# 5. VERIFICA LOGICA:
+
+- assertNotVisible:
+    id: "dialog_confirm_button"
+
+
+# B. Assicuriamoci che SI SIA aperto il dialog di descrizione (quello informativo)
+- assertVisible:
+    id: "dialog_close_description"
+
+# 6. CLEANUP: Chiudiamo il dialog per finire in uno stato pulito
+- tapOn:
+    id: "dialog_close_description"

@@ -1,0 +1,30 @@
+appId: com.example.cityclean # SOSTITUISCI CON IL TUO PACKAGE NAME
+---
+- launchApp
+- tapOn:
+    id: "gruppi_card"
+
+- assertVisible:
+    id: "btn_copy_code"
+
+# --- FLUSSO DI EVENTI (TC_RFU31_3) ---
+
+# 1. Naviga alla lista membri e trova se stesso
+# Verifichiamo la presenza dell'indicatore visivo "(Tu)" e "Capo Gruppo"
+# Usiamo gli identifier che abbiamo appena aggiunto per essere sicuri che la UI li stia renderizzando correttamente
+- assertVisible: 
+    id: "lbl_me_tag"
+- assertVisible: 
+    id: "lbl_role_creator"
+
+# 2. Oracolo: L'opzione "Rimuovi" non è visibile
+# Poiché il bottone "More Vert" non esiste proprio per il creatore, non possiamo cliccarlo.
+# Verifichiamo quindi che l'opzione "Espelli" NON sia visibile sullo schermo.
+# (Nota: Se il bottone esistesse e lo cliccassimo, "Espelli" apparirebbe).
+- assertNotVisible: "Espelli"
+- assertNotVisible:
+    id: "menu_item_kick"
+
+# Verifica aggiuntiva (Opzionale):
+# Assicuriamoci che non ci sia un menu aperto per errore.
+- assertNotVisible: "Cedi Comando"
