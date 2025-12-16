@@ -190,7 +190,12 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
               ),
               child: Column(
                 children: [
-                  Text("${user.saldoPunti}", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.green[800])),
+                  // INIZIO MODIFICA: Aggiunto Semantics per Maestro
+                  Semantics(
+                    identifier: "saldo_punti_value",
+                    child: Text("${user.saldoPunti}", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.green[800])),
+                  ),
+                  // FINE MODIFICA
                   Text("Punti", style: TextStyle(color: Colors.green[800])),
                 ],
               ),

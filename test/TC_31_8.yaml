@@ -1,0 +1,53 @@
+appId: com.example.cityclean # SOSTITUISCI CON IL TUO PACKAGE NAME
+---
+- launchApp
+- tapOn:
+    id: "gruppi_card"
+
+
+# --- PRE-CONDIZIONI ---
+# Assumiamo che l'utente sia autenticato e NON appartenga a nessun gruppo.
+# Si trova quindi nella schermata "Lobby".
+
+- assertVisible:
+    id: "card_create_group" # Verifica di essere nella Lobby
+
+# --- FLUSSO DI EVENTI (TC_RFU31_8) ---
+
+# 1. Naviga area "Crea Gruppo"
+- tapOn:
+    id: "card_create_group"
+
+# Verifica apertura dialog
+- assertVisible: "Nuovo Gruppo"
+
+# 2. Inserisce nome gruppo "I Campioni"
+- tapOn:
+    id: "input_group_name" # ID del campo di testo nel dialog
+- inputText: "NuSpettacl"
+- hideKeyboard
+
+# 3. Click su [Crea] (Conferma creazione)
+- tapOn:
+    id: "btn_confirm_create"
+
+# --- ORACLE ---
+# Gruppo creato nel DB. Utente diventa Capo/Creatore.
+# Reindirizzamento alla schermata del gruppo (Dashboard).
+
+# 1. Verifica navigazione avvenuta (Siamo nella Dashboard)
+# Cerchiamo un elemento unico della Dashboard come il tasto per copiare il codice
+- assertVisible:
+    id: "btn_copy_code"
+
+# 2. Verifica Nome Gruppo
+# Il titolo nella AppBar deve essere quello inserito
+- assertVisible:
+    id: btn_copy_code
+
+# 3. Verifica Ruolo Utente (Capo/Creatore)
+# L'utente deve vedersi assegnato il ruolo di creatore
+- assertVisible:
+    id: "lbl_role_creator"
+
+

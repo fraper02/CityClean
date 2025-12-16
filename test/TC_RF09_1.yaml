@@ -1,0 +1,52 @@
+appId: com.example.cityclean
+---
+- runFlow:
+
+    file: login.yaml
+    env:
+        EMAIL: "test2@test.com"
+        Pass: "Password123"
+
+- tapOn: Segnala Evento Futuro
+
+
+
+- tapOn:
+    id: descField
+- inputText: "Fiera con molti fiori"
+- hideKeyboard
+- tapOn:
+    id: catField
+- inputText: "Plastica"
+- hideKeyboard
+- tapOn:
+    id: dateButton
+
+
+- tapOn: 30, Tuesday, December 30, 2025
+
+- tapOn: OK
+- hideKeyboard
+- tapOn:
+    id: pickFromMapButton
+- tapOn:
+    point: 60%,50%
+  
+- waitForAnimationToEnd
+
+- tapOn:
+    id: confirmButton
+
+- hideKeyboard
+
+- scrollUntilVisible:
+    element:
+      id: submitButton
+
+- tapOn:
+    id: submitButton
+
+- assertVisible: |-
+    Segnalazione evento fallita campo nome obbligatorio
+
+

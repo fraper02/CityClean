@@ -97,7 +97,6 @@ class _RewardsScreenState extends State<RewardsScreen> {
       context: context,
       builder: (context) => AlertDialog(
         title: Text(prize.nome),
-        // CORREZIONE: prize.descrizione non è nullable, quindi usiamo .isEmpty per il controllo
         content: Text(prize.descrizione.isEmpty
             ? "Nessuna descrizione disponibile."
             : prize.descrizione),
@@ -196,6 +195,7 @@ class _RewardsScreenState extends State<RewardsScreen> {
                 itemCount: prizes.length,
                 itemBuilder: (context, index) {
                   final prize = prizes[index];
+                  // Logica per determinare se è abilitato
                   final bool canRedeem = _controller.userPoints.value >= prize.costoPunti && prize.quantitaDisponibile > 0;
 
                   return _buildPrizeCard(
@@ -223,8 +223,7 @@ class _RewardsScreenState extends State<RewardsScreen> {
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            // CORREZIONE: withOpacity è deprecato, sostituito con withValues
-            color: Colors.black.withValues(alpha: 0.05),
+            color: Colors.black.withOpacity(0.05), // Uso withOpacity per compatibilità
             blurRadius: 10,
             offset: const Offset(0, 5),
           )
@@ -238,7 +237,7 @@ class _RewardsScreenState extends State<RewardsScreen> {
             children: [
               Text("Punti disponibili", style: TextStyle(color: Colors.green[800], fontSize: 14)),
               const SizedBox(height: 5),
-              // MAESTRO ID
+              // MAESTRO ID: Saldo punti
               Semantics(
                 identifier: 'user_points_display',
                 child: Text(
@@ -267,16 +266,11 @@ class _RewardsScreenState extends State<RewardsScreen> {
   }) {
     final bool isAvailable = prize.quantitaDisponibile > 0;
 
-    // Generazione nomi puliti
+    // Rimuove gli spazi per creare l'ID (es: "Buono Amazon" -> "BuonoAmazon")
     final String cleanName = prize.nome.replaceAll(' ', '');
-
-    // ID per il bottone verde
     final String buttonId = "${cleanName}BottoneRiscatta";
-
-    // ID per l'intera card (l'item della lista)
     final String itemId = "${cleanName}Item";
 
-    // 1. Semantics per l'intera card (per aprire i dettagli)
     return Semantics(
       identifier: itemId,
       child: InkWell(
@@ -307,11 +301,10 @@ class _RewardsScreenState extends State<RewardsScreen> {
                   ],
                 ),
               ),
-
-              // 2. Semantics specifico per il bottone "Riscatta"
               Semantics(
                 identifier: buttonId,
                 container: true,
+                enabled: canRedeem, // <--- Espone lo stato 'enabled' a Maestro
                 child: ElevatedButton(
                   onPressed: canRedeem ? onRedeem : null,
                   style: ElevatedButton.styleFrom(

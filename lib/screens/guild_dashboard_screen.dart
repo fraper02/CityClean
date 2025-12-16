@@ -60,7 +60,12 @@ class GuildDashboardScreen extends StatelessWidget {
           elevation: 0,
           leading: IconButton(
             icon: const Icon(Icons.arrow_back_ios_new, color: Colors.white),
-            onPressed: () => Navigator.pop(context),
+            onPressed: () {
+              Navigator.of(context).pushAndRemoveUntil(
+                MaterialPageRoute(builder: (context) => const HomeScreen()),
+                    (route) => false,
+              );
+            },
           ),
           flexibleSpace: FlexibleSpaceBar(
             centerTitle: true,

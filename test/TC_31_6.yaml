@@ -1,0 +1,56 @@
+appId: com.example.cityclean 
+---
+- launchApp
+- tapOn:
+    id: "gruppi_card"
+# --- PRE-CONDIZIONI ---
+# Assumiamo che U1 sia autenticato come CAPO GRUPPO.
+# Assumiamo che ci sia almeno un altro membro (U2) nel gruppo.
+# Siamo nella Dashboard.
+
+- assertVisible:
+    id: "btn_copy_code"
+
+# Verifica stato iniziale (U1 = Capo):
+# Il Capo non può lasciare il gruppo se ci sono membri.
+# Quindi il tasto "Lascia il Gruppo" NON deve essere visibile,
+# ma deve esserci il messaggio "Cedi la leadership...".
+- assertNotVisible:
+    id: "btn_leave_group"
+- assertVisible: "Cedi la leadership per lasciare il gruppo"
+
+# --- FLUSSO DI EVENTI (TC_RFU31_6) ---
+
+# 1. U1 apre il menu di U2 (primo membro della lista)
+- tapOn:
+    id: "btn_menu_member_.*"
+    index: 0 # Seleziona il primo membro disponibile
+
+# 2. U1 seleziona "Cedi Comando" [Trasferisci]
+- tapOn:
+    id: "menu_item_promote"
+
+# Verifica che il dialog sia apparso
+- assertVisible: "Passaggio di Consegne"
+
+# 3. U1 conferma l'azione [Conferma]
+- tapOn:
+    id: "btn_promote_confirm"
+
+# --- ORACLE ---
+# U1 perde i privilegi di amministrazione e diventa un membro normale.
+# U2 diventa il nuovo capo.
+
+# 1. Verifica che U1 possa ora lasciare il gruppo
+# (Essendo diventato un semplice partecipante, il tasto deve apparire)
+- assertVisible:
+    id: "btn_leave_group"
+
+# 2. Verifica che U1 non veda più i menu di amministrazione sugli altri membri
+# (L'icona "more_vert" deve sparire perché U1 non è più il creatore)
+- assertNotVisible:
+    id: "btn_menu_member_.*"
+
+# 3. Verifica visuale del ruolo (Opzionale, basata sui testi)
+# U1 dovrebbe vedere se stesso come "Partecipante"
+- assertVisible: "Partecipante"

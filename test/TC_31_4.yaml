@@ -1,0 +1,43 @@
+appId: com.example.cityclean # SOSTITUISCI CON IL TUO PACKAGE NAME
+---
+- launchApp
+- tapOn:
+    id: "gruppi_card"
+# --- PRE-CONDIZIONI ---
+# Assumiamo che l'utente sia autenticato, NON sia in un gruppo
+# e si trovi nella schermata "Lobby" (TemporaryGroupLobbyScreen).
+
+- assertVisible:
+    id: "card_join_group" # Verifica di essere nella Lobby
+
+# --- FLUSSO DI EVENTI (TC_RFU31_4) ---
+
+# 1. Tappa su "Unisciti con codice"
+- tapOn:
+    id: "card_join_group"
+
+# Verifica che il dialog di inserimento si sia aperto
+- assertVisible: "Unisciti al Gruppo"
+
+# 2. L'utente inserisce il codice valido
+# NOTA: Sostituisci "CODICE_VALIDO" con un codice realmente esistente nel tuo ambiente di test/mock
+- tapOn:
+    id: "input_invite_code" # ID del campo di testo nel dialog
+- inputText: "854D487C04"
+- hideKeyboard
+
+
+# 3. L'utente conferma (Click su "Entra")
+- tapOn:
+    id: "btn_confirm_join"
+
+# --- ORACLE ---
+# Reindirizzamento alla dashboard del gruppo.
+# Verifichiamo la presenza di elementi tipici della Dashboard Screen
+# come il tasto per copiare il codice invito o la lista membri.
+
+- assertVisible:
+    id: "btn_copy_code" # Questo bottone esiste solo nella Dashboard
+-  assertVisible:
+    id: "btn_copy_code" # Verifica visiva di essere nella dashboard
+- assertVisible: "Bonus Conferimenti Attivo"

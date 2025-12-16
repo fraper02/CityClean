@@ -1,0 +1,27 @@
+appId: com.example.cityclean
+---
+- runFlow:
+    file: login.yaml
+    env:
+        EMAIL: "test2@test.com"
+        PASS: "Password123"
+
+# Navigazione
+
+- tapOn:
+    id: "profile"
+
+- tapOn:
+    id: "storico_raccolte"
+
+- assertVisible:
+    id: "storico_raccolte_list"
+
+- tapOn:
+    text: "Back"
+
+- tapOn:
+    id: "cronologia_attivita"
+
+- assertVisible:
+    id: "cronologia_attivita_list"

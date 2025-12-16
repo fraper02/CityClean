@@ -1,0 +1,42 @@
+appId: com.example.cityclean # SOSTITUISCI CON IL TUO PACKAGE NAME
+---
+- launchApp
+- tapOn:
+    id: "gruppi_card"
+
+# --- PRE-CONDIZIONI ---
+# Assumiamo che l'utente sia già loggato, sia Admin del gruppo
+# e si trovi nella schermata "TemporaryGroupDashboardScreen".
+# Se necessario, inserisci qui i comandi di login/navigazione.
+
+- assertVisible: 
+   id: "btn_copy_code" # Verifica visiva di essere nella dashboard
+
+# --- FLUSSO DI EVENTI (TC_RFU31_1) ---
+
+# 1. Seleziona il membro target
+# Clicca sui 3 puntini (Menu) del primo membro disponibile nella lista.
+# Usiamo una REGEX sull'ID perché l'identifier contiene l'ID dinamico del backend.
+- tapOn:
+    id: "btn_menu_member_.*"
+    index: 0 # 0 indica il primo match trovato nella pagina
+
+# 2. Clicca sul pulsante "Espelli" (corrisponde a [Rimuovi] nel TC)
+# Usiamo l'identifier statico che abbiamo assegnato al PopupMenuItem
+- tapOn:
+    id: "menu_item_kick"
+
+# (Opzionale) Verifica che il dialog di conferma sia apparso
+- assertVisible: "Espelli Partecipante"
+
+# 3. Clicca su "Conferma" (Espelli) nel popup
+# Usiamo l'identifier statico del pulsante rosso nel dialog
+- tapOn:
+    id: "btn_kick_confirm"
+
+# --- ORACLE ---
+# Il membro viene rimosso immediatamente.
+# Verifichiamo che il dialog sia sparito e siamo tornati alla lista.
+- assertNotVisible: "Espelli Partecipante"
+- assertVisible: 
+   id: "btn_copy_code"
