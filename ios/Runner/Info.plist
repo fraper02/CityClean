@@ -51,5 +51,13 @@
 		<string>Questa app ha bisogno di accedere alla galleria per permetterti di selezionare le immagini dei rifiuti.</string>
 		<key>UIStatusBarHidden</key>
 		<false/>
+
+		<!-- Aggiunto per url_launcher su iOS -->
+		<key>LSApplicationQueriesSchemes</key>
+		<array>
+		  <string>https</string>
+		  <string>maps</string>
+		  <string>comgooglemaps</string>
+		</array>
 	</dict>
 </plist>

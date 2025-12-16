@@ -21,7 +21,17 @@ class ReportService {
       final fileName = '${DateTime.now().millisecondsSinceEpoch}.jpg';
       final storagePath = 'segnalazioni/$fileName';
       
-      await supabase.storage.from('immagini').upload(storagePath, imageFile);
+      // FIX: Leggiamo i byte del file e usiamo uploadBinary per maggiore compatibilità
+      final imageBytes = await imageFile.readAsBytes();
+      await supabase.storage.from('immagini').uploadBinary(
+        storagePath, 
+        imageBytes,
+        fileOptions: const FileOptions(
+          cacheControl: '3600',
+          contentType: 'image/jpeg',
+        ),
+      );
+      
       final imageUrl = supabase.storage.from('immagini').getPublicUrl(storagePath);
 
       final newImageId = _generateId(prefix: 'img');
@@ -70,6 +80,7 @@ class ReportService {
             ? fullDescription.substring(0, 255) 
             : fullDescription,
         'ultimoaggiornamento': DateTime.now().toIso8601String(),
+        'datacreazione': DateTime.now().toIso8601String(),
         'fontedato': 'App Utente',
         'stato': 'Aperta',
       });
@@ -93,7 +104,10 @@ class ReportService {
     required String userId,
   }) async {
     try {
+      final eventId = _generateId(prefix: 'evt'); // Generazione ID evento
+
       await supabase.from('evento').insert({
+        'idevento': eventId,
         'titolo': title,
         'descrizione': description,
         'categoria': wasteType,
@@ -102,7 +116,7 @@ class ReportService {
         'localita': "Lat: $latitude, Lon: $longitude",
         'latitudine': latitude,
         'longitudine': longitude,
-        'immagine': 'https://placehold.co/600x400/orange/white?text=Evento+CityClean',
+        'immagine': null,
       });
 
        //INVIO NOTIFICA LOCALE

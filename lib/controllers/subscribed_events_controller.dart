@@ -20,12 +20,7 @@ class SubscribedEventsController {
   Future<void> loadSubscribedEvents() async {
     state.value = ScreenState.loading;
     try {
-      final userId = supabase.auth.currentUser?.id;
-      if (userId == null) {
-        throw Exception("Utente non autenticato.");
-      }
-
-      final events = await _service.getSubscribedEvents(userId);
+      final events = await _service.getMyEvents();
       subscribedEvents.value = events;
       state.value = ScreenState.success;
 
@@ -35,7 +30,7 @@ class SubscribedEventsController {
     }
   }
 
-  // --- NUOVO METODO PER ANNULLARE L'ISCRIZIONE ---
+  // Metodo per annullare l'iscrizione
   Future<void> unsubscribeFromEvent(String eventId) async {
     final userId = supabase.auth.currentUser?.id;
     if (userId == null) {
@@ -43,15 +38,13 @@ class SubscribedEventsController {
     }
 
     try {
-      // 1. Chiama il service per cancellare l'iscrizione dal DB
       await _service.unsubscribeFromEvent(eventId, userId);
-      // 2. Rimuove l'evento dalla lista locale per un aggiornamento istantaneo della UI
-      final currentEvents = List<Event>.from(subscribedEvents.value);
-      currentEvents.removeWhere((event) => event.id == eventId);
-      subscribedEvents.value = currentEvents;
+      // CORREZIONE: Ricarica i dati dal server invece di aggiornare solo la UI.
+      // Questo garantisce che la UI rifletta sempre lo stato reale del database.
+      await loadSubscribedEvents();
     } catch (e) {
-      // Rigetta l'errore in modo che la UI possa mostrarlo
-      throw Exception('Errore durante l\'annullamento dell\'iscrizione.');
+      // Rigetta l'errore per mostrarlo nella UI
+      throw Exception('Errore durante l\'annullamento dell\'iscrizione: ${e.toString()}');
     }
   }
 

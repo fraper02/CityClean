@@ -1,3 +1,4 @@
+import 'package:cityclean/models/user_activity.dart';
 import 'package:cityclean/models/user_profile.dart';
 import 'package:cityclean/services/admin/admin_users_service.dart';
 import 'package:flutter/material.dart';
@@ -22,7 +23,7 @@ class AdminUsersController {
       users.value = _allUsers;
       state.value = AdminUsersState.success; // Corretto
     } catch (e) {
-      errorMessage.value = "Errore nel caricamento: \${e.toString()}";
+      errorMessage.value = "Errore nel caricamento: ${e.toString()}";
       state.value = AdminUsersState.error;
     }
   }
@@ -42,20 +43,27 @@ class AdminUsersController {
     }
   }
 
-  Future<void> addPoints(BuildContext context, String userId, int points) async {
+  Future<void> addPoints(BuildContext context, String userId, int points, String description) async {
     try {
-      await _service.addPointsToUser(userId, points);
-      // Ricarica i dati per vedere l'aggiornamento
-      await loadUsers();
-      // Mostra un feedback positivo
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("\$points punti assegnati con successo!"), backgroundColor: Colors.green),
-      );
+      await _service.addPointsToUser(userId, points, description);
+      await loadUsers(); // Ricarica i dati per mostrare il saldo aggiornato
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('$points punti aggiunti con successo!'), backgroundColor: Colors.green),
+        );
+      }
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Errore: \${e.toString()}"), backgroundColor: Colors.red),
-      );
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("Errore: ${e.toString()}"), backgroundColor: Colors.red),
+        );
+      }
     }
+  }
+
+  // Aggiunta la funzione per caricare lo storico
+  Future<List<UserActivity>> getUserActivity(String userId) {
+    return _service.getUserActivity(userId);
   }
 
   void dispose() {

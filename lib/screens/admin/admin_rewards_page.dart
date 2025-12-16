@@ -2,15 +2,19 @@ import 'package:cityclean/controllers/admin/admin_prizes_controller.dart';
 import 'package:cityclean/models/partner.dart';
 import 'package:cityclean/models/prizes.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_map/flutter_map.dart'; // NECESSARIO PER PICKER
+import 'package:latlong2/latlong.dart'; // NECESSARIO PER PICKER
+
+const Color adminPrimaryColor = Color(0xFF2E7D32);
 
 class AdminRewardsPage extends StatefulWidget {
   const AdminRewardsPage({super.key});
 
   @override
-  State<AdminRewardsPage> createState() => _AdminRewardsPageState();
+  AdminRewardsPageState createState() => AdminRewardsPageState();
 }
 
-class _AdminRewardsPageState extends State<AdminRewardsPage> with SingleTickerProviderStateMixin {
+class AdminRewardsPageState extends State<AdminRewardsPage> with SingleTickerProviderStateMixin {
   late final AdminPrizesController _controller;
   late final TabController _tabController;
 
@@ -29,25 +33,22 @@ class _AdminRewardsPageState extends State<AdminRewardsPage> with SingleTickerPr
     super.dispose();
   }
 
+  void refreshRewards() {
+    _controller.loadAll();
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text("Gestione Premi e Partner"),
-        bottom: TabBar(
+      appBar: PreferredSize(
+        preferredSize: const Size.fromHeight(kToolbarHeight),
+        child: TabBar(
           controller: _tabController,
           tabs: const [
             Tab(icon: Icon(Icons.card_giftcard), text: "Premi"),
             Tab(icon: Icon(Icons.business), text: "Partner"),
           ],
         ),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.refresh),
-            tooltip: "Ricarica Dati",
-            onPressed: _controller.loadAll,
-          ),
-        ],
       ),
       body: ValueListenableBuilder<AdminPrizesState>(
         valueListenable: _controller.state,
@@ -70,7 +71,6 @@ class _AdminRewardsPageState extends State<AdminRewardsPage> with SingleTickerPr
     );
   }
 
-  // --- WIDGET PER IL TAB DEI PREMI ---
   Widget _buildPrizesTab() {
     return Scaffold(
       body: ValueListenableBuilder<List<Prize>>(
@@ -80,7 +80,7 @@ class _AdminRewardsPageState extends State<AdminRewardsPage> with SingleTickerPr
             return const Center(child: Text("Nessun premio trovato."));
           }
           return ListView.builder(
-            padding: const EdgeInsets.all(12),
+            padding: const EdgeInsets.fromLTRB(12, 12, 12, 80),
             itemCount: prizes.length,
             itemBuilder: (context, index) => _buildPrizeCard(prizes[index]),
           );
@@ -88,14 +88,13 @@ class _AdminRewardsPageState extends State<AdminRewardsPage> with SingleTickerPr
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: () => _showPrizeDialog(null),
-        backgroundColor: Colors.blue[700],
+        backgroundColor: adminPrimaryColor,
         tooltip: 'Aggiungi Premio',
         child: const Icon(Icons.add, color: Colors.white),
       ),
     );
   }
 
-  // --- WIDGET PER IL TAB DEI PARTNER ---
   Widget _buildPartnersTab() {
     return Scaffold(
       body: ValueListenableBuilder<List<Partner>>(
@@ -105,7 +104,7 @@ class _AdminRewardsPageState extends State<AdminRewardsPage> with SingleTickerPr
             return const Center(child: Text("Nessun partner trovato."));
           }
           return ListView.builder(
-            padding: const EdgeInsets.all(12),
+            padding: const EdgeInsets.fromLTRB(12, 12, 12, 80),
             itemCount: partners.length,
             itemBuilder: (context, index) => _buildPartnerCard(partners[index]),
           );
@@ -113,14 +112,13 @@ class _AdminRewardsPageState extends State<AdminRewardsPage> with SingleTickerPr
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: () => _showPartnerDialog(null),
-        backgroundColor: Colors.purple[700],
+        backgroundColor: adminPrimaryColor,
         tooltip: 'Aggiungi Partner',
         child: const Icon(Icons.add, color: Colors.white),
       ),
     );
   }
 
-  // --- CARD UI ---
   Widget _buildPrizeCard(Prize prize) {
     return Card(
       margin: const EdgeInsets.symmetric(vertical: 8),
@@ -142,23 +140,44 @@ class _AdminRewardsPageState extends State<AdminRewardsPage> with SingleTickerPr
   Widget _buildPartnerCard(Partner partner) {
     return Card(
       margin: const EdgeInsets.symmetric(vertical: 8),
-      child: ListTile(
+      child: ExpansionTile( // Usiamo ExpansionTile per mostrare i dettagli extra
         title: Text(partner.nome, style: const TextStyle(fontWeight: FontWeight.bold)),
-        subtitle: Text(partner.descrizione ?? 'Nessuna descrizione'),
-        trailing: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            IconButton(icon: const Icon(Icons.edit), onPressed: () => _showPartnerDialog(partner)),
-            IconButton(icon: const Icon(Icons.delete, color: Colors.red), onPressed: () => _controller.deletePartner(context, partner.id)),
-          ],
-        ),
+        subtitle: Text(partner.descrizione ?? 'Nessuna descrizione', maxLines: 1, overflow: TextOverflow.ellipsis),
+        children: [
+          Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                if (partner.indirizzo != null) Text("📍 Indirizzo: ${partner.indirizzo}"),
+                if (partner.latitudine != null) Text("🌐 GPS: ${partner.latitudine}, ${partner.longitudine}"),
+                if (partner.link != null) Text("🔗 Sito: ${partner.link}"),
+                const SizedBox(height: 10),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  children: [
+                    TextButton.icon(
+                        icon: const Icon(Icons.edit),
+                        label: const Text("Modifica"),
+                        onPressed: () => _showPartnerDialog(partner)
+                    ),
+                    TextButton.icon(
+                        icon: const Icon(Icons.delete, color: Colors.red),
+                        label: const Text("Elimina", style: TextStyle(color: Colors.red)),
+                        onPressed: () => _controller.deletePartner(context, partner.idpartner)
+                    ),
+                  ],
+                )
+              ],
+            ),
+          )
+        ],
       ),
     );
   }
 
-  // --- DIALOGHI ---
-
   void _showPrizeDialog(Prize? prize) {
+    // ... (Codice Prize dialog invariato, omesso per brevità ma incluso nel contesto mentale)
     final isCreating = prize == null;
     final formKey = GlobalKey<FormState>();
 
@@ -191,7 +210,7 @@ class _AdminRewardsPageState extends State<AdminRewardsPage> with SingleTickerPr
                         value: selectedPartnerId,
                         decoration: const InputDecoration(labelText: 'Partner', border: OutlineInputBorder()),
                         hint: const Text("Seleziona un partner"),
-                        items: partners.map((p) => DropdownMenuItem(value: p.id, child: Text(p.nome))).toList(),
+                        items: partners.map((p) => DropdownMenuItem(value: p.idpartner, child: Text(p.nome))).toList(),
                         onChanged: (value) => selectedPartnerId = value,
                         validator: (v) => v == null ? 'Campo obbligatorio' : null,
                       );
@@ -230,6 +249,7 @@ class _AdminRewardsPageState extends State<AdminRewardsPage> with SingleTickerPr
     );
   }
 
+  // --- DIALOGO PARTNER AGGIORNATO ---
   void _showPartnerDialog(Partner? partner) {
     final isCreating = partner == null;
     final formKey = GlobalKey<FormState>();
@@ -237,9 +257,30 @@ class _AdminRewardsPageState extends State<AdminRewardsPage> with SingleTickerPr
     final nomeController = TextEditingController(text: partner?.nome ?? '');
     final descController = TextEditingController(text: partner?.descrizione ?? '');
     final linkController = TextEditingController(text: partner?.link ?? '');
+    final indirizzoController = TextEditingController(text: partner?.indirizzo ?? '');
+    final latController = TextEditingController(text: partner?.latitudine?.toString() ?? '');
+    final lonController = TextEditingController(text: partner?.longitudine?.toString() ?? '');
+
+    void pickLocationOnMap(BuildContext dialogContext) async {
+      double startLat = double.tryParse(latController.text.replaceAll(',', '.')) ?? 40.6824;
+      double startLng = double.tryParse(lonController.text.replaceAll(',', '.')) ?? 14.7681;
+
+      final LatLng? pickedLocation = await Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (ctx) => _LocationPickerScreen(initialCenter: LatLng(startLat, startLng)),
+        ),
+      );
+
+      if (pickedLocation != null) {
+        latController.text = pickedLocation.latitude.toStringAsFixed(6);
+        lonController.text = pickedLocation.longitude.toStringAsFixed(6);
+      }
+    }
 
     showDialog(
       context: context,
+      barrierDismissible: false,
       builder: (ctx) {
         return AlertDialog(
           title: Text(isCreating ? "Nuovo Partner" : "Modifica Partner"),
@@ -250,8 +291,46 @@ class _AdminRewardsPageState extends State<AdminRewardsPage> with SingleTickerPr
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   TextFormField(controller: nomeController, decoration: const InputDecoration(labelText: 'Nome Partner'), validator: (v) => v!.isEmpty ? 'Campo obbligatorio' : null),
+                  const SizedBox(height: 10),
                   TextFormField(controller: descController, decoration: const InputDecoration(labelText: 'Descrizione')),
+                  const SizedBox(height: 10),
                   TextFormField(controller: linkController, decoration: const InputDecoration(labelText: 'Sito Web (URL)')),
+                  const SizedBox(height: 10),
+                  TextFormField(controller: indirizzoController, decoration: const InputDecoration(labelText: 'Indirizzo (Via, Città)')),
+                  const SizedBox(height: 20),
+
+                  const Text("Posizione", style: TextStyle(fontWeight: FontWeight.bold)),
+                  const SizedBox(height: 8),
+                  ElevatedButton.icon(
+                    onPressed: () => pickLocationOnMap(ctx),
+                    icon: const Icon(Icons.map),
+                    label: const Text("📍 Seleziona su Mappa"),
+                    style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.blue[100],
+                        foregroundColor: Colors.blue[900],
+                        minimumSize: const Size(double.infinity, 40)
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: TextFormField(
+                          controller: latController,
+                          decoration: const InputDecoration(labelText: 'Latitudine', border: OutlineInputBorder()),
+                          keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: TextFormField(
+                          controller: lonController,
+                          decoration: const InputDecoration(labelText: 'Longitudine', border: OutlineInputBorder()),
+                          keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                        ),
+                      ),
+                    ],
+                  )
                 ],
               ),
             ),
@@ -261,12 +340,22 @@ class _AdminRewardsPageState extends State<AdminRewardsPage> with SingleTickerPr
             ElevatedButton(
               onPressed: () {
                 if (formKey.currentState!.validate()) {
+                  // Parsing sicuro coordinate
+                  double? lat;
+                  double? lon;
+                  if (latController.text.isNotEmpty) lat = double.tryParse(latController.text.replaceAll(',', '.'));
+                  if (lonController.text.isNotEmpty) lon = double.tryParse(lonController.text.replaceAll(',', '.'));
+
                   final newPartner = Partner(
-                    id: partner?.id ?? 'PARTNER-${DateTime.now().millisecondsSinceEpoch}',
+                    idpartner: partner?.idpartner ?? 'PARTNER-${DateTime.now().millisecondsSinceEpoch}',
                     nome: nomeController.text,
                     descrizione: descController.text,
                     link: linkController.text,
+                    indirizzo: indirizzoController.text,
+                    latitudine: lat,
+                    longitudine: lon,
                   );
+
                   if (isCreating) {
                     _controller.createPartner(context, newPartner);
                   } else {
@@ -280,6 +369,81 @@ class _AdminRewardsPageState extends State<AdminRewardsPage> with SingleTickerPr
           ],
         );
       },
+    );
+  }
+}
+
+// --- LOCATION PICKER SCREEN (Riutilizzato) ---
+class _LocationPickerScreen extends StatefulWidget {
+  final LatLng initialCenter;
+  const _LocationPickerScreen({required this.initialCenter});
+
+  @override
+  State<_LocationPickerScreen> createState() => _LocationPickerScreenState();
+}
+
+class _LocationPickerScreenState extends State<_LocationPickerScreen> {
+  late LatLng _pickedPosition;
+  final MapController _mapController = MapController();
+
+  @override
+  void initState() {
+    super.initState();
+    _pickedPosition = widget.initialCenter;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text("Seleziona Posizione Partner"),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.check),
+            onPressed: () => Navigator.pop(context, _pickedPosition),
+          )
+        ],
+      ),
+      body: Stack(
+        children: [
+          FlutterMap(
+            mapController: _mapController,
+            options: MapOptions(
+              initialCenter: widget.initialCenter,
+              initialZoom: 15.0,
+              onTap: (tapPosition, point) {
+                setState(() {
+                  _pickedPosition = point;
+                });
+              },
+            ),
+            children: [
+              TileLayer(
+                urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                userAgentPackageName: 'com.unisa.cityclean',
+              ),
+              MarkerLayer(
+                markers: [
+                  Marker(
+                    point: _pickedPosition,
+                    width: 50,
+                    height: 50,
+                    child: const Icon(Icons.location_on, color: Colors.blue, size: 40),
+                  ),
+                ],
+              ),
+            ],
+          ),
+          Positioned(
+            bottom: 30, left: 20, right: 20,
+            child: ElevatedButton(
+              onPressed: () => Navigator.pop(context, _pickedPosition),
+              style: ElevatedButton.styleFrom(backgroundColor: Colors.blue[700], foregroundColor: Colors.white, padding: const EdgeInsets.symmetric(vertical: 15)),
+              child: const Text("CONFERMA POSIZIONE", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+            ),
+          )
+        ],
+      ),
     );
   }
 }

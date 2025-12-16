@@ -1,20 +1,17 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
-    <!-- permessi per notifiche-->
-    <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
-
-    <!-- Permessi di localizzazione (DEVONO stare qui) -->
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
+    <uses-permission android:name="android.permission.INTERNET"/>
 
-    <!-- Se servono (solo Android 10+) -->
-    <!-- <uses-permission android:name="android.permission.ACCESS_BACKGROUND_LOCATION" /> -->
-
-    <!-- Permesso già presente -->
-    <uses-permission android:name="android.permission.CAMERA" />
-
-    <!-- Query richieste da Flutter -->
+    <!-- Blocco per permettere l'apertura di link esterni come le mappe -->
     <queries>
+        <!-- Browser -->
+        <intent>
+            <action android:name="android.intent.action.VIEW" />
+            <data android:scheme="https" />
+        </intent>
+        <!-- Mappe -->
         <intent>
             <action android:name="android.intent.action.PROCESS_TEXT" />
             <data android:mimeType="text/plain" />
@@ -25,12 +22,10 @@
         android:label="cityclean"
         android:name="${applicationName}"
         android:icon="@mipmap/launcher_icon">
-
         <activity
             android:name=".MainActivity"
             android:exported="true"
             android:launchMode="singleTop"
-            android:taskAffinity=""
             android:theme="@style/LaunchTheme"
             android:configChanges="orientation|keyboardHidden|keyboard|screenSize|smallestScreenSize|locale|layoutDirection|fontScale|screenLayout|density|uiMode"
             android:hardwareAccelerated="true"
@@ -50,5 +45,4 @@
             android:name="flutterEmbedding"
             android:value="2" />
     </application>
-
 </manifest>

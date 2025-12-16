@@ -1,15 +1,17 @@
 import 'package:cityclean/controllers/admin/ecopoints_controller.dart';
-import 'package:cityclean/models/ecopoint.dart';
+import 'package:cityclean/models/eco_point_model.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_map/flutter_map.dart';
+import 'package:latlong2/latlong.dart';
 
 class AdminListEcopointsPage extends StatefulWidget {
   const AdminListEcopointsPage({super.key});
 
   @override
-  State<AdminListEcopointsPage> createState() => _AdminListEcopointsPageState();
+  AdminListEcopointsPageState createState() => AdminListEcopointsPageState();
 }
 
-class _AdminListEcopointsPageState extends State<AdminListEcopointsPage> {
+class AdminListEcopointsPageState extends State<AdminListEcopointsPage> {
   late final EcopointsController _controller;
 
   @override
@@ -25,15 +27,30 @@ class _AdminListEcopointsPageState extends State<AdminListEcopointsPage> {
     super.dispose();
   }
 
+  // Metodo pubblico richiamato dalla Dashboard tramite GlobalKey
+  void refreshEcopoints() {
+    _controller.loadEcopoints();
+  }
+
+  void _openEcopointDialog([Ecopoint? ecopoint]) {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) => _EcopointDialog(
+        controller: _controller,
+        ecopoint: ecopoint,
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text("Gestione Punti di Raccolta"),
-        backgroundColor: Colors.white,
-        elevation: 1,
-      ),
       backgroundColor: Colors.grey[100],
+      // Rimossi i pulsanti (actions) dall'AppBar locale per usare quelli della Dashboard
+      appBar: AppBar(
+        title: const Text("Gestione Ecopunti"),
+      ),
       body: ValueListenableBuilder<EcopointsState>(
         valueListenable: _controller.state,
         builder: (context, state, _) {
@@ -42,9 +59,14 @@ class _AdminListEcopointsPageState extends State<AdminListEcopointsPage> {
           }
           if (state == EcopointsState.error) {
             return Center(
-              child: Padding(
-                padding: const EdgeInsets.all(16.0),
-                child: Text(_controller.errorMessage.value, textAlign: TextAlign.center),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Icon(Icons.error_outline, size: 48, color: Colors.red),
+                  const SizedBox(height: 10),
+                  Text(_controller.errorMessage.value, textAlign: TextAlign.center),
+                  ElevatedButton(onPressed: _controller.loadEcopoints, child: const Text("Riprova"))
+                ],
               ),
             );
           }
@@ -56,7 +78,7 @@ class _AdminListEcopointsPageState extends State<AdminListEcopointsPage> {
                 return const Center(child: Text("Nessun ecopunto trovato."));
               }
               return ListView.builder(
-                padding: const EdgeInsets.all(12),
+                padding: const EdgeInsets.fromLTRB(12, 12, 12, 80),
                 itemCount: ecopoints.length,
                 itemBuilder: (context, index) {
                   return _buildEcopointCard(ecopoints[index]);
@@ -66,11 +88,11 @@ class _AdminListEcopointsPageState extends State<AdminListEcopointsPage> {
           );
         },
       ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () => _showEditDialog(context, null),
+      floatingActionButton: FloatingActionButton.extended(
+        onPressed: () => _openEcopointDialog(null),
         backgroundColor: Colors.green[700],
-        tooltip: 'Aggiungi Ecopunto',
-        child: const Icon(Icons.add, color: Colors.white),
+        icon: const Icon(Icons.add_location_alt, color: Colors.white),
+        label: const Text("Nuovo Ecopunto", style: TextStyle(color: Colors.white)),
       ),
     );
   }
@@ -78,38 +100,44 @@ class _AdminListEcopointsPageState extends State<AdminListEcopointsPage> {
   Widget _buildEcopointCard(Ecopoint ecopoint) {
     return Card(
       margin: const EdgeInsets.symmetric(vertical: 8),
-      elevation: 2,
+      elevation: 3,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      clipBehavior: Clip.antiAlias,
       child: ExpansionTile(
+        tilePadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        leading: Container(
+          padding: const EdgeInsets.all(8),
+          decoration: BoxDecoration(color: Colors.green[50], shape: BoxShape.circle),
+          child: Icon(Icons.recycling, color: Colors.green[700]),
+        ),
         title: Text(ecopoint.name, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
         subtitle: Text(ecopoint.address, maxLines: 1, overflow: TextOverflow.ellipsis),
-        leading: Icon(Icons.location_on, color: Colors.green[700]),
         children: [
           Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            padding: const EdgeInsets.all(16),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text("Statistiche (Ultimi 30 giorni)", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
-                const Divider(height: 16),
-                _buildStatRow(Icons.recycling, "Totale Conferimenti", ecopoint.monthlyConferimentiCount.toString()),
-                _buildStatRow(Icons.person, "Utenti Unici", ecopoint.monthlyUniqueUsers.toString()),
-                _buildStatRow(Icons.star, "Punti Generati", ecopoint.monthlyTotalPunti.toString()),
-                const Divider(height: 24),
+                const Divider(),
+                _buildStatRow(Icons.map, "Coordinate", "${ecopoint.latitude.toStringAsFixed(4)}, ${ecopoint.longitude.toStringAsFixed(4)}"),
+                _buildStatRow(Icons.category, "Tipologia", ecopoint.type),
+                const SizedBox(height: 10),
+                const Text("Statistiche Mensili", style: TextStyle(fontWeight: FontWeight.bold, color: Colors.grey)),
+                _buildStatRow(Icons.delete_outline, "Conferimenti", ecopoint.monthlyConferimentiCount.toString()),
+                _buildStatRow(Icons.group, "Utenti", ecopoint.monthlyUniqueUsers.toString()),
+                const SizedBox(height: 15),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.end,
                   children: [
-                    IconButton(
-                      icon: const Icon(Icons.edit, color: Colors.blue), 
-                      tooltip: 'Modifica',
-                      onPressed: () => _showEditDialog(context, ecopoint)
+                    TextButton.icon(
+                      icon: const Icon(Icons.edit, size: 18),
+                      label: const Text("Modifica"),
+                      onPressed: () => _openEcopointDialog(ecopoint),
                     ),
                     const SizedBox(width: 8),
-                    IconButton(
-                      icon: const Icon(Icons.delete, color: Colors.red), 
-                      tooltip: 'Elimina',
-                      onPressed: () => _showDeleteDialog(context, ecopoint)
+                    TextButton.icon(
+                      icon: const Icon(Icons.delete, size: 18, color: Colors.red),
+                      label: const Text("Elimina", style: TextStyle(color: Colors.red)),
+                      onPressed: () => _showDeleteDialog(context, ecopoint),
                     ),
                   ],
                 )
@@ -126,102 +154,242 @@ class _AdminListEcopointsPageState extends State<AdminListEcopointsPage> {
       padding: const EdgeInsets.symmetric(vertical: 4.0),
       child: Row(
         children: [
-          Icon(icon, color: Colors.grey[600], size: 18),
-          const SizedBox(width: 12),
-          Text("$label:", style: TextStyle(color: Colors.grey[700])),
-          const Spacer(),
-          Text(value, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
+          Icon(icon, color: Colors.grey[500], size: 16),
+          const SizedBox(width: 8),
+          Text("$label: ", style: const TextStyle(color: Colors.grey)),
+          Expanded(child: Text(value, style: const TextStyle(fontWeight: FontWeight.w500))),
         ],
       ),
     );
   }
-
 
   void _showDeleteDialog(BuildContext context, Ecopoint ecopoint) {
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text("Conferma Eliminazione"),
-        content: Text("Sei sicuro di voler eliminare l'ecopunto '${ecopoint.name}'? L'azione è irreversibile."),
+      builder: (ctx) => AlertDialog(
+        title: const Text("Elimina Ecopunto"),
+        content: Text("Sei sicuro di voler eliminare '${ecopoint.name}'?"),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Annulla')),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Annulla')),
+          TextButton(
+            style: TextButton.styleFrom(foregroundColor: Colors.red),
             onPressed: () {
+              Navigator.pop(ctx);
               _controller.deleteEcopoint(context, ecopoint.id);
-              Navigator.pop(context);
             },
-            child: const Text('Elimina', style: TextStyle(color: Colors.white)),
+            child: const Text('Elimina'),
           ),
         ],
       ),
     );
   }
+}
 
-  void _showEditDialog(BuildContext context, Ecopoint? ecopoint) {
-    final isCreating = ecopoint == null;
-    final formKey = GlobalKey<FormState>();
-    
-    // CORREZIONE: Rimosso il `!` da `ecopoint!.id` perché la logica `isCreating` già garantisce che non sia null in questo ramo.
-    final idController = TextEditingController(text: isCreating ? 'ECO-${DateTime.now().millisecondsSinceEpoch}' : ecopoint.id);
-    final nomeController = TextEditingController(text: ecopoint?.name ?? '');
-    final indirizzoController = TextEditingController(text: ecopoint?.address ?? '');
-    final tipologiaController = TextEditingController(text: ecopoint?.type ?? '');
-    final latController = TextEditingController(text: ecopoint?.latitude.toString() ?? '');
-    final lonController = TextEditingController(text: ecopoint?.longitude.toString() ?? '');
+// --------------------------------------------------------------------------
+// NUOVO WIDGET DIALOG: Isola lo stato e il contesto, risolvendo i problemi CI/CD
+// --------------------------------------------------------------------------
+class _EcopointDialog extends StatefulWidget {
+  final EcopointsController controller;
+  final Ecopoint? ecopoint;
 
-    showDialog(
-      context: context,
-      builder: (context) {
-        return AlertDialog(
-          title: Text(isCreating ? "Nuovo Ecopunto" : "Modifica Ecopunto"),
-          content: Form(
-            key: formKey,
-            child: SingleChildScrollView(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  TextFormField(
-                    controller: idController,
-                    decoration: const InputDecoration(labelText: 'ID'),
-                    readOnly: true,
-                  ),
-                  TextFormField(controller: nomeController, decoration: const InputDecoration(labelText: 'Nome'), validator: (v) => v!.isEmpty ? 'Campo obbligatorio' : null),
-                  TextFormField(controller: indirizzoController, decoration: const InputDecoration(labelText: 'Indirizzo')),
-                  TextFormField(controller: tipologiaController, decoration: const InputDecoration(labelText: 'Tipologia')),
-                  TextFormField(controller: latController, decoration: const InputDecoration(labelText: 'Latitudine'), keyboardType: TextInputType.number, validator: (v) => (v == null || v.isEmpty || double.tryParse(v) == null) ? 'Valore non valido' : null),
-                  TextFormField(controller: lonController, decoration: const InputDecoration(labelText: 'Longitudine'), keyboardType: TextInputType.number, validator: (v) => (v == null || v.isEmpty || double.tryParse(v) == null) ? 'Valore non valido' : null),
-                ],
+  const _EcopointDialog({required this.controller, this.ecopoint});
+
+  @override
+  State<_EcopointDialog> createState() => _EcopointDialogState();
+}
+
+class _EcopointDialogState extends State<_EcopointDialog> {
+  final _formKey = GlobalKey<FormState>();
+  late TextEditingController _idController;
+  late TextEditingController _nameController;
+  late TextEditingController _addressController;
+  late TextEditingController _typeController;
+  late TextEditingController _latController;
+  late TextEditingController _lonController;
+  bool _isSaving = false;
+
+  bool get _isCreating => widget.ecopoint == null;
+
+  @override
+  void initState() {
+    super.initState();
+    _idController = TextEditingController(text: _isCreating ? '' : widget.ecopoint!.id);
+    _nameController = TextEditingController(text: widget.ecopoint?.name ?? '');
+    _addressController = TextEditingController(text: widget.ecopoint?.address ?? '');
+    _typeController = TextEditingController(text: widget.ecopoint?.type ?? 'Generico');
+    _latController = TextEditingController(text: widget.ecopoint?.latitude.toString() ?? '');
+    _lonController = TextEditingController(text: widget.ecopoint?.longitude.toString() ?? '');
+  }
+
+  @override
+  void dispose() {
+    _idController.dispose();
+    _nameController.dispose();
+    _addressController.dispose();
+    _typeController.dispose();
+    _latController.dispose();
+    _lonController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _pickLocation() async {
+    double startLat = double.tryParse(_latController.text.replaceAll(',', '.')) ?? 40.6824;
+    double startLng = double.tryParse(_lonController.text.replaceAll(',', '.')) ?? 14.7681;
+
+    final LatLng? pickedLocation = await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (ctx) => _LocationPickerScreen(initialCenter: LatLng(startLat, startLng)),
+      ),
+    );
+
+    if (pickedLocation != null) {
+      _latController.text = pickedLocation.latitude.toStringAsFixed(6);
+      _lonController.text = pickedLocation.longitude.toStringAsFixed(6);
+    }
+  }
+
+  Future<void> _handleSave() async {
+    if (!_formKey.currentState!.validate()) return;
+
+    setState(() => _isSaving = true);
+
+    // REFERENCE CAPTURE: Catturiamo le referenze PRIMA dell'operazione asincrona.
+    final navigator = Navigator.of(context);
+    final messenger = ScaffoldMessenger.of(context);
+
+    try {
+      final double lat = double.parse(_latController.text.replaceAll(',', '.'));
+      final double lon = double.parse(_lonController.text.replaceAll(',', '.'));
+
+      String newId = '';
+      if (_isCreating) {
+        newId = 'ECO-${DateTime.now().millisecondsSinceEpoch}-${(lat * 100).toInt()}';
+      }
+
+      final ecopointData = Ecopoint(
+        id: _isCreating ? newId : _idController.text,
+        name: _nameController.text,
+        address: _addressController.text,
+        type: _typeController.text,
+        latitude: lat,
+        longitude: lon,
+      );
+
+      if (_isCreating) {
+        await widget.controller.createEcopoint(context, ecopointData);
+      } else {
+        await widget.controller.updateEcopoint(context, ecopointData);
+      }
+
+      navigator.pop();
+
+    } catch (e) {
+      messenger.showSnackBar(SnackBar(content: Text("Errore: $e")));
+      if (mounted) {
+        setState(() => _isSaving = false);
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: Text(_isCreating ? "Nuovo Ecopunto" : "Modifica Ecopunto"),
+      content: Form(
+        key: _formKey,
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              if (!_isCreating)
+                TextFormField(
+                  controller: _idController,
+                  decoration: const InputDecoration(labelText: 'ID (Sola Lettura)', filled: true),
+                  readOnly: true,
+                  style: const TextStyle(fontSize: 12, color: Colors.grey),
+                ),
+              if (_isCreating)
+                const Padding(
+                  padding: EdgeInsets.only(bottom: 10),
+                  child: Text("ID verrà generato automaticamente: ECO-...", style: TextStyle(fontSize: 12, color: Colors.blueGrey)),
+                ),
+              const SizedBox(height: 10),
+              TextFormField(controller: _nameController, decoration: const InputDecoration(labelText: 'Nome Punto'), validator: (v) => v!.isEmpty ? 'Inserisci un nome' : null),
+              const SizedBox(height: 10),
+              TextFormField(controller: _addressController, decoration: const InputDecoration(labelText: 'Indirizzo')),
+              const SizedBox(height: 10),
+              TextFormField(controller: _typeController, decoration: const InputDecoration(labelText: 'Tipologia')),
+              const SizedBox(height: 20),
+              ElevatedButton.icon(
+                onPressed: _pickLocation,
+                icon: const Icon(Icons.map),
+                label: const Text("📍 Seleziona su Mappa"),
               ),
-            ),
+              const SizedBox(height: 10),
+              Row(
+                children: [
+                  Expanded(child: TextFormField(controller: _latController, decoration: const InputDecoration(labelText: 'Lat'), keyboardType: TextInputType.number)),
+                  const SizedBox(width: 10),
+                  Expanded(child: TextFormField(controller: _lonController, decoration: const InputDecoration(labelText: 'Lon'), keyboardType: TextInputType.number)),
+                ],
+              )
+            ],
           ),
-          actions: [
-            TextButton(onPressed: () => Navigator.pop(context), child: const Text('Annulla')),
-            ElevatedButton(
-              onPressed: () {
-                if (formKey.currentState!.validate()) {
-                  final ecopointData = Ecopoint(
-                    id: idController.text,
-                    name: nomeController.text,
-                    address: indirizzoController.text,
-                    type: tipologiaController.text,
-                    latitude: double.parse(latController.text),
-                    longitude: double.parse(lonController.text),
-                  );
+        ),
+      ),
+      actions: [
+        TextButton(
+            onPressed: _isSaving ? null : () => Navigator.pop(context),
+            child: const Text('Annulla')
+        ),
+        ElevatedButton(
+          onPressed: _isSaving ? null : _handleSave,
+          child: _isSaving ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator()) : Text(_isCreating ? 'Crea' : 'Salva'),
+        ),
+      ],
+    );
+  }
+}
 
-                  if (isCreating) {
-                    _controller.createEcopoint(context, ecopointData);
-                  } else {
-                    _controller.updateEcopoint(context, ecopointData);
-                  }
-                  Navigator.pop(context);
-                }
-              },
-              child: const Text('Salva'),
+class _LocationPickerScreen extends StatefulWidget {
+  final LatLng initialCenter;
+  const _LocationPickerScreen({required this.initialCenter});
+  @override
+  State<_LocationPickerScreen> createState() => _LocationPickerScreenState();
+}
+
+class _LocationPickerScreenState extends State<_LocationPickerScreen> {
+  late LatLng _pickedPosition;
+  final MapController _mapController = MapController();
+
+  @override
+  void initState() { super.initState(); _pickedPosition = widget.initialCenter; }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: const Text("Seleziona Posizione"), actions: [IconButton(icon: const Icon(Icons.check), onPressed: () => Navigator.pop(context, _pickedPosition))]),
+      body: Stack(
+        children: [
+          FlutterMap(
+            mapController: _mapController,
+            options: MapOptions(initialCenter: widget.initialCenter, initialZoom: 15, onTap: (_, p) => setState(() => _pickedPosition = p)),
+            children: [
+              TileLayer(urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png', userAgentPackageName: 'com.unisa.cityclean'),
+              MarkerLayer(markers: [Marker(point: _pickedPosition, width: 50, height: 50, child: const Icon(Icons.location_on, color: Colors.red, size: 40))]),
+            ],
+          ),
+          Positioned(
+            bottom: 30, left: 20, right: 20,
+            child: ElevatedButton(
+              onPressed: () => Navigator.pop(context, _pickedPosition),
+              style: ElevatedButton.styleFrom(backgroundColor: Colors.green[700], foregroundColor: Colors.white, padding: const EdgeInsets.symmetric(vertical: 15)),
+              child: const Text("CONFERMA POSIZIONE", style: TextStyle(fontWeight: FontWeight.bold)),
             ),
-          ],
-        );
-      },
+          )
+        ],
+      ),
     );
   }
 }

@@ -17,7 +17,7 @@ class Prize {
     required this.costoPunti,
     required this.quantitaDisponibile,
     required this.idPartner,
-    this.partner, // Aggiunto al costruttore
+    this.partner,
   });
 
   factory Prize.fromJson(Map<String, dynamic> json) {
@@ -32,8 +32,10 @@ class Prize {
           ? json['quantitadisponibile']
           : int.tryParse(json['quantitadisponibile'].toString()) ?? 0,
       idPartner: json['idpartner'] ?? '',
-      // Se nel JSON c'è l'oggetto partner (da una join), lo crea.
-      partner: json.containsKey('partner') && json['partner'] != null ? Partner.fromJson(json['partner']) : null,
+      // CORREZIONE: Qui usavamo Partner.fromJson, ora usiamo Partner.fromMap
+      partner: json.containsKey('partner') && json['partner'] != null
+          ? Partner.fromMap(json['partner'])
+          : null,
     );
   }
 
@@ -51,7 +53,8 @@ class Prize {
   static final _supabase = Supabase.instance.client;
 
   static Future<List<Prize>> fetchAll() async {
-    final response = await _supabase.from('premio').select();
+    // La join '*, partner(*)' è fondamentale per popolare il campo partner
+    final response = await _supabase.from('premio').select('*, partner:idpartner(*)');
     return (response as List).map((item) => Prize.fromJson(item)).toList();
   }
 }

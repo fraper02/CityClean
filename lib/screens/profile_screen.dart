@@ -4,6 +4,8 @@ import 'package:cityclean/screens/objectives_screen.dart';
 import 'package:cityclean/services/report_service.dart';
 import 'package:flutter/material.dart';
 import '../components/bottom_nav_bar.dart';
+import 'collection_history_screen.dart';
+import 'home_screen.dart';
 import 'redeemed_rewards_screen.dart';
 import 'guilds_list_screen.dart';
 import 'badge_screen.dart';
@@ -150,7 +152,19 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     );
                   },
                 ),
-
+                _buildNavigationCard(
+                  context: context,
+                  icon: Icons.history,
+                  label: "Storico Raccolte",
+                  subtitle: "Visualizza lo storico delle tue raccolte",
+                  iconColor: primaryGreen,
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (context) => const CollectionHistoryScreen()),
+                    );
+                  },
+                ),
                 _buildNavigationCard(
                   context: context,
                   icon: Icons.card_giftcard_outlined,
@@ -219,12 +233,26 @@ class _ProfileScreenState extends State<ProfileScreen> {
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+          Row(
             children: [
-              Text(title, style: const TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: Colors.white)),
-              const SizedBox(height: 5),
-              Text(subtitle, style: const TextStyle(fontSize: 16, color: Colors.white70)),
+              IconButton(
+                icon: const Icon(Icons.arrow_back, color: Colors.white),
+                onPressed: () {
+                  Navigator.pushReplacement(
+                    context,
+                    MaterialPageRoute(builder: (context) => const HomeScreen()),
+                  );
+                },
+              ),
+              const SizedBox(width: 10),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(title, style: const TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: Colors.white)),
+                  const SizedBox(height: 5),
+                  Text(subtitle, style: const TextStyle(fontSize: 16, color: Colors.white70)),
+                ],
+              ),
             ],
           ),
         ],

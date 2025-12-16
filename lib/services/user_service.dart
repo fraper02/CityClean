@@ -83,4 +83,13 @@ class UserService {
       throw Exception("Impossibile aggiornare il titolo.");
     }
   }
+
+  Future<void> signOut() async {
+    try {
+      await supabase.auth.signOut();
+    } catch (e) {
+      debugPrint("Errore durante il logout: $e");
+      throw Exception("Impossibile effettuare il logout.");
+    }
+  }
 }
